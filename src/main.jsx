@@ -9,11 +9,16 @@ import {
   RouterProvider,
   Link,
 } from 'react-router-dom';
+import UserForm from './User/UserForm'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
+  },
+  {
+    path: '/userForm',
+    element: <UserForm />,
   },
 ]);
 
