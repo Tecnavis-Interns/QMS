@@ -10,6 +10,7 @@ import {
   Link,
 } from 'react-router-dom';
 import UserForm from './User/UserForm'
+import AdminDash from './Admin/AdminDash'
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
   {
     path: '/userForm',
     element: <UserForm />,
+  },
+  {
+    path: '/adminDash',
+    element: <AdminDash />,
   },
 ]);
 
