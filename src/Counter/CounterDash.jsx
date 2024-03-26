@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Checkbox,
   Table,
   TableHeader,
   TableColumn,
@@ -9,7 +10,7 @@ import {
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
 
-const AdminDash = () => {
+const CounterDash = () => {
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen">
       <Navbar />
@@ -23,6 +24,7 @@ const AdminDash = () => {
               <TableColumn>Date</TableColumn>
               <TableColumn>Phone</TableColumn>
               <TableColumn>Reason for Visit</TableColumn>
+              <TableColumn>Visited</TableColumn>
             </TableHeader>
             <TableBody>
               <TableRow key="1">
@@ -31,6 +33,7 @@ const AdminDash = () => {
                 <TableCell>09-02-2024</TableCell>
                 <TableCell>9995559990</TableCell>
                 <TableCell>Feeling Sick</TableCell>
+                <TableCell><Checkbox></Checkbox></TableCell>
               </TableRow>
               <TableRow key="2">
                 <TableCell>2</TableCell>
@@ -38,6 +41,7 @@ const AdminDash = () => {
                 <TableCell>09-02-2024</TableCell>
                 <TableCell>9995559990</TableCell>
                 <TableCell>Feeling Sick</TableCell>
+                <TableCell><Checkbox></Checkbox></TableCell>
               </TableRow>
               <TableRow key="3">
                 <TableCell>3</TableCell>
@@ -45,6 +49,7 @@ const AdminDash = () => {
                 <TableCell>09-02-2024</TableCell>
                 <TableCell>9995559990</TableCell>
                 <TableCell>Feeling Sick</TableCell>
+                <TableCell><Checkbox></Checkbox></TableCell>
               </TableRow>
               <TableRow key="4">
                 <TableCell>4</TableCell>
@@ -52,6 +57,7 @@ const AdminDash = () => {
                 <TableCell>09-02-2024</TableCell>
                 <TableCell>9995559990</TableCell>
                 <TableCell>Feeling Sick</TableCell>
+                <TableCell><Checkbox></Checkbox></TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -108,4 +114,4 @@ const AdminDash = () => {
   );
 };
 
-export default AdminDash;
+export default CounterDash;

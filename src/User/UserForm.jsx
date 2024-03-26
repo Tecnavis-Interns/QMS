@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Input,
-  Textarea,
   Button,
   Table,
   TableHeader,
