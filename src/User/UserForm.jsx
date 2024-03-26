@@ -21,7 +21,7 @@ const UserForm = () => {
       <div className="flex flex-1 justify-center flex-wrap">
         <div className="min-w-[50%] flex flex-col items-center justify-center p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Create a request</h2>
-          <div className="flex flex-col w-full gap-4">
+          <form action="post"  className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" />
             <Input type="email" label="Email" />
             <Select label="Select your Reason to be here">
@@ -29,8 +29,8 @@ const UserForm = () => {
               <SelectItem className="font-[Outfit]">Vomiting</SelectItem>
               <SelectItem className="font-[Outfit]">Depression</SelectItem>
             </Select>
-          </div>
-          <Button className="bg-[#6236F5] text-white w-full">Submit</Button>
+            <Button className="bg-[#6236F5] text-white w-full">Submit</Button>
+          </form>
         </div>
         <div className="min-w-[50%] flex flex-col items-center justify-center p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
