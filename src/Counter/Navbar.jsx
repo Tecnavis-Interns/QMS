@@ -17,7 +17,7 @@ export default function App() {
         </NavbarBrand>
       </NavbarContent>
       <NavbarContent className="!justify-center">
-        <p>Admin Dashboard</p>
+        <p>Counter Dashboard</p>
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem>
