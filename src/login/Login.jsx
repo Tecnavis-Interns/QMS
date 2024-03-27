@@ -13,25 +13,20 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const isAdmin = await signIn(email, password);
-      const isCounter1 =  await signIn(email,password)
-      const isCounter2 =  await signIn(email,password)
-      const isCounter3 =  await signIn(email,password)
-      if (isAdmin) {
+      const role = await signIn(email, password);
+      if (role === "admin") {
         navigate('/adminDash');
-      } else if (isCounter1) {
-        navigate('/counterDash');
-      } else if (isCounter2) {
-        navigate('/counterDash');
-      } else if (isCounter3) {
+      } else if (role === "counter") {
         navigate('/counterDash');
       } else {
-        return error
+        setError("Unauthorized access"); // Handle unauthorized access error
       }
     } catch (error) {
       setError(error.message);
     }
   };
+
+
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen min-w-screen">
       <Navbar />
