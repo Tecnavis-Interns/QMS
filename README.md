@@ -28,7 +28,6 @@ The Queue Management System is a web application developed using React and Fireb
 2. Install dependencies:
 
    ```bash
-   cd queue-management-system
    npm install
    ```
 
