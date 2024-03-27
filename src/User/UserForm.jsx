@@ -34,6 +34,8 @@ export default function UserForm() {
     setService(event.target.value);
   };
 
+  const services = ['Personal Service (Income, Community, Nativity, etc)','Home related Service','Land Related Service','Education Related Service','Other Services']
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (phone.length < 10) {
@@ -90,20 +92,18 @@ export default function UserForm() {
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" />
             <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" />
-            <Select label="Select your Reason to be here" value={service} onChange={handleServiceChange} required>
-              <SelectItem className="font-[Outfit]">Personal Service (Income, Community, Nativity, etc)</SelectItem>
-              <SelectItem className="font-[Outfit]">Home related Service</SelectItem>
-              <SelectItem className="font-[Outfit]">Land Related Service</SelectItem>
-              <SelectItem className="font-[Outfit]">Education Related Service</SelectItem>
-              <SelectItem className="font-[Outfit]">Other Services</SelectItem>
+            <Select label="Select your Reason to be here" onChange={handleServiceChange} required>
+              {services.map((item)=>(
+              <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
+              ))}
             </Select>
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
           </form>
         </div>
         <div className="min-w-[50%] flex flex-col items-center justify-center p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
-          <div className="overflow-auto max-h-[250px] w-[350px] ml-18">
-          <Table aria-label="Example static collection table">
+          <div className="overflow-auto w-full min-h-64 max-h-64">
+          <Table aria-label="Example static collection table" removeWrapper isHeaderSticky>
             <TableHeader className="fixed">
               <TableColumn>Sl. no.</TableColumn>
               <TableColumn>Name</TableColumn>
