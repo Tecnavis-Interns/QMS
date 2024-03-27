@@ -84,10 +84,10 @@ export default function UserForm() {
   }, []);
 
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen">
+    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap">
-        <div className="md:min-w-[50%] w-[90%] flex flex-col items-center justify-center md:p-10 gap-4">
+        <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" />
@@ -100,7 +100,7 @@ export default function UserForm() {
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
           </form>
         </div>
-        <div className="md:min-w-[50%] w-[90%] flex flex-col items-center justify-center md:p-10 gap-4">
+        <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
           <div className="overflow-auto w-full md:min-h-64 md:max-h-64">
           <Table aria-label="Example static collection table" removeWrapper isHeaderSticky isStriped className="h-full">

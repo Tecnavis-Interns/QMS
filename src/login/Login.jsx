@@ -33,7 +33,7 @@ const Login = () => {
     }
   };
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen min-w-screen">
+    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh min-w-screen">
       <Navbar />
       <div className="flex flex-1 items-center justify-center">
         <Card className="p-5 md:min-w-96">

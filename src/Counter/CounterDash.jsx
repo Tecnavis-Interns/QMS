@@ -12,7 +12,7 @@ import Navbar from "./Navbar";
 
 const CounterDash = () => {
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen">
+    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap">
         <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
