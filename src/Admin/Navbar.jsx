@@ -7,8 +7,14 @@ import {
   Link,
   Button,
 } from "@nextui-org/react";
-
+import { signOutUser } from "../firebase";
+import { useNavigate } from "react-router-dom";
 export default function App() {
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await signOutUser();
+    navigate("/login")
+  }
   return (
     <Navbar>
       <NavbarContent>
@@ -26,6 +32,7 @@ export default function App() {
             className="bg-[#6236F5] text-white"
             href="#"
             variant="flat"
+            onClick={handleLogout}
           >
             Logout
           </Button>
