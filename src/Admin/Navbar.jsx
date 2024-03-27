@@ -13,13 +13,16 @@ export default function App() {
   const navigate = useNavigate();
   const handleLogout = async () => {
     await signOutUser();
-    navigate("/login")
-  }
+    navigate("/login");
+  };
   return (
     <Navbar>
       <NavbarContent>
         <NavbarBrand>
-          <p className="font-bold text-inherit">Queue Management System</p>
+          <p class="font-bold text-inherit sm:hidden">QMS</p>
+          <p class="font-bold text-inherit hidden sm:block">
+            Queue Management System
+          </p>
         </NavbarBrand>
       </NavbarContent>
       <NavbarContent className="!justify-center">

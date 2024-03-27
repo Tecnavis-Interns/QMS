@@ -12,8 +12,11 @@ export default function App() {
   return (
     <Navbar>
       <NavbarContent>
-        <NavbarBrand>
-          <p className="font-bold text-inherit">Queue Management System</p>
+      <NavbarBrand>
+          <p class="font-bold text-inherit sm:hidden">QMS</p>
+          <p class="font-bold text-inherit hidden sm:block">
+            Queue Management System
+          </p>
         </NavbarBrand>
       </NavbarContent>
       <NavbarContent justify="end">
