@@ -42,26 +42,25 @@ export default function UserForm() {
       alert("Please enter a 10 digit Phone Number");
       return;
     }
-
+  
     if (name === "") {
       alert("Please Enter you name.")
       return;
     }
-
+  
     if (service === "") {
       alert("Please select a service.")
       return;
     }
-
-
+  
     try {
-      await submitDataToFirestore({
+      const collectionName = 'requests'; // or 'responses' based on where you want to save the data
+      await submitDataToFirestore(collectionName, {
         name: name,
         phone: phone,
         service: service,
-        date: serverTimestamp()
       });
-
+  
       // Clear the form fields after submission
       setName("");
       setPhone("");
@@ -70,6 +69,7 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
+  
 
   useEffect(() => {
     const fetchData = async () => {
