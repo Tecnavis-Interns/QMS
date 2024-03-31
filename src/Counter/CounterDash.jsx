@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Checkbox,
   Table,
@@ -7,10 +7,78 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Select,
+  SelectItem,
+  Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
+import { collection, getDocs, serverTimestamp, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 const CounterDash = () => {
+  const [userData, setUserData] = useState([]);
+  const [selectedCounter, setSelectedCounter] = useState({});
+  const [visitedUsers, setVisitedUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
+        const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    };
+
+    fetchData();
+
+    const unsubscribe = onSnapshot(collection(db, "requests"), (snapshot) => {
+      const updatedData = snapshot.docs.map((doc) => doc.data());
+      const orderedData = updatedData.sort((a, b) => b.date - a.date);
+      const reversedData = orderedData.reverse();
+      setUserData(reversedData);
+    });
+
+    return () => unsubscribe(); // Unsubscribe when component unmounts
+  }, []);
+
+  const handleCounterChange = (event, userId) => {
+    const counter = event.target.value;
+    setSelectedCounter({ ...selectedCounter, [userId]: counter });
+  };
+
+  const handleCheckboxChange = (event, userId) => {
+    const isChecked = event.target.checked;
+    if (isChecked) {
+      setVisitedUsers([...visitedUsers, userId]);
+    } else {
+      setVisitedUsers(visitedUsers.filter((id) => id !== userId));
+    }
+  };
+
+  const handleSaveCounter = async (userId) => {
+    const counter = selectedCounter[userId];
+    if (counter) {
+      try {
+        await updateDoc(doc(db, "requests", userId), { counter: counter });
+        console.log("Counter saved successfully.");
+        alert("Counter saved successfully.");
+      } catch (error) {
+        console.error("Error saving counter: ", error);
+      }
+    } else {
+      console.warn("No counter selected.");
+    }
+  };
+
+  const handleSaveAllCounters = async () => {
+    // Save all selected counters to the database
+    for (const userId in selectedCounter) {
+      await handleSaveCounter(userId);
+    }
+  };
+
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen">
       <Navbar />
@@ -21,93 +89,45 @@ const CounterDash = () => {
             <TableHeader>
               <TableColumn>Sl. no.</TableColumn>
               <TableColumn>Name</TableColumn>
-              <TableColumn>Date</TableColumn>
               <TableColumn>Phone</TableColumn>
+              <TableColumn>Date</TableColumn>
               <TableColumn>Reason for Visit</TableColumn>
+              <TableColumn className="w-1/6">Counter</TableColumn>
               <TableColumn>Visited</TableColumn>
             </TableHeader>
             <TableBody>
-              <TableRow key="1">
-                <TableCell>1</TableCell>
-                <TableCell>CEO</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell><Checkbox></Checkbox></TableCell>
-              </TableRow>
-              <TableRow key="2">
-                <TableCell>2</TableCell>
-                <TableCell>Technical Lead</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell><Checkbox></Checkbox></TableCell>
-              </TableRow>
-              <TableRow key="3">
-                <TableCell>3</TableCell>
-                <TableCell>Senior Developer</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell><Checkbox></Checkbox></TableCell>
-              </TableRow>
-              <TableRow key="4">
-                <TableCell>4</TableCell>
-                <TableCell>Community Manager</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell><Checkbox></Checkbox></TableCell>
-              </TableRow>
+              {userData.map((user, index) => (
+                <TableRow key={index}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.phone}</TableCell>
+                  <TableCell>{user.date ? user.date.toDate().toLocaleString() : ""}</TableCell>
+                  <TableCell>{user.service}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={selectedCounter[user.id] || ""}
+                      onChange={(event) => handleCounterChange(event, user.id)}
+                    >
+                      <SelectItem value="Counter 1">Counter 1</SelectItem>
+                      <SelectItem value="Counter 2">Counter 2</SelectItem>
+                      <SelectItem value="Counter 3">Counter 3</SelectItem>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Checkbox
+                      checked={visitedUsers.includes(user.id)}
+                      onChange={(event) => handleCheckboxChange(event, user.id)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
-        </div>
-        <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
-          <h2 className="font-semibold md:text-xl">Visited Queue </h2>
-          <Table aria-label="Example static collection table">
-            <TableHeader>
-              <TableColumn>Sl. no.</TableColumn>
-              <TableColumn>Name</TableColumn>
-              <TableColumn>Date</TableColumn>
-              <TableColumn>Phone</TableColumn>
-              <TableColumn>Reason for Visit</TableColumn>
-              <TableColumn>Visited Counter</TableColumn>
-            </TableHeader>
-            <TableBody>
-              <TableRow key="1">
-                <TableCell>1</TableCell>
-                <TableCell>CEO</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell>001</TableCell>
-              </TableRow>
-              <TableRow key="2">
-                <TableCell>2</TableCell>
-                <TableCell>Technical Lead</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell>001</TableCell>
-              </TableRow>
-              <TableRow key="3">
-                <TableCell>3</TableCell>
-                <TableCell>Senior Developer</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell>001</TableCell>
-              </TableRow>
-              <TableRow key="4">
-                <TableCell>4</TableCell>
-                <TableCell>Community Manager</TableCell>
-                <TableCell>09-02-2024</TableCell>
-                <TableCell>9995559990</TableCell>
-                <TableCell>Feeling Sick</TableCell>
-                <TableCell>001</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <div className="flex justify-end mt-4">
+            <Button onClick={handleSaveAllCounters} disabled={Object.keys(selectedCounter).length === 0}>
+              Save All Counters
+            </Button>
+          </div>
         </div>
       </div>
     </div>
