@@ -28,16 +28,20 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Function to submit data to Firestore
-const submitDataToFirestore = async (data) => {
+const submitDataToFirestore = async (collectionName, data) => {
   try {
     data.date = serverTimestamp();
-    const docRef = await addDoc(collection(db, "requests"), data);
+    const docRef = await addDoc(collection(db, collectionName), data);
     console.log("Data submitted successfully with ID: ", docRef.id);
-    alert("Service request submitted successfully!");
+    alert("Data submitted successfully!");
+    return docRef.id; // Return the generated ID
   } catch (error) {
     console.error("Error submitting data: ", error);
+    throw error; // Re-throw the error to handle it at the caller level
   }
 };
+
+
 
 const signIn = async (email, password) => {
   try {
