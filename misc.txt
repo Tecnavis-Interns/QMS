@@ -1,3 +1,5 @@
+CounterDash trial 1
+
 import React, { useState, useEffect } from "react";
 import {
   Checkbox,
@@ -80,7 +82,7 @@ const CounterDash = () => {
   };
 
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
+    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-screen">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap">
         <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
@@ -89,9 +91,9 @@ const CounterDash = () => {
             <TableHeader>
               <TableColumn>Sl. no.</TableColumn>
               <TableColumn>Name</TableColumn>
-              <TableColumn>Phone</TableColumn>
               <TableColumn>Date</TableColumn>
-              <TableColumn>Reason for Visit</TableColumn>
+              <TableColumn>Phone</TableColumn>
+              <TableColumn className="w-3/6">Reason for Visit</TableColumn>
               <TableColumn className="w-1/6">Counter</TableColumn>
               <TableColumn>Visited</TableColumn>
             </TableHeader>
@@ -100,18 +102,21 @@ const CounterDash = () => {
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.date.toDate().toLocaleString()}</TableCell>
                   <TableCell>{user.phone}</TableCell>
-                  <TableCell>{user.date ? user.date.toDate().toLocaleString() : ""}</TableCell>
                   <TableCell>{user.service}</TableCell>
                   <TableCell>
                     <Select
-                      value={selectedCounter[user.id] || ""}
+                      value={user.counter || ""}
                       onChange={(event) => handleCounterChange(event, user.id)}
+                      aria-label={`Select Counter for ${user.name}`}
                     >
+                      <SelectItem value="">Not Assigned</SelectItem>
                       <SelectItem value="Counter 1">Counter 1</SelectItem>
                       <SelectItem value="Counter 2">Counter 2</SelectItem>
                       <SelectItem value="Counter 3">Counter 3</SelectItem>
                     </Select>
+
                   </TableCell>
                   <TableCell>
                     <Checkbox

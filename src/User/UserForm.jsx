@@ -34,6 +34,7 @@ export default function UserForm() {
     setService(event.target.value);
   };
 
+
   const services = ['Personal Service (Income, Community, Nativity, etc)','Home related Service','Land Related Service','Education Related Service','Other Services']
 
   const handleSubmit = async (event) => {
@@ -42,15 +43,25 @@ export default function UserForm() {
       alert("Please enter a 10 digit Phone Number");
       return;
     }
-
+  
+    if (name === "") {
+      alert("Please Enter you name.")
+      return;
+    }
+  
+    if (service === "") {
+      alert("Please select a service.")
+      return;
+    }
+  
     try {
-      await submitDataToFirestore({
+      const collectionName = 'requests'; // or 'responses' based on where you want to save the data
+      await submitDataToFirestore(collectionName, {
         name: name,
         phone: phone,
         service: service,
-        date: serverTimestamp()
       });
-
+  
       // Clear the form fields after submission
       setName("");
       setPhone("");
@@ -59,6 +70,7 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,6 +105,7 @@ export default function UserForm() {
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" />
             <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" />
             <Select label="Select your Reason to be here" onChange={handleServiceChange} required>
+
               {services.map((item)=>(
               <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
               ))}
@@ -102,6 +115,7 @@ export default function UserForm() {
         </div>
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
+
           <div className="overflow-auto w-full md:min-h-64 md:max-h-64">
           <Table aria-label="Example static collection table" removeWrapper isHeaderSticky isStriped className="h-full">
             <TableHeader>
@@ -123,5 +137,3 @@ export default function UserForm() {
     </div>
   );
 };
-
-
