@@ -20,8 +20,8 @@ export default function App() {
     <Navbar>
       <NavbarContent>
       <NavbarBrand>
-          <p class="font-bold text-inherit sm:hidden">QMS</p>
-          <p class="font-bold text-inherit hidden sm:block">
+          <p className="font-bold text-inherit sm:hidden">QMS</p>
+          <p className="font-bold text-inherit hidden sm:block">
             Queue Management System
           </p>
         </NavbarBrand>
