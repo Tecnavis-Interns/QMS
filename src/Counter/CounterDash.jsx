@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Checkbox,
   Table,
@@ -12,8 +12,17 @@ import {
   Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
-import { collection, getDocs, serverTimestamp, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  updateDoc,
+  query,
+  where
+} from "firebase/firestore";
 import { db } from "../firebase";
+
 
 const CounterDash = () => {
   const [userData, setUserData] = useState([]);
@@ -23,8 +32,14 @@ const CounterDash = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
-        const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const querySnapshot = await getDocs(
+          collection(db, "requests"),
+          orderBy("date", "desc")
+        );
+        const data = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setUserData(data);
       } catch (error) {
         console.error("Error fetching data: ", error);
@@ -45,6 +60,7 @@ const CounterDash = () => {
 
   const handleCounterChange = (event, userId) => {
     const counter = event.target.value;
+    console.log(userId, counter);
     setSelectedCounter({ ...selectedCounter, [userId]: counter });
   };
 
@@ -61,9 +77,20 @@ const CounterDash = () => {
     const counter = selectedCounter[userId];
     if (counter) {
       try {
-        await updateDoc(doc(db, "requests", userId), { counter: counter });
-        console.log("Counter saved successfully.");
-        alert("Counter saved successfully.");
+        // Create a query to find the document where the id field matches the userId
+        const q = query(collection(db, "requests"), where("id", "==", userId));
+        const querySnapshot = await getDocs(q);
+  
+        // Check if a document with the specified userId exists
+        if (!querySnapshot.empty) {
+          // If a document exists, update the counter field
+          const docRef = querySnapshot.docs[0].ref;
+          await updateDoc(docRef, { counter: counter });
+          console.log("Counter saved successfully.");
+          alert("Counter saved successfully.");
+        } else {
+          console.warn("Document with id", userId, "not found.");
+        }
       } catch (error) {
         console.error("Error saving counter: ", error);
       }
@@ -96,35 +123,54 @@ const CounterDash = () => {
               <TableColumn>Visited</TableColumn>
             </TableHeader>
             <TableBody>
-              {userData.map((user, index) => (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>{user.date ? user.date.toDate().toLocaleString() : ""}</TableCell>
-                  <TableCell>{user.service}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={selectedCounter[user.id] || ""}
-                      onChange={(event) => handleCounterChange(event, user.id)}
-                    >
-                      <SelectItem value="Counter 1">Counter 1</SelectItem>
-                      <SelectItem value="Counter 2">Counter 2</SelectItem>
-                      <SelectItem value="Counter 3">Counter 3</SelectItem>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Checkbox
-                      checked={visitedUsers.includes(user.id)}
-                      onChange={(event) => handleCheckboxChange(event, user.id)}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
+              {userData.map((user, index) => {
+                return (
+                  <TableRow key={index}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>
+                      {user.date ? user.date.toDate().toLocaleString() : ""}
+                    </TableCell>
+                    <TableCell>{user.service}</TableCell>
+                    <TableCell>
+                      <Select
+                        label="select counter"
+                        value={selectedCounter[user.id] || ""}
+                        defaultSelectedKeys={[`${user.counter}`]}
+                        onChange={(event) =>
+                          handleCounterChange(event, user.id)
+                        }
+                      >
+                        <SelectItem value="counter 1" key="counter 1">
+                          Counter 1
+                        </SelectItem>
+                        <SelectItem value="counter 2" key="counter 2">
+                          Counter 2
+                        </SelectItem>
+                        <SelectItem value="counter 3" key="counter 3">
+                          Counter 3
+                        </SelectItem>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Checkbox
+                        checked={visitedUsers.includes(user.id)}
+                        onChange={(event) =>
+                          handleCheckboxChange(event, user.id)
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
           <div className="flex justify-end mt-4">
-            <Button onClick={handleSaveAllCounters} disabled={Object.keys(selectedCounter).length === 0}>
+            <Button
+              onClick={handleSaveAllCounters}
+              disabled={Object.keys(selectedCounter).length === 0}
+            >
               Save All Counters
             </Button>
           </div>

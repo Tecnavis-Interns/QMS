@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Input,
   Button,
@@ -12,8 +12,9 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, serverTimestamp, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
+import { v4 as uuidv4 } from 'uuid';
 
 export default function UserForm() {
   const [name, setName] = useState("");
@@ -56,10 +57,13 @@ export default function UserForm() {
   
     try {
       const collectionName = 'requests'; // or 'responses' based on where you want to save the data
+      const userId = uuidv4();
       await submitDataToFirestore(collectionName, {
+        id: userId,
         name: name,
         phone: phone,
         service: service,
+        counter: ''
       });
   
       // Clear the form fields after submission
@@ -136,4 +140,4 @@ export default function UserForm() {
       </div>
     </div>
   );
-};
+}
