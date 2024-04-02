@@ -12,7 +12,7 @@ export default function App() {
   const navigate = useNavigate();
   const handleLogout = async () => {
     await signOutUser();
-    navigate("/login");
+    navigate("/");
   };
   return (
     <Navbar>
