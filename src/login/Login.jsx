@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Navbar from "./Navbar";
 import { useNavigate } from 'react-router-dom';
 import { signIn } from "../firebase";
-import { Card, CardHeader, CardBody, CardFooter, Input, Button } from "@nextui-org/react";
+import { Card, CardHeader, CardBody, Input, Button } from "@nextui-org/react";
 
 const Login = () => {
   const navigate = useNavigate();

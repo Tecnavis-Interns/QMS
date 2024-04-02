@@ -1,0 +1,122 @@
+//modalCounter
+
+import {
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    Button,
+    useDisclosure,
+    Input,
+    Select,
+    SelectItem,
+  } from "@nextui-org/react";
+  import { useState } from "react";
+  import { v4 as uuidv4 } from "uuid";
+  import { collection, addDoc } from "firebase/firestore";
+  import { db } from "../firebase";
+  import { hash } from "bcryptjs";
+  
+  export default function App() {
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    const services = [
+      "Personal Service (Income, Community, Nativity, etc)",
+      "Home related Service",
+      "Land Related Service",
+      "Education Related Service",
+      "Other Services",
+    ];
+  
+    const [userName, setUserName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [service, setService] = useState("");
+  
+    const handleSubmit = async () => {
+      try {
+        // Generate a unique ID for the entry
+        const id = uuidv4();
+  
+        // Hash the password
+        const hashedPassword = await hash(password, 10);
+        console.log(id, userName, email, hashedPassword, service);
+        // Add the data to the 'counter' collection in Firestore
+        await addDoc(collection(db, "counter"), {
+          id,
+          userName,
+          email,
+          password: hashedPassword,
+          service,
+        });
+  
+        // Clear form fields after submission
+        setUserName("");
+        setEmail("");
+        setPassword("");
+        setService("");
+  
+        // Close the modal
+        onClose();
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+    };
+  
+    const handleServiceChange = (event) => {
+      setService(event.target.value);
+    };
+  
+    return (
+      <>
+        <Button onPress={onOpen} className="bg-[#6236F5] text-white">
+          Add Counter
+        </Button>
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalContent>
+            <ModalHeader className="flex flex-col gap-1">Add Counter</ModalHeader>
+            <ModalBody>
+              <Input
+                type="text"
+                label="User Name"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+              />
+              <Input
+                type="email"
+                label="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                type="password"
+                label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Select
+                label="Select your Reason to be here"
+                onChange={handleServiceChange}
+                required
+              >
+                {services.map((item) => (
+                  <SelectItem className="font-[Outfit]" value={item} key={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </Select>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" variant="light" onPress={onClose}>
+                Close
+              </Button>
+              <Button color="primary" onPress={handleSubmit}>
+                Submit
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </>
+    );
+  }
+  

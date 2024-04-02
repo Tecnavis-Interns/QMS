@@ -1,3 +1,5 @@
+//counterDash
+
 import { useState, useEffect } from "react";
 import {
   Checkbox,
@@ -7,9 +9,6 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Select,
-  SelectItem,
-  Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
 import {
@@ -17,17 +16,16 @@ import {
   getDocs,
   onSnapshot,
   orderBy,
-  updateDoc,
   query,
-  where
+  where,
+  deleteDoc,
+  setDoc,
+  doc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-
 const CounterDash = () => {
   const [userData, setUserData] = useState([]);
-  const [selectedCounter, setSelectedCounter] = useState({});
-  const [visitedUsers, setVisitedUsers] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,51 +56,33 @@ const CounterDash = () => {
     return () => unsubscribe(); // Unsubscribe when component unmounts
   }, []);
 
-  const handleCounterChange = (event, userId) => {
-    const counter = event.target.value;
-    console.log(userId, counter);
-    setSelectedCounter({ ...selectedCounter, [userId]: counter });
-  };
-
-  const handleCheckboxChange = (event, userId) => {
+  const handleCheckboxChange = async (event, userId) => {
     const isChecked = event.target.checked;
     if (isChecked) {
-      setVisitedUsers([...visitedUsers, userId]);
-    } else {
-      setVisitedUsers(visitedUsers.filter((id) => id !== userId));
+      await moveRecordToVisited(userId);
     }
   };
 
-  const handleSaveCounter = async (userId) => {
-    const counter = selectedCounter[userId];
-    if (counter) {
-      try {
-        // Create a query to find the document where the id field matches the userId
-        const q = query(collection(db, "requests"), where("id", "==", userId));
-        const querySnapshot = await getDocs(q);
-  
-        // Check if a document with the specified userId exists
-        if (!querySnapshot.empty) {
-          // If a document exists, update the counter field
-          const docRef = querySnapshot.docs[0].ref;
-          await updateDoc(docRef, { counter: counter });
-          console.log("Counter saved successfully.");
-          alert("Counter saved successfully.");
-        } else {
-          console.warn("Document with id", userId, "not found.");
-        }
-      } catch (error) {
-        console.error("Error saving counter: ", error);
+  const moveRecordToVisited = async (userId) => {
+    try {
+      const q = query(collection(db, "requests"), where("id", "==", userId));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+
+        // Add the document to the 'visited' collection
+        await setDoc(doc(collection(db, "visited"), userId), userData);
+
+        // Delete the document from the 'requests' collection
+        await deleteDoc(querySnapshot.docs[0].ref);
+
+        console.log("Record moved to 'visited' collection successfully.");
+      } else {
+        console.warn("Document with id", userId, "not found.");
       }
-    } else {
-      console.warn("No counter selected.");
-    }
-  };
-
-  const handleSaveAllCounters = async () => {
-    // Save all selected counters to the database
-    for (const userId in selectedCounter) {
-      await handleSaveCounter(userId);
+    } catch (error) {
+      console.error("Error moving record to 'visited' collection: ", error);
     }
   };
 
@@ -119,7 +99,6 @@ const CounterDash = () => {
               <TableColumn>Phone</TableColumn>
               <TableColumn>Date</TableColumn>
               <TableColumn>Reason for Visit</TableColumn>
-              <TableColumn className="w-1/6">Counter</TableColumn>
               <TableColumn>Visited</TableColumn>
             </TableHeader>
             <TableBody>
@@ -134,28 +113,7 @@ const CounterDash = () => {
                     </TableCell>
                     <TableCell>{user.service}</TableCell>
                     <TableCell>
-                      <Select
-                        label="select counter"
-                        value={selectedCounter[user.id] || ""}
-                        defaultSelectedKeys={[`${user.counter}`]}
-                        onChange={(event) =>
-                          handleCounterChange(event, user.id)
-                        }
-                      >
-                        <SelectItem value="counter 1" key="counter 1">
-                          Counter 1
-                        </SelectItem>
-                        <SelectItem value="counter 2" key="counter 2">
-                          Counter 2
-                        </SelectItem>
-                        <SelectItem value="counter 3" key="counter 3">
-                          Counter 3
-                        </SelectItem>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
                       <Checkbox
-                        checked={visitedUsers.includes(user.id)}
                         onChange={(event) =>
                           handleCheckboxChange(event, user.id)
                         }
@@ -166,14 +124,6 @@ const CounterDash = () => {
               })}
             </TableBody>
           </Table>
-          <div className="flex justify-end mt-4">
-            <Button
-              onClick={handleSaveAllCounters}
-              disabled={Object.keys(selectedCounter).length === 0}
-            >
-              Save All Counters
-            </Button>
-          </div>
         </div>
       </div>
     </div>
