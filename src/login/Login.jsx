@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Navbar from "./Navbar";
 import { signIn } from "../firebase";
 import { Card, CardHeader, CardBody, Input, Button } from "@nextui-org/react";
-import AdminDash from "../Admin/AdminDash";
-import CounterDash from "../Counter/CounterDash";
 
 const Login = () => {
   const [email, setEmail] = useState('');

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// AdminDash.jsx
+import { useState, useEffect } from "react";
 import {
   Table,
   TableHeader,
@@ -11,13 +12,21 @@ import {
   Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
-import { collection, getDocs, onSnapshot, updateDoc, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../firebase";
+import ModalCounter from "./ModalCounter";
 
 const AdminDash = () => {
   const [userData, setUserData] = useState([]);
   const [selectedCounter, setSelectedCounter] = useState({});
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -43,14 +52,24 @@ const AdminDash = () => {
     setSelectedCounter({ ...selectedCounter, [userId]: counter });
   };
 
+  const handleSaveAllCounters = async () => {
+    // Save all selected counters to the database
+    for (const userId in selectedCounter) {
+      await handleSaveCounter(userId);
+    }
+  };
+
   const handleSaveCounter = async (userId) => {
     const counter = selectedCounter[userId];
     if (counter) {
       try {
+        // Create a query to find the document where the id field matches the userId
         const q = query(collection(db, "requests"), where("id", "==", userId));
         const querySnapshot = await getDocs(q);
-  
+
+        // Check if a document with the specified userId exists
         if (!querySnapshot.empty) {
+          // If a document exists, update the counter field
           const docRef = querySnapshot.docs[0].ref;
           await updateDoc(docRef, { counter: counter });
           console.log("Counter saved successfully.");
@@ -66,37 +85,38 @@ const AdminDash = () => {
     }
   };
 
-  const handleSaveAllCounters = async () => {
-    for (const userId in selectedCounter) {
-      await handleSaveCounter(userId);
-    }
-  };
-
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap">
-        <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
+        <div className="flex flex-col items-center justify-center gap-5 w-full">
+          <ModalCounter />
           <h2 className="font-semibold md:text-xl">Queue Details </h2>
-          <Table aria-label="Example static collection table">
-            <TableHeader>
-              <TableColumn>Sl. no.</TableColumn>
-              <TableColumn>Name</TableColumn>
-              <TableColumn>Phone</TableColumn>
-              <TableColumn>Date</TableColumn>
-              <TableColumn>Reason for Visit</TableColumn>
-              <TableColumn className="w-1/6">Counter</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {userData.map((user, index) => {
-                return (
+          <div className="overflow-auto w-full min-h-64 max-h-64 flex items-center flex-col gap-5">
+            <Table
+              aria-label="Example static collection table"
+              removeWrapper
+              isHeaderSticky
+            >
+              <TableHeader>
+                <TableColumn>Sl. no.</TableColumn>
+                <TableColumn>Name</TableColumn>
+                <TableColumn>Date</TableColumn>
+                <TableColumn>Phone</TableColumn>
+                <TableColumn>Reason for Visit</TableColumn>
+                <TableColumn>Select Counter</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {userData.map((user, index) => (
                   <TableRow key={index}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{index + 1}.</TableCell>
                     <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
                     <TableCell>
-                      {user.date ? user.date.toDate().toLocaleString() : ""}
+                      {user.date
+                        ? new Date(user.date.seconds * 1000).toLocaleString()
+                        : ""}
                     </TableCell>
+                    <TableCell>{user.phone}</TableCell>
                     <TableCell>{user.service}</TableCell>
                     <TableCell>
                       <Select
@@ -119,17 +139,17 @@ const AdminDash = () => {
                       </Select>
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <div className="flex justify-end mt-4">
-            <Button
-              onClick={handleSaveAllCounters}
-              disabled={Object.keys(selectedCounter).length === 0}
-            >
-              Save All Counters
-            </Button>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-end mt-4">
+              <Button
+                onClick={handleSaveAllCounters}
+                disabled={Object.keys(selectedCounter).length === 0}
+              >
+                Save All Counters
+              </Button>
+            </div>
           </div>
         </div>
       </div>

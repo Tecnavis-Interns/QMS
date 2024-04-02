@@ -1,11 +1,9 @@
-import React from "react";
+//navbar login
+
 import {
   Navbar,
   NavbarBrand,
   NavbarContent,
-  NavbarItem,
-  Link,
-  Button,
 } from "@nextui-org/react";
 
 export default function App() {
