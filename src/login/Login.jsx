@@ -1,31 +1,38 @@
 import React, { useState } from "react";
 import Navbar from "./Navbar";
-import { useNavigate } from 'react-router-dom';
 import { signIn } from "../firebase";
-import { Card, CardHeader, CardBody, CardFooter, Input, Button } from "@nextui-org/react";
+import { Card, CardHeader, CardBody, Input, Button } from "@nextui-org/react";
+import AdminDash from "../Admin/AdminDash";
+import CounterDash from "../Counter/CounterDash";
 
 const Login = () => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [loggedInAs, setLoggedInAs] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const role = await signIn(email, password);
       if (role === "admin") {
-        navigate('/adminDash');
+        setLoggedInAs("admin");
       } else if (role === "counter") {
-        navigate('/counterDash');
+        setLoggedInAs("counter");
       } else {
-        setError("Unauthorized access"); // Handle unauthorized access error
+        setError("Unauthorized access");
       }
     } catch (error) {
       setError(error.message);
     }
   };
 
+  if (loggedInAs === "admin") {
+    return <AdminDash />;
+  } else if (loggedInAs === "counter") {
+    return <CounterDash />;
+
+  }
 
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh min-w-screen">
@@ -37,15 +44,22 @@ const Login = () => {
           </CardHeader>
           <form action="post" onSubmit={handleLogin}>
             <CardBody className="gap-5">
-              <Input type="email" label="Email" value={email}
+              <Input
+                type="email"
+                label="Email"
+                value={email}
                 autoComplete='off'
                 onChange={(e) => setEmail(e.target.value)}
-                required />
-              <Input type="password" label="Password"
+                required
+              />
+              <Input
+                type="password"
+                label="Password"
                 value={password}
                 id="password"
                 onChange={(e) => setPassword(e.target.value)}
-                required />
+                required
+              />
               {error && <p className="text-red-500 text-xs italic">{error}</p>}
               <Button className="bg-[#6236F5] text-white" type="submit">Submit</Button>
             </CardBody>
