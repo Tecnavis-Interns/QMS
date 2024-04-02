@@ -104,7 +104,7 @@ const CounterDash = () => {
             <TableBody>
               {userData.map((user, index) => {
                 return (
-                  <TableRow key={index}>
+                  <TableRow key={user.id}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.phone}</TableCell>
