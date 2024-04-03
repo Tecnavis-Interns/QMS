@@ -32,8 +32,7 @@ const submitDataToFirestore = async (collectionName, data) => {
   try {
     data.date = serverTimestamp();
     const docRef = await addDoc(collection(db, collectionName), data);
-    console.log("Data submitted successfully with ID: ", docRef.id);
-    alert("Data submitted successfully!");
+    // console.log("Data submitted successfully with ID: ", docRef.id);
     return docRef.id; // Return the generated ID
   } catch (error) {
     console.error("Error submitting data: ", error);

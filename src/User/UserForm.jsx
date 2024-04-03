@@ -1,5 +1,3 @@
-//userForm
-
 import { useState, useEffect } from "react";
 import {
   Input,
@@ -14,7 +12,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,8 +35,7 @@ export default function UserForm() {
     setService(event.target.value);
   };
 
-
-  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services']
+  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -118,14 +115,31 @@ export default function UserForm() {
     }
   };
 
-
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(collection(db, "requests"));
         const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setUserData(data);
+
+        // Group users by counter
+        const groupedData = data.reduce((acc, user) => {
+          acc[user.counter] = acc[user.counter] || [];
+          acc[user.counter].push(user);
+          return acc;
+        }, {});
+
+        // Sort users within each counter by token number
+        for (const counter in groupedData) {
+          groupedData[counter].sort((a, b) => {
+            const tokenA = parseInt(a.token.replace(tokenPrefix, ''));
+            const tokenB = parseInt(b.token.replace(tokenPrefix, ''));
+            return tokenA - tokenB;
+          });
+        }
+
+        // Flatten grouped data back to array and set to state
+        const sortedData = Object.values(groupedData).flat();
+        setUserData(sortedData);
       } catch (error) {
         console.error("Error fetching data: ", error);
       }
@@ -135,13 +149,33 @@ export default function UserForm() {
 
     const unsubscribe = onSnapshot(collection(db, "requests"), (snapshot) => {
       const updatedData = snapshot.docs.map((doc) => doc.data());
-      const orderedData = updatedData.sort((a, b) => b.date - a.date);
-      const reversedData = orderedData.reverse();
-      setUserData(reversedData);
+      const uniqueCounters = Array.from(new Set(updatedData.map(user => user.counter)));
+      const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
+        const userInCounter = updatedData.find(user => user.counter === counter);
+        if (userInCounter) acc.push(userInCounter);
+        return acc;
+      }, []);
+      setUserData(usersPerCounter);
     });
 
     return () => unsubscribe(); // Unsubscribe when component unmounts
   }, []);
+
+  const handleRemoveUser = async (id) => {
+    try {
+      await db.collection("requests").doc(id).delete();
+      const updatedData = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
+      const uniqueCounters = Array.from(new Set(updatedData.docs.map(doc => doc.data().counter)));
+      const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
+        const userInCounter = updatedData.docs.find(doc => doc.data().counter === counter);
+        if (userInCounter) acc.push(userInCounter.data());
+        return acc;
+      }, []);
+      setUserData(usersPerCounter);
+    } catch (error) {
+      console.error("Error removing document: ", error);
+    }
+  };
 
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
@@ -168,15 +202,15 @@ export default function UserForm() {
             <Table aria-label="Example static collection table" removeWrapper isHeaderSticky isStriped className="h-full">
               <TableHeader>
                 <TableColumn>Sl. no.</TableColumn>
-                <TableColumn>Name</TableColumn>
                 <TableColumn>Token Number</TableColumn>
+                <TableColumn>Counter</TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => (
                   <TableRow key={index}>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.token} </TableCell>
+                    <TableCell>{user.token}</TableCell>
+                    <TableCell>{user.counter}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

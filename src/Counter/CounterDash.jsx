@@ -99,6 +99,7 @@ const CounterDash = () => {
               <TableColumn>Phone</TableColumn>
               <TableColumn>Date</TableColumn>
               <TableColumn>Reason for Visit</TableColumn>
+              <TableColumn>Token No</TableColumn>
               <TableColumn>Visited</TableColumn>
             </TableHeader>
             <TableBody>
@@ -112,6 +113,7 @@ const CounterDash = () => {
                       {user.date ? user.date.toDate().toLocaleString() : ""}
                     </TableCell>
                     <TableCell>{user.service}</TableCell>
+                    <TableCell>{user.token}</TableCell>
                     <TableCell>
                       <Checkbox
                         onChange={(event) =>
