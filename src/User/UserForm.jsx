@@ -58,32 +58,55 @@ export default function UserForm() {
     }
 
     let counter = '';
+    let tokenPrefix = '';
+    let tokenNumber = '';
+
     switch (service) {
       case 'Personal Service (Income, Community, Nativity, etc)':
       case 'Education Related Service':
         counter = 'Counter 1';
+        tokenPrefix = 'A';
         break;
       case 'Home related Service':
       case 'Land Related Service':
         counter = 'Counter 2';
+        tokenPrefix = 'B';
         break;
       case 'Other Services':
-        counter = 'Counter 3'
+        counter = 'Counter 3';
+        tokenPrefix = 'C';
         break;
       default:
         counter = 'Counter 3';
+        tokenPrefix = 'C';
         break;
     }
 
     try {
       const collectionName = 'requests'; // or 'responses' based on where you want to save the data
+      const querySnapshot = await getDocs(collection(db, collectionName));
+      const usersInCounter = querySnapshot.docs.filter(doc => doc.data().counter === counter);
+
+      if (usersInCounter.length > 0) {
+        // Find the highest token number in the current counter's queue
+        const lastTokenNumber = usersInCounter.reduce((max, doc) => {
+          const currentTokenNumber = parseInt(doc.data().token.replace(tokenPrefix, ''));
+          return currentTokenNumber > max ? currentTokenNumber : max;
+        }, 0);
+        tokenNumber = tokenPrefix + (lastTokenNumber + 1);
+      } else {
+        // If no users in the current counter's queue, start from 1
+        tokenNumber = tokenPrefix + 1;
+      }
+
       const userId = uuidv4();
       await submitDataToFirestore(collectionName, {
         id: userId,
         name: name,
         phone: phone,
         service: service,
-        counter: counter
+        counter: counter,
+        token: tokenNumber
       });
 
       // Clear the form fields after submission
@@ -146,12 +169,14 @@ export default function UserForm() {
               <TableHeader>
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
+                <TableColumn>Token Number</TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => (
                   <TableRow key={index}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.token} </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -103,7 +103,7 @@ const AdminDash = () => {
                 <TableColumn>Name</TableColumn>
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Phone</TableColumn>
-                <TableColumn>Reason for Visit</TableColumn>
+                <TableColumn className="w-1/6">Reason for Visit</TableColumn>
                 <TableColumn>Select Counter</TableColumn>
               </TableHeader>
               <TableBody>
@@ -142,7 +142,8 @@ const AdminDash = () => {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex justify-end mt-4">
+          </div>
+          <div className="flex justify-end mt-4">
               <Button
                 onClick={handleSaveAllCounters}
                 disabled={Object.keys(selectedCounter).length === 0}
@@ -150,7 +151,6 @@ const AdminDash = () => {
                 Save All Counters
               </Button>
             </div>
-          </div>
         </div>
       </div>
     </div>
