@@ -121,7 +121,7 @@ const AdminDash = () => {
                     <TableCell>
                       <Select
                         label="select counter"
-                        value={selectedCounter[user.id] || ""}
+                        value={selectedCounter[user.id] ||""}
                         defaultSelectedKeys={[`${user.counter}`]}
                         onChange={(event) =>
                           handleCounterChange(event, user.id)

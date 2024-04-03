@@ -38,7 +38,7 @@ export default function UserForm() {
   };
 
 
-  const services = ['Personal Service (Income, Community, Nativity, etc)','Home related Service','Land Related Service','Education Related Service','Other Services']
+  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services']
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -46,17 +46,35 @@ export default function UserForm() {
       alert("Please enter a 10 digit Phone Number");
       return;
     }
-  
+
     if (name === "") {
-      alert("Please Enter you name.")
+      alert("Please Enter your name.")
       return;
     }
-  
+
     if (service === "") {
       alert("Please select a service.")
       return;
     }
-  
+
+    let counter = '';
+    switch (service) {
+      case 'Personal Service (Income, Community, Nativity, etc)':
+      case 'Education Related Service':
+        counter = 'Counter 1';
+        break;
+      case 'Home related Service':
+      case 'Land Related Service':
+        counter = 'Counter 2';
+        break;
+      case 'Other Services':
+        counter = 'Counter 3'
+        break;
+      default:
+        counter = 'Counter 3';
+        break;
+    }
+
     try {
       const collectionName = 'requests'; // or 'responses' based on where you want to save the data
       const userId = uuidv4();
@@ -65,9 +83,9 @@ export default function UserForm() {
         name: name,
         phone: phone,
         service: service,
-        counter: ''
+        counter: counter
       });
-  
+
       // Clear the form fields after submission
       setName("");
       setPhone("");
@@ -76,7 +94,8 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
-  
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -112,8 +131,8 @@ export default function UserForm() {
             <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" />
             <Select label="Select your Reason to be here" onChange={handleServiceChange} required>
 
-              {services.map((item)=>(
-              <SelectItem className="font-[Outfit]" value={item} key={item} d>{item}</SelectItem>
+              {services.map((item) => (
+                <SelectItem className="font-[Outfit]" value={item} key={item} d>{item}</SelectItem>
               ))}
             </Select>
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
@@ -123,21 +142,21 @@ export default function UserForm() {
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
 
           <div className="overflow-auto w-full md:min-h-64 md:max-h-64">
-          <Table aria-label="Example static collection table" removeWrapper isHeaderSticky isStriped className="h-full">
-            <TableHeader>
-              <TableColumn>Sl. no.</TableColumn>
-              <TableColumn>Name</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {userData.map((user, index) => (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            <Table aria-label="Example static collection table" removeWrapper isHeaderSticky isStriped className="h-full">
+              <TableHeader>
+                <TableColumn>Sl. no.</TableColumn>
+                <TableColumn>Name</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {userData.map((user, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </div>
