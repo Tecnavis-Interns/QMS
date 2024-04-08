@@ -1,5 +1,3 @@
-//counterDash
-
 import { useState, useEffect } from "react";
 import {
   Checkbox,
@@ -9,6 +7,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
 import {
@@ -26,6 +25,7 @@ import { db } from "../firebase";
 
 const CounterDash = () => {
   const [userData, setUserData] = useState([]);
+  const [selectedRecords, setSelectedRecords] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,11 +56,22 @@ const CounterDash = () => {
     return () => unsubscribe(); // Unsubscribe when component unmounts
   }, []);
 
-  const handleCheckboxChange = async (event, userId) => {
+  const handleCheckboxChange = (event, userId) => {
     const isChecked = event.target.checked;
     if (isChecked) {
+      setSelectedRecords((prevSelected) => [...prevSelected, userId]);
+    } else {
+      setSelectedRecords((prevSelected) =>
+        prevSelected.filter((id) => id !== userId)
+      );
+    }
+  };
+
+  const handleSaveButtonClick = async () => {
+    for (const userId of selectedRecords) {
       await moveRecordToVisited(userId);
     }
+    setSelectedRecords([]); // Clear selected records after deletion
   };
 
   const moveRecordToVisited = async (userId) => {
@@ -126,6 +137,7 @@ const CounterDash = () => {
               })}
             </TableBody>
           </Table>
+          <Button onClick={handleSaveButtonClick}>Save</Button>
         </div>
       </div>
     </div>

@@ -26,7 +26,6 @@ const Login = () => {
       setError(error.message);
     }
   };
-
   if (loggedInAs === "admin") {
     return <AdminDash />;
   } else if (loggedInAs === "counter") {
