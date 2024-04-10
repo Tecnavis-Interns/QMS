@@ -28,7 +28,7 @@ import {
       "Other Services",
     ];
   
-    const [userName, setUserName] = useState("");
+    const [counterName, setCounterName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [service, setService] = useState("");
@@ -40,18 +40,18 @@ import {
   
         // Hash the password
         const hashedPassword = await hash(password, 10);
-        console.log(id, userName, email, hashedPassword, service);
+        console.log(id, counterName, email, hashedPassword, service);
         // Add the data to the 'counter' collection in Firestore
         await addDoc(collection(db, "counter"), {
           id,
-          userName,
+          counterName,
           email,
           password: hashedPassword,
           service,
         });
   
         // Clear form fields after submission
-        setUserName("");
+        setCounterName("");
         setEmail("");
         setPassword("");
         setService("");
@@ -78,9 +78,9 @@ import {
             <ModalBody>
               <Input
                 type="text"
-                label="User Name"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
+                label="Counter Name"
+                value={counterName}
+                onChange={(e) => setCounterName(e.target.value)}
               />
               <Input
                 type="email"

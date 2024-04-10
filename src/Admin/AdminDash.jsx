@@ -26,6 +26,7 @@ import ModalCounter from "./ModalCounter";
 const AdminDash = () => {
   const [userData, setUserData] = useState([]);
   const [selectedCounter, setSelectedCounter] = useState({});
+  const [counter, setCounter] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +43,26 @@ const AdminDash = () => {
     const unsubscribe = onSnapshot(collection(db, "requests"), (snapshot) => {
       const updatedData = snapshot.docs.map((doc) => doc.data());
       setUserData(updatedData);
+    });
+
+    return () => unsubscribe(); // Unsubscribe when component unmounts
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "counter"));
+        const data = querySnapshot.docs.map((doc) => doc.data());
+        setCounter(data);
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    };
+
+    fetchData();
+    const unsubscribe = onSnapshot(collection(db, "counter"), (snapshot) => {
+      const updatedData = snapshot.docs.map((doc) => doc.data());
+      setCounter(updatedData);
     });
 
     return () => unsubscribe(); // Unsubscribe when component unmounts
@@ -121,21 +142,19 @@ const AdminDash = () => {
                     <TableCell>
                       <Select
                         label="select counter"
-                        value={selectedCounter[user.id] ||""}
-                        defaultSelectedKeys={[`${user.counter}`]}
+                        value={selectedCounter[user.id] || ""}
                         onChange={(event) =>
                           handleCounterChange(event, user.id)
                         }
                       >
-                        <SelectItem value="counter 1" key="counter 1">
-                          Counter 1
-                        </SelectItem>
-                        <SelectItem value="counter 2" key="counter 2">
-                          Counter 2
-                        </SelectItem>
-                        <SelectItem value="counter 3" key="counter 3">
-                          Counter 3
-                        </SelectItem>
+                        {counter.map((counter) => (
+                          <SelectItem
+                            value={counter.counterName}
+                            key={counter.id}
+                          >
+                            {counter.counterName}
+                          </SelectItem>
+                        ))}
                       </Select>
                     </TableCell>
                   </TableRow>
@@ -144,13 +163,13 @@ const AdminDash = () => {
             </Table>
           </div>
           <div className="flex justify-end mt-4">
-              <Button
-                onClick={handleSaveAllCounters}
-                disabled={Object.keys(selectedCounter).length === 0}
-              >
-                Save All Counters
-              </Button>
-            </div>
+            <Button
+              onClick={handleSaveAllCounters}
+              disabled={Object.keys(selectedCounter).length === 0}
+            >
+              Save All Counters
+            </Button>
+          </div>
         </div>
       </div>
     </div>

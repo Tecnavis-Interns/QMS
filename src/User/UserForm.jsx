@@ -118,14 +118,14 @@ export default function UserForm() {
   const generatePDF = async (userTokenNumber) => {
     try {
       const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([612, 472]); 
+      const page = pdfDoc.addPage([612, 472]);
       const { width, height } = page.getSize();
       const fontSize = 19.2; // 20% smaller font size
       const textHeight = fontSize + 10;
 
       // Draw header
       page.drawText("Queue Management System by Tecnavis", {
-        x: width /2 - 200, // Adjust as needed
+        x: width / 2 - 200, // Adjust as needed
         y: height - 100, // Adjust as needed
         size: 24, // Adjust as needed
         color: rgb(0, 0, 0),
@@ -156,8 +156,20 @@ export default function UserForm() {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "requests"));
-        const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setUserData(data);
+        const data = querySnapshot.docs.map(async (doc) => {
+          const userData = doc.data();
+          // Fetch the associated counterName based on the service
+          const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", userData.service)));
+          if (!counterSnapshot.empty) {
+            userData.counterName = counterSnapshot.docs[0].data().counterName;
+          } else {
+            userData.counterName = ""; // Set a default value if counterName is not found
+          }
+          return { id: doc.id, ...userData };
+        });
+        // Wait for all promises to resolve before setting the state
+        const resolvedData = await Promise.all(data);
+        setUserData(resolvedData);
       } catch (error) {
         console.error("Error fetching data: ", error);
       }
@@ -179,21 +191,24 @@ export default function UserForm() {
     return () => unsubscribe();
   }, []);
 
-  const handleRemoveUser = async (id) => {
-    try {
-      await db.collection("requests").doc(id).delete();
-      const updatedData = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
-      const uniqueCounters = Array.from(new Set(updatedData.docs.map(doc => doc.data().counter)));
-      const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
-        const userInCounter = updatedData.docs.find(doc => doc.data().counter === counter);
-        if (userInCounter) acc.push(userInCounter.data());
-        return acc;
-      }, []);
-      setUserData(usersPerCounter);
-    } catch (error) {
-      console.error("Error removing document: ", error);
-    }
-  };
+
+
+
+  // const handleRemoveUser = async (id) => {
+  //   try {
+  //     await db.collection("requests").doc(id).delete();
+  //     const updatedData = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
+  //     const uniqueCounters = Array.from(new Set(updatedData.docs.map(doc => doc.data().counter)));
+  //     const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
+  //       const userInCounter = updatedData.docs.find(doc => doc.data().counter === counter);
+  //       if (userInCounter) acc.push(userInCounter.data());
+  //       return acc;
+  //     }, []);
+  //     setUserData(usersPerCounter);
+  //   } catch (error) {
+  //     console.error("Error removing document: ", error);
+  //   }
+  // };
 
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
@@ -226,7 +241,7 @@ export default function UserForm() {
                   <TableRow key={index}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{user.token}</TableCell>
-                    <TableCell>{user.counter}</TableCell>
+                    <TableCell>{user.counterName}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
