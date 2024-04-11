@@ -12,7 +12,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -22,6 +22,7 @@ export default function UserForm() {
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
   const [userData, setUserData] = useState([]);
+  const [counters, setCounters] = useState([]); // State to store counters
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -54,58 +55,42 @@ export default function UserForm() {
       return;
     }
 
-    let counter = '';
-    let tokenPrefix = '';
-    let tokenNumber = '';
-
-    switch (service) {
-      case 'Personal Service (Income, Community, Nativity, etc)':
-      case 'Education Related Service':
-        counter = 'Counter 1';
-        tokenPrefix = 'A';
-        break;
-      case 'Home related Service':
-      case 'Land Related Service':
-        counter = 'Counter 2';
-        tokenPrefix = 'B';
-        break;
-      case 'Other Services':
-        counter = 'Counter 3';
-        tokenPrefix = 'C';
-        break;
-      default:
-        counter = 'Counter 3';
-        tokenPrefix = 'C';
-        break;
-    }
-
     try {
-      const collectionName = 'requests';
-      const querySnapshot = await getDocs(collection(db, collectionName));
-      const usersInCounter = querySnapshot.docs.filter(doc => doc.data().counter === counter);
-
-      if (usersInCounter.length > 0) {
-        const lastTokenNumber = usersInCounter.reduce((max, doc) => {
-          const currentTokenNumber = parseInt(doc.data().token.replace(tokenPrefix, ''));
-          return currentTokenNumber > max ? currentTokenNumber : max;
-        }, 0);
-        tokenNumber = tokenPrefix + (lastTokenNumber + 1);
-      } else {
-        tokenNumber = tokenPrefix + 1;
+      const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", service))); // Fetch counter data
+      let counterName = ""; // Initialize counterName variable
+      if (!counterSnapshot.empty) {
+        counterName = counterSnapshot.docs[0].data().counterName; // Get counterName from counter data
       }
 
+      const tokenNumber = generateTokenNumber(counterName, counters); // Generate token number dynamically
+
       const userId = uuidv4();
-      await submitDataToFirestore(collectionName, {
+      await submitDataToFirestore('requests', {
         id: userId,
         name: name,
         phone: phone,
         service: service,
-        counter: counter,
+        counter: counterName, // Get the counter name from the counter data
         token: tokenNumber
       });
 
       // Generate PDF with token number
       generatePDF(tokenNumber);
+
+      // Fetch updated data from Firestore
+      const querySnapshot = await getDocs(collection(db, "requests"));
+      const updatedData = querySnapshot.docs.map(async (doc) => {
+        const userData = doc.data();
+        const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", userData.service)));
+        if (!counterSnapshot.empty) {
+          userData.counterName = counterSnapshot.docs[0].data().counterName;
+        } else {
+          userData.counterName = ""; // Set a default value if counterName is not found
+        }
+        return { id: doc.id, ...userData };
+      });
+      const resolvedData = await Promise.all(updatedData);
+      setUserData(resolvedData);
 
       setName("");
       setPhone("");
@@ -152,13 +137,75 @@ export default function UserForm() {
     }
   };
 
+  const generateTokenNumber = (counterName, counters) => {
+    console.log("Counter Name:", counterName);
+
+    // Initialize a map to store the last token number for each counter
+    const lastTokenNumbers = {
+      "Counter 1": 0,
+      "Counter 2": 0,
+      "Counter 3": 0,
+      "Counter 4": 0,
+      "Counter 5": 0,
+    };
+
+    // Get the last token number for the specified counter
+    let lastTokenNumber = lastTokenNumbers[counterName] || 0;
+
+    console.log("Last Token Number:", lastTokenNumber);
+
+    // Increment the last token number for the counter and return the new token number
+    let newTokenNumber;
+    switch (counterName) {
+      case "Counter 1":
+        newTokenNumber = "A" + (++lastTokenNumber);
+        break;
+      case "Counter 2":
+        newTokenNumber = "B" + (++lastTokenNumber);
+        break;
+      case "Counter 3":
+        newTokenNumber = "C" + (++lastTokenNumber);
+        break;
+      case "Counter 4":
+        newTokenNumber = "D" + (++lastTokenNumber);
+        break;
+      case "Counter 5":
+        newTokenNumber = "E" + (++lastTokenNumber);
+        break;
+      default:
+        newTokenNumber = "";
+    }
+
+    console.log("New Token Number:", newTokenNumber);
+
+    // Update the last token number for the counter
+    lastTokenNumbers[counterName] = lastTokenNumber;
+
+    console.log("Updated Last Token Numbers:", lastTokenNumbers);
+
+    return newTokenNumber;
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "counter"));
+        const countersData = querySnapshot.docs.map((doc) => doc.data());
+        setCounters(countersData);
+      } catch (error) {
+        console.error("Error fetching counters: ", error);
+      }
+    };
+
+    fetchData(); // Fetch counters when component mounts
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "requests"));
         const data = querySnapshot.docs.map(async (doc) => {
           const userData = doc.data();
-          // Fetch the associated counterName based on the service
           const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", userData.service)));
           if (!counterSnapshot.empty) {
             userData.counterName = counterSnapshot.docs[0].data().counterName;
@@ -167,7 +214,6 @@ export default function UserForm() {
           }
           return { id: doc.id, ...userData };
         });
-        // Wait for all promises to resolve before setting the state
         const resolvedData = await Promise.all(data);
         setUserData(resolvedData);
       } catch (error) {
@@ -177,7 +223,7 @@ export default function UserForm() {
 
     fetchData();
 
-    const unsubscribe = onSnapshot(collection(db, "requests"), (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, "requests"), async (snapshot) => {
       const updatedData = snapshot.docs.map((doc) => doc.data());
       const uniqueCounters = Array.from(new Set(updatedData.map(user => user.counter)));
       const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
@@ -186,29 +232,18 @@ export default function UserForm() {
         return acc;
       }, []);
       setUserData(usersPerCounter);
+
+      try {
+        const countersSnapshot = await getDocs(collection(db, "counter"));
+        const countersData = countersSnapshot.docs.map((doc) => doc.data());
+        setCounters(countersData);
+      } catch (error) {
+        console.error("Error updating counters: ", error);
+      }
     });
 
     return () => unsubscribe();
   }, []);
-
-
-
-
-  // const handleRemoveUser = async (id) => {
-  //   try {
-  //     await db.collection("requests").doc(id).delete();
-  //     const updatedData = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
-  //     const uniqueCounters = Array.from(new Set(updatedData.docs.map(doc => doc.data().counter)));
-  //     const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
-  //       const userInCounter = updatedData.docs.find(doc => doc.data().counter === counter);
-  //       if (userInCounter) acc.push(userInCounter.data());
-  //       return acc;
-  //     }, []);
-  //     setUserData(usersPerCounter);
-  //   } catch (error) {
-  //     console.error("Error removing document: ", error);
-  //   }
-  // };
 
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
