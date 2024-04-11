@@ -22,7 +22,7 @@ export default function UserForm() {
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
   const [userData, setUserData] = useState([]);
-  const [counters, setCounters] = useState([]);
+  const [counter, setCounter] = useState([]);
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -127,7 +127,6 @@ export default function UserForm() {
     "Counter 5": 0,
   });
 
-
   const generateTokenNumber = (counterName) => {
     let lastTokenNumber = lastTokenNumbers[counterName] || 0; // Initialize to 0 if not found
     console.log("Before:", lastTokenNumber);
@@ -154,7 +153,7 @@ export default function UserForm() {
 
     console.log("After:", lastTokenNumber);
 
-    // Update lastTokenNumbers state with the incremented value
+    // Update lastTokenNumbers state with the incremented value for the specific counter
     setLastTokenNumbers((prevNumbers) => ({
       ...prevNumbers,
       [counterName]: lastTokenNumber,
@@ -165,12 +164,13 @@ export default function UserForm() {
 
 
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "counter"));
         const countersData = querySnapshot.docs.map((doc) => doc.data());
-        setCounters(countersData);
+        setCounter(countersData);
       } catch (error) {
         console.error("Error fetching counters: ", error);
       }
@@ -180,37 +180,57 @@ export default function UserForm() {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchRequests = async () => {
       try {
         const querySnapshot = await getDocs(query(collection(db, "requests"), orderBy("date", "asc")));
-        const updatedData = querySnapshot.docs.map((doc) => doc.data());
+        const updatedData = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+
+        // Fetch counterName for each user
+        const requestsWithCounterName = await Promise.all(updatedData.map(async (user) => {
+          const counterSnapshot = await getDocs(query(collection(db, "counter"), where("counterName", "==", user.counter)));
+          const counterData = counterSnapshot.docs.map((doc) => doc.data());
+          const counterName = counterData.length > 0 ? counterData[0].counterName : "";
+          return { ...user, counterName };
+        }));
 
         // Group users by counter
-        const groupedByCounter = updatedData.reduce((acc, user) => {
+        const groupedByCounter = requestsWithCounterName.reduce((acc, user) => {
           if (!acc[user.counter]) {
-            acc[user.counter] = [user];
-          } else {
-            acc[user.counter].push(user);
+            acc[user.counter] = user;
           }
           return acc;
         }, {});
 
-        // Get the first user in line for each counter
-        const usersPerCounter = Object.values(groupedByCounter).map((users) => users[0]);
+        // Extract values from the grouped object
+        const usersPerCounter = Object.values(groupedByCounter);
 
         setUserData(usersPerCounter);
       } catch (error) {
-        console.error("Error fetching data: ", error);
+        console.error("Error fetching requests: ", error);
       }
     };
 
-    fetchData();
+    const fetchCounters = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "counter"));
+        const countersData = querySnapshot.docs.map((doc) => doc.data());
+        setCounter(countersData);
+      } catch (error) {
+        console.error("Error fetching counters: ", error);
+      }
+    };
 
-    const unsubscribe = onSnapshot(collection(db, "requests"), fetchData);
+    fetchRequests();
+    fetchCounters();
 
-    return () => unsubscribe();
+    const unsubscribeRequests = onSnapshot(collection(db, "requests"), fetchRequests);
+    const unsubscribeCounters = onSnapshot(collection(db, "counter"), fetchCounters);
+
+    return () => {
+      unsubscribeRequests();
+      unsubscribeCounters();
+    };
   }, []);
-
 
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
@@ -243,7 +263,7 @@ export default function UserForm() {
                   <TableRow key={index}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{user.token}</TableCell>
-                    <TableCell>{user.counter}</TableCell>
+                    <TableCell>{user.counterName}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
