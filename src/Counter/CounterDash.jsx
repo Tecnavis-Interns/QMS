@@ -38,7 +38,7 @@ const CounterDash = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        setUserData(data);
+        setUserData(data.filter(isValidUserData)); // Filter out invalid data
       } catch (error) {
         console.error("Error fetching data: ", error);
       }
@@ -50,11 +50,21 @@ const CounterDash = () => {
       const updatedData = snapshot.docs.map((doc) => doc.data());
       const orderedData = updatedData.sort((a, b) => b.date - a.date);
       const reversedData = orderedData.reverse();
-      setUserData(reversedData);
+      setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
     });
 
     return () => unsubscribe(); // Unsubscribe when component unmounts
   }, []);
+
+  const isValidUserData = (user) => {
+    return (
+      user.name &&
+      user.phone &&
+      user.date &&
+      user.service &&
+      user.token
+    );
+  };
 
   const handleCheckboxChange = (event, userId) => {
     const isChecked = event.target.checked;
