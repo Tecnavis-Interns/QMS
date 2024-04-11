@@ -12,7 +12,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -22,7 +22,7 @@ export default function UserForm() {
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
   const [userData, setUserData] = useState([]);
-  const [counters, setCounters] = useState([]); // State to store counters
+  const [counters, setCounters] = useState([]);
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -56,13 +56,13 @@ export default function UserForm() {
     }
 
     try {
-      const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", service))); // Fetch counter data
-      let counterName = ""; // Initialize counterName variable
+      const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", service)));
+      let counterName = "";
       if (!counterSnapshot.empty) {
-        counterName = counterSnapshot.docs[0].data().counterName; // Get counterName from counter data
+        counterName = counterSnapshot.docs[0].data().counterName;
       }
 
-      const tokenNumber = generateTokenNumber(counterName, counters); // Generate token number dynamically
+      const tokenNumber = generateTokenNumber(counterName);
 
       const userId = uuidv4();
       await submitDataToFirestore('requests', {
@@ -70,27 +70,11 @@ export default function UserForm() {
         name: name,
         phone: phone,
         service: service,
-        counter: counterName, // Get the counter name from the counter data
+        counter: counterName,
         token: tokenNumber
       });
 
-      // Generate PDF with token number
       generatePDF(tokenNumber);
-
-      // Fetch updated data from Firestore
-      const querySnapshot = await getDocs(collection(db, "requests"));
-      const updatedData = querySnapshot.docs.map(async (doc) => {
-        const userData = doc.data();
-        const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", userData.service)));
-        if (!counterSnapshot.empty) {
-          userData.counterName = counterSnapshot.docs[0].data().counterName;
-        } else {
-          userData.counterName = ""; // Set a default value if counterName is not found
-        }
-        return { id: doc.id, ...userData };
-      });
-      const resolvedData = await Promise.all(updatedData);
-      setUserData(resolvedData);
 
       setName("");
       setPhone("");
@@ -105,18 +89,16 @@ export default function UserForm() {
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([612, 472]);
       const { width, height } = page.getSize();
-      const fontSize = 19.2; // 20% smaller font size
+      const fontSize = 19.2;
       const textHeight = fontSize + 10;
 
-      // Draw header
       page.drawText("Queue Management System by Tecnavis", {
-        x: width / 2 - 200, // Adjust as needed
-        y: height - 100, // Adjust as needed
-        size: 24, // Adjust as needed
+        x: width / 2 - 200,
+        y: height - 100,
+        size: 24,
         color: rgb(0, 0, 0),
       });
 
-      // Draw token number
       page.drawText(userTokenNumber, {
         x: width / 2 - 40,
         y: height / 2,
@@ -137,24 +119,18 @@ export default function UserForm() {
     }
   };
 
-  const generateTokenNumber = (counterName, counters) => {
-    console.log("Counter Name:", counterName);
+  const [lastTokenNumbers, setLastTokenNumbers] = useState({
+    "Counter 1": 0,
+    "Counter 2": 0,
+    "Counter 3": 0,
+    "Counter 4": 0,
+    "Counter 5": 0,
+  });
 
-    // Initialize a map to store the last token number for each counter
-    const lastTokenNumbers = {
-      "Counter 1": 0,
-      "Counter 2": 0,
-      "Counter 3": 0,
-      "Counter 4": 0,
-      "Counter 5": 0,
-    };
 
-    // Get the last token number for the specified counter
-    let lastTokenNumber = lastTokenNumbers[counterName] || 0;
-
-    console.log("Last Token Number:", lastTokenNumber);
-
-    // Increment the last token number for the counter and return the new token number
+  const generateTokenNumber = (counterName) => {
+    let lastTokenNumber = lastTokenNumbers[counterName] || 0; // Initialize to 0 if not found
+    console.log("Before:", lastTokenNumber);
     let newTokenNumber;
     switch (counterName) {
       case "Counter 1":
@@ -176,15 +152,18 @@ export default function UserForm() {
         newTokenNumber = "";
     }
 
-    console.log("New Token Number:", newTokenNumber);
+    console.log("After:", lastTokenNumber);
 
-    // Update the last token number for the counter
-    lastTokenNumbers[counterName] = lastTokenNumber;
-
-    console.log("Updated Last Token Numbers:", lastTokenNumbers);
+    // Update lastTokenNumbers state with the incremented value
+    setLastTokenNumbers((prevNumbers) => ({
+      ...prevNumbers,
+      [counterName]: lastTokenNumber,
+    }));
 
     return newTokenNumber;
   };
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -197,25 +176,29 @@ export default function UserForm() {
       }
     };
 
-    fetchData(); // Fetch counters when component mounts
+    fetchData();
   }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "requests"));
-        const data = querySnapshot.docs.map(async (doc) => {
-          const userData = doc.data();
-          const counterSnapshot = await getDocs(query(collection(db, "counter"), where("service", "==", userData.service)));
-          if (!counterSnapshot.empty) {
-            userData.counterName = counterSnapshot.docs[0].data().counterName;
+        const querySnapshot = await getDocs(query(collection(db, "requests"), orderBy("date", "asc")));
+        const updatedData = querySnapshot.docs.map((doc) => doc.data());
+
+        // Group users by counter
+        const groupedByCounter = updatedData.reduce((acc, user) => {
+          if (!acc[user.counter]) {
+            acc[user.counter] = [user];
           } else {
-            userData.counterName = ""; // Set a default value if counterName is not found
+            acc[user.counter].push(user);
           }
-          return { id: doc.id, ...userData };
-        });
-        const resolvedData = await Promise.all(data);
-        setUserData(resolvedData);
+          return acc;
+        }, {});
+
+        // Get the first user in line for each counter
+        const usersPerCounter = Object.values(groupedByCounter).map((users) => users[0]);
+
+        setUserData(usersPerCounter);
       } catch (error) {
         console.error("Error fetching data: ", error);
       }
@@ -223,27 +206,11 @@ export default function UserForm() {
 
     fetchData();
 
-    const unsubscribe = onSnapshot(collection(db, "requests"), async (snapshot) => {
-      const updatedData = snapshot.docs.map((doc) => doc.data());
-      const uniqueCounters = Array.from(new Set(updatedData.map(user => user.counter)));
-      const usersPerCounter = uniqueCounters.reduce((acc, counter) => {
-        const userInCounter = updatedData.find(user => user.counter === counter);
-        if (userInCounter) acc.push(userInCounter);
-        return acc;
-      }, []);
-      setUserData(usersPerCounter);
-
-      try {
-        const countersSnapshot = await getDocs(collection(db, "counter"));
-        const countersData = countersSnapshot.docs.map((doc) => doc.data());
-        setCounters(countersData);
-      } catch (error) {
-        console.error("Error updating counters: ", error);
-      }
-    });
+    const unsubscribe = onSnapshot(collection(db, "requests"), fetchData);
 
     return () => unsubscribe();
   }, []);
+
 
   return (
     <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
@@ -276,7 +243,7 @@ export default function UserForm() {
                   <TableRow key={index}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{user.token}</TableCell>
-                    <TableCell>{user.counterName}</TableCell>
+                    <TableCell>{user.counter}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
