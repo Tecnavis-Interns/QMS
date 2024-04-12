@@ -12,7 +12,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query, where, doc as firestoreDoc, setDoc } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -23,6 +23,13 @@ export default function UserForm() {
   const [service, setService] = useState("");
   const [userData, setUserData] = useState([]);
   const [counter, setCounter] = useState([]);
+  const [lastTokenNumbers, setLastTokenNumbers] = useState({
+    "Counter 1": 0,
+    "Counter 2": 0,
+    "Counter 3": 0,
+    "Counter 4": 0,
+    "Counter 5": 0,
+  });
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -37,6 +44,27 @@ export default function UserForm() {
   };
 
   const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
+
+  useEffect(() => {
+    const fetchLastTokenNumbers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "counter"));
+        const countersData = querySnapshot.docs.map((doc) => doc.data());
+        setCounter(countersData);
+
+        // Fetch last token numbers from the counter collection and update state
+        const lastTokenNumbers = {};
+        querySnapshot.forEach((doc) => {
+          lastTokenNumbers[doc.data().counterName] = doc.data().lastTokenNumber;
+        });
+        setLastTokenNumbers(lastTokenNumbers);
+      } catch (error) {
+        console.error("Error fetching counters and last token numbers: ", error);
+      }
+    };
+
+    fetchLastTokenNumbers();
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -119,17 +147,8 @@ export default function UserForm() {
     }
   };
 
-  const [lastTokenNumbers, setLastTokenNumbers] = useState({
-    "Counter 1": 0,
-    "Counter 2": 0,
-    "Counter 3": 0,
-    "Counter 4": 0,
-    "Counter 5": 0,
-  });
-
   const generateTokenNumber = (counterName) => {
     let lastTokenNumber = lastTokenNumbers[counterName] || 0; // Initialize to 0 if not found
-    console.log("Before:", lastTokenNumber);
     let newTokenNumber;
     switch (counterName) {
       case "Counter 1":
@@ -151,31 +170,30 @@ export default function UserForm() {
         newTokenNumber = "";
     }
 
-    console.log("After:", lastTokenNumber);
-
     // Update lastTokenNumbers state with the incremented value for the specific counter
     setLastTokenNumbers((prevNumbers) => ({
       ...prevNumbers,
       [counterName]: lastTokenNumber,
     }));
 
+    // Update the last token number in the counter collection
+    const counterDocRef = firestoreDoc(db, "counter", counterName);
+    setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
+
     return newTokenNumber;
   };
 
-
-
+  const fetchData = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "counter"));
+      const countersData = querySnapshot.docs.map((doc) => doc.data());
+      setCounter(countersData);
+    } catch (error) {
+      console.error("Error fetching counters: ", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "counter"));
-        const countersData = querySnapshot.docs.map((doc) => doc.data());
-        setCounter(countersData);
-      } catch (error) {
-        console.error("Error fetching counters: ", error);
-      }
-    };
-
     fetchData();
   }, []);
 

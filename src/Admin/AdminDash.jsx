@@ -75,10 +75,16 @@ const AdminDash = () => {
     <div className="md:mx-64 mx-2 md:py-16 py-16 flex flex-col min-h-64">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap">
-        <div className="flex flex-col items-center justify-center gap-10 w-full py-10">
-          {/* <ModalCounter /> */}
-          <ManageCounterModal />
+        <div className="flex items-center justify-center gap-10 w-full py-10">
+          <div className="flex flex-col items-center gap-10">
+            <ModalCounter />
+          </div>
+          <div className="flex flex-col items-center gap-10">
+            <ManageCounterModal />
+          </div>
         </div>
+
+
         <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
           <h2 className="font-semibold md:text-xl">Queue Details</h2>
           {userData.length === 0 ? (
@@ -106,7 +112,7 @@ const AdminDash = () => {
                     </TableCell>
                     <TableCell>{user.service}</TableCell>
                     <TableCell>{user.counter}</TableCell>
-                    
+
                   </TableRow>
                 ))}
               </TableBody>

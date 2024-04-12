@@ -67,14 +67,7 @@ const CounterDash = () => {
   };
 
   const handleCheckboxChange = (event, userId) => {
-    const isChecked = event.target.checked;
-    if (isChecked) {
       setSelectedRecords((prevSelected) => [...prevSelected, userId]);
-    } else {
-      setSelectedRecords((prevSelected) =>
-        prevSelected.filter((id) => id !== userId)
-      );
-    }
   };
 
   const handleSaveButtonClick = async () => {
