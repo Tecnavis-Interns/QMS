@@ -1,4 +1,3 @@
-// AdminDash.jsx
 import { useState, useEffect } from "react";
 import {
   Table,
@@ -10,19 +9,15 @@ import {
   Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
-import {
-  collection,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query, // Import query from Firestore
-} from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ModalCounter from "./ModalCounter";
+import ManageCounterModal from "./ManageCounterModal"; // Import the ManageCounterModal component
 
 const AdminDash = () => {
   const [userData, setUserData] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [selectedCounter, setSelectedCounter] = useState(null); // State to manage selected counter data
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,12 +62,22 @@ const AdminDash = () => {
   const handleAddCounter = () => {
     setShowModal(true);
   };
+
+  const handleManageCounter = (counter) => {
+    setSelectedCounter(counter);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedCounter(null);
+  };
+
   return (
     <div className="md:mx-64 mx-2 md:py-16 py-16 flex flex-col min-h-64">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap">
         <div className="flex flex-col items-center justify-center gap-10 w-full py-10">
-          <ModalCounter />
+          {/* <ModalCounter /> */}
+          <ManageCounterModal />
         </div>
         <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
           <h2 className="font-semibold md:text-xl">Queue Details</h2>
@@ -101,6 +106,7 @@ const AdminDash = () => {
                     </TableCell>
                     <TableCell>{user.service}</TableCell>
                     <TableCell>{user.counter}</TableCell>
+                    
                   </TableRow>
                 ))}
               </TableBody>
@@ -108,6 +114,14 @@ const AdminDash = () => {
           )}
         </div>
       </div>
+      {/* Render ManageCounterModal component */}
+      {selectedCounter && (
+        <ManageCounterModal
+          isOpen={true} // Always open when a counter is selected
+          onClose={handleCloseModal}
+          counterData={selectedCounter}
+        />
+      )}
     </div>
   );
 };
