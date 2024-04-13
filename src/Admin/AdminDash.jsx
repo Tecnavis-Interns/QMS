@@ -12,6 +12,7 @@ import Navbar from "./Navbar";
 import { collection, getDocs, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ModalCounter from "./ModalCounter";
+import EditToken from "./EditToken";
 import ManageCounterModal from "./ManageCounterModal"; // Import the ManageCounterModal component
 
 const AdminDash = () => {
@@ -82,6 +83,9 @@ const AdminDash = () => {
           <div className="flex flex-col items-center gap-10">
             <ManageCounterModal />
           </div>
+          <div className="flex flex-col items-center gap-10">
+            <EditToken />
+          </div>
         </div>
 
 
@@ -97,7 +101,7 @@ const AdminDash = () => {
                 <TableColumn>Phone</TableColumn>
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
-                <TableColumn>Counter</TableColumn>
+                <TableColumn className="w-1/6">Counter</TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => (
