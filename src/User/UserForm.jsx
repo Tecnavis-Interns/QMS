@@ -12,7 +12,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, onSnapshot, orderBy, query, where, doc as firestoreDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query, where, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -90,7 +90,8 @@ export default function UserForm() {
         counterName = counterSnapshot.docs[0].data().counterName;
       }
 
-      const tokenNumber = generateTokenNumber(counterName);
+      // Generate the token number and await its result
+      const tokenNumber = await generateTokenNumber(counterName);
 
       const userId = uuidv4();
       await submitDataToFirestore('requests', {
@@ -111,6 +112,7 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
+
 
   const generatePDF = async (userTokenNumber) => {
     try {
@@ -147,41 +149,47 @@ export default function UserForm() {
     }
   };
 
-  const generateTokenNumber = (counterName) => {
-    let lastTokenNumber = lastTokenNumbers[counterName] || 0; // Initialize to 0 if not found
-    let newTokenNumber;
-    switch (counterName) {
-      case "Counter 1":
-        newTokenNumber = "A" + (++lastTokenNumber);
-        break;
-      case "Counter 2":
-        newTokenNumber = "B" + (++lastTokenNumber);
-        break;
-      case "Counter 3":
-        newTokenNumber = "C" + (++lastTokenNumber);
-        break;
-      case "Counter 4":
-        newTokenNumber = "D" + (++lastTokenNumber);
-        break;
-      case "Counter 5":
-        newTokenNumber = "E" + (++lastTokenNumber);
-        break;
-      default:
-        newTokenNumber = "";
+  const generateTokenNumber = async (counterName) => {
+    try {
+      // Fetch the counter document from Firestore
+      const counterDocRef = firestoreDoc(db, "counter", counterName);
+      const counterDocSnap = await getDoc(counterDocRef);
+  
+      // Get the current last token number from Firestore
+      let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
+  
+      let newTokenNumber;
+      switch (counterName) {
+        case "Counter 1":
+          newTokenNumber = "A" + (lastTokenNumber + 1);
+          break;
+        case "Counter 2":
+          newTokenNumber = "B" + (lastTokenNumber + 1);
+          break;
+        case "Counter 3":
+          newTokenNumber = "C" + (lastTokenNumber + 1);
+          break;
+        case "Counter 4":
+          newTokenNumber = "D" + (lastTokenNumber + 1);
+          break;
+        case "Counter 5":
+          newTokenNumber = "E" + (lastTokenNumber + 1);
+          break;
+        default:
+          newTokenNumber = "";
+      }
+  
+      // Update the last token number in the counter collection
+      await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
+  
+      return newTokenNumber;
+    } catch (error) {
+      console.error("Error generating token number: ", error);
+      return "";
     }
-
-    // Update lastTokenNumbers state with the incremented value for the specific counter
-    setLastTokenNumbers((prevNumbers) => ({
-      ...prevNumbers,
-      [counterName]: lastTokenNumber,
-    }));
-
-    // Update the last token number in the counter collection
-    const counterDocRef = firestoreDoc(db, "counter", counterName);
-    setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-
-    return newTokenNumber;
   };
+  
+
 
   const fetchData = async () => {
     try {
