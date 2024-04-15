@@ -1,6 +1,6 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@nextui-org/react";
 import { useState, useEffect } from "react";
-import { collection, getDocs, onSnapshot, deleteDoc, doc, query, where, getDoc } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import {
   Table,
@@ -43,6 +43,7 @@ export default function ManageCounterModal({ onClose }) {
     setIsOpen(false);
     onClose();
   };
+
   const handleDeleteCounter = async (counterId) => {
     try {
       console.log("CounterId:", counterId);
@@ -55,12 +56,16 @@ export default function ManageCounterModal({ onClose }) {
       console.log("Counter deleted successfully from the database");
 
       // Update the UI by removing the deleted document from the counters array
-      setCounters(prevCounters => prevCounters.filter(item => item.id !== counterId));
+      setCounters((prevCounters) => prevCounters.filter((item) => item.id !== counterId));
     } catch (error) {
       console.error("Error deleting counter: ", error);
     }
   };
 
+  const handleEditCounter = (counterId) => {
+    // Add your logic for editing counter here
+    console.log("Editing counter with id:", counterId);
+  };
 
   return (
     <>
@@ -75,16 +80,21 @@ export default function ManageCounterModal({ onClose }) {
               <TableHeader>
                 <TableColumn>Sl.no</TableColumn>
                 <TableColumn>Counter Name</TableColumn>
-                <TableColumn >Actions</TableColumn>
+                <TableColumn>Actions</TableColumn>
               </TableHeader>
               <TableBody>
-                {counters.map((counter, index) => (
+                {counters.filter((counter) => counter.counterName).map((counter, index) => (
                   <TableRow key={counter.id}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{counter.counterName}</TableCell>
                     <TableCell>
                       <Button onClick={() => handleEditCounter(counter.id)}>Edit</Button>
-                      <Button className="bg-red-500 ml-4" onClick={() => handleDeleteCounter(counter.id)}>Delete</Button>
+                      <Button
+                        className="bg-red-500 ml-4"
+                        onClick={() => handleDeleteCounter(counter.id)}
+                      >
+                        Delete
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -92,7 +102,9 @@ export default function ManageCounterModal({ onClose }) {
             </Table>
           </ModalBody>
           <ModalFooter>
-            <Button color="primary" onClick={handleCloseModal}>Close</Button>
+            <Button color="primary" onClick={handleCloseModal}>
+              Close
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

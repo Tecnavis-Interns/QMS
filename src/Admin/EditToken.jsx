@@ -1,6 +1,6 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@nextui-org/react";
 import { useState, useEffect } from "react";
-import { collection, getDocs, onSnapshot, deleteDoc, doc, query, where, getDoc } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, deleteDoc, doc, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import {
     Table,
@@ -18,7 +18,7 @@ export default function ManageCounterModal({ onClose }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const querySnapshot = await getDocs(query(collection(db, "counter"), where("id", ">=", "Counter"), where("id", "<=", "Counter\uffff")));
+                const querySnapshot = await getDocs(collection(db, "counter"));
                 const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
                 setCounters(data);
             } catch (error) {
@@ -43,6 +43,7 @@ export default function ManageCounterModal({ onClose }) {
         setIsOpen(false);
         onClose();
     };
+
     const handleDeleteCounter = async (counterId) => {
         try {
             console.log("CounterId:", counterId);
@@ -61,7 +62,6 @@ export default function ManageCounterModal({ onClose }) {
         }
     };
 
-
     return (
         <>
             <Button onPress={handleOpenModal} className="bg-[#6236F5] text-white">
@@ -74,8 +74,8 @@ export default function ManageCounterModal({ onClose }) {
                         <Table aria-label="Example static collection table">
                             <TableHeader>
                                 <TableColumn>Sl.no</TableColumn>
-                                <TableColumn>Counter Name</TableColumn>
-                                <TableColumn >Actions</TableColumn>
+                                <TableColumn>Collection ID</TableColumn>
+                                <TableColumn>Actions</TableColumn>
                             </TableHeader>
                             <TableBody>
                                 {counters
@@ -90,7 +90,6 @@ export default function ManageCounterModal({ onClose }) {
                                         </TableRow>
                                     ))}
                             </TableBody>
-
                         </Table>
                     </ModalBody>
                     <ModalFooter>
