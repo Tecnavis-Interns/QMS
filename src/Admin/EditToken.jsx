@@ -1,6 +1,6 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@nextui-org/react";
 import { useState, useEffect } from "react";
-import { collection, getDocs, onSnapshot, deleteDoc, doc, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import {
     Table,
@@ -13,23 +13,23 @@ import {
 
 export default function ManageCounterModal({ onClose }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [counters, setCounters] = useState([]);
+    const [tokens, setTokens] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const querySnapshot = await getDocs(collection(db, "counter"));
+                const querySnapshot = await getDocs(collection(db, "tokens"));
                 const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-                setCounters(data);
+                setTokens(data);
             } catch (error) {
                 console.error("Error fetching data: ", error);
             }
         };
 
         fetchData();
-        const unsubscribe = onSnapshot(collection(db, "counter"), (snapshot) => {
+        const unsubscribe = onSnapshot(collection(db, "tokens"), (snapshot) => {
             const updatedData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            setCounters(updatedData);
+            setTokens(updatedData);
         });
 
         return () => unsubscribe();
@@ -41,26 +41,22 @@ export default function ManageCounterModal({ onClose }) {
 
     const handleCloseModal = () => {
         setIsOpen(false);
-        onClose();
     };
 
-    const handleDeleteCounter = async (counterId) => {
+    const handleResetToken = async () => {
         try {
-            console.log("CounterId:", counterId);
+            // Update the token value in the database
+            const tokenRef = doc(db, "tokens", "lastToken");
+            await setDoc(tokenRef, { lastToken: 1 });
+            console.log("Token value set to 1 in the database");
 
-            // Construct a reference to the specific document using the counter's id
-            const counterRef = doc(db, "counter", counterId);
-
-            // Delete the document from the Firestore database
-            await deleteDoc(counterRef);
-            console.log("Counter deleted successfully from the database");
-
-            // Update the UI by removing the deleted document from the counters array
-            setCounters(prevCounters => prevCounters.filter(item => item.id !== counterId));
+            // Update the UI by setting the token value to 1
+            setTokens([{ id: "lastToken", lastToken: 1 }]);
         } catch (error) {
-            console.error("Error deleting counter: ", error);
+            console.error("Error resetting token: ", error);
         }
     };
+
 
     return (
         <>
@@ -74,25 +70,22 @@ export default function ManageCounterModal({ onClose }) {
                         <Table aria-label="Example static collection table">
                             <TableHeader>
                                 <TableColumn>Sl.no</TableColumn>
-                                <TableColumn>Collection ID</TableColumn>
-                                <TableColumn>Actions</TableColumn>
+                                <TableColumn>Token ID</TableColumn>
+                                <TableColumn>Token Value</TableColumn>
                             </TableHeader>
                             <TableBody>
-                                {counters
-                                    .filter((counter) => counter.id.startsWith("Counter"))
-                                    .map((counter, index) => (
-                                        <TableRow key={counter.id}>
-                                            <TableCell>{index + 1}</TableCell>
-                                            <TableCell>{counter.id}</TableCell>
-                                            <TableCell>
-                                                <Button className="bg-red-500 ml-4" onClick={() => handleDeleteCounter(counter.id)}>Delete</Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                {tokens.map((token, index) => (
+                                    <TableRow key={token.id}>
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>{token.id}</TableCell>
+                                        <TableCell>{token.lastTokenNumber}</TableCell>
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
                     </ModalBody>
                     <ModalFooter>
+                        <Button className="bg-blue-500" onClick={handleResetToken}>Set Token to 1</Button>
                         <Button color="primary" onClick={handleCloseModal}>Close</Button>
                     </ModalFooter>
                 </ModalContent>
