@@ -43,7 +43,6 @@ const submitDataToFirestore = async (collectionName, data) => {
 
 
 const signIn = async (email, password) => {
-  try {
     await signInWithEmailAndPassword(auth, email, password);
     const isAdmin = email === "admin@tecnavis.com";
     const isCounter = email.startsWith("counter@tecnavis.com");
@@ -55,9 +54,6 @@ const signIn = async (email, password) => {
     } else {
       throw new Error("Invalid input");
     }
-  } catch (error) {
-    throw error;
-  }
 };
 
 const signOutUser = async () => {
