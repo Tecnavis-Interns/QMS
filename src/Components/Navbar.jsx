@@ -29,6 +29,15 @@ export default function App() {
             Book your slot
           </Button>
         </NavbarItem>
+        <NavbarItem>
+        <Button
+          as={Link}
+          className="bg-[#6236F5] text-white"
+          href="/login"
+          variant="flat">
+            Login
+          </Button>
+        </NavbarItem>
       </NavbarContent>
     </Navbar>
   );

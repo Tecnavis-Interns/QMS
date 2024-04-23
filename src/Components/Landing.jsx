@@ -1,4 +1,4 @@
-import { Button } from "@nextui-org/react";
+import { Button, Link } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
 import landingComp from '../assets/landingComp.png'  
 
@@ -13,12 +13,21 @@ const LandingContent = () => {
           Lorem ipsum dolor sit amet consectetur adipisicing elit. Mollitia,
           dolores?
         </p>
+        <div className="flex gap-10">
         <Button
           className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
           onClick={() => navigate("/userForm")}
         >
           Book your slot
         </Button>
+        <Button
+          as={Link}
+          className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+          href="/login"
+          variant="flat">
+            Login
+          </Button>
+        </div>
       </div>
       <div className="flex-1 relative">
         <img src={landingComp} className="absolute top-16" alt="" />
