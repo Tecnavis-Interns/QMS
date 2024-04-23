@@ -189,15 +189,15 @@ export default function UserForm() {
 
 
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
+    <div className="flex flex-col min-h-dvh">
       <Navbar />
-      <div className="flex flex-1 justify-center flex-wrap">
+      <div className="flex flex-1 justify-center flex-wrap md:mx-64 mx-2 md:py-10 py-5">
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
-            <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" />
-            <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" />
-            <Select label="Select your Reason to be here" onChange={handleServiceChange} required>
+            <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
+            <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
+            <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" >
               {services.map((item) => (
                 <SelectItem className="font-[Outfit]" value={item} key={item} d>{item}</SelectItem>
               ))}
@@ -210,14 +210,14 @@ export default function UserForm() {
           <div className="overflow-auto w-full md:min-h-64 md:max-h-64">
             <Table aria-label="Example static collection table" removeWrapper isHeaderSticky isStriped className="h-full">
               <TableHeader>
-                <TableColumn>Sl. no.</TableColumn>
+                {/* <TableColumn>Sl. no.</TableColumn> */}
                 <TableColumn>Token Number</TableColumn>
                 <TableColumn>Counter</TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => (
                   <TableRow key={index}>
-                    <TableCell>{index + 1}</TableCell>
+                    {/* <TableCell>{index + 1}</TableCell> */}
                     <TableCell>{user.token}</TableCell>
                     <TableCell>{user.counter}</TableCell>
                   </TableRow>

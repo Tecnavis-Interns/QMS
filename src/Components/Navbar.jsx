@@ -9,7 +9,7 @@ import {
 
 export default function App() {
   return (
-    <Navbar>
+    <Navbar position="sticky">
       <NavbarContent>
       <NavbarBrand>
           <p className="font-bold text-inherit sm:hidden">QMS</p>

@@ -101,12 +101,12 @@ const CounterDash = () => {
   };
 
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh">
+    <div className="flex flex-col min-h-screen">
       <Navbar />
-      <div className="flex flex-1 justify-center flex-wrap">
-        <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
+      <div className="flex flex-1 justify-center flex-wrap md:mx-64 mx-2 md:py-10 py-5 ">
+        <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
           <h2 className="font-semibold md:text-xl">Queue Details </h2>
-          <Table aria-label="Example static collection table">
+          <Table aria-label="Example static collection table" removeWrapper>
             <TableHeader>
               <TableColumn>Sl. no.</TableColumn>
               <TableColumn>Name</TableColumn>
@@ -140,7 +140,7 @@ const CounterDash = () => {
               })}
             </TableBody>
           </Table>
-          <Button onClick={handleSaveButtonClick}>Save</Button>
+          <Button onClick={handleSaveButtonClick} color="primary">Save</Button>
         </div>
       </div>
     </div>

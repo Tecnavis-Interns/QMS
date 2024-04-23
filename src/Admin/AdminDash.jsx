@@ -9,7 +9,13 @@ import {
   Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
-import { collection, getDocs, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import ModalCounter from "./ModalCounter";
 import EditToken from "./EditToken";
@@ -73,9 +79,9 @@ const AdminDash = () => {
   };
 
   return (
-    <div className="md:mx-64 mx-2 md:py-16 py-16 flex flex-col min-h-64">
+    <div className=" flex flex-col min-h-screen">
       <Navbar />
-      <div className="flex flex-1 justify-center flex-wrap">
+      <div className="md:mx-64 mx-2 md:py-16 py-16 flex justify-center flex-wrap gap-10">
         <div className="flex items-center justify-center gap-10 w-full py-10">
           <div className="flex flex-col items-center gap-10">
             <ModalCounter />
@@ -88,13 +94,12 @@ const AdminDash = () => {
           </div>
         </div>
 
-
         <div className="flex flex-col items-center justify-center p-10 py-5 gap-4 w-full">
           <h2 className="font-semibold md:text-xl">Queue Details</h2>
           {userData.length === 0 ? (
             <p>No valid data available</p>
           ) : (
-            <Table aria-label="Example static collection table">
+            <Table aria-label="Example static collection table" removeWrapper>
               <TableHeader>
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
@@ -110,13 +115,10 @@ const AdminDash = () => {
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.phone}</TableCell>
                     <TableCell>
-                      {user.date
-                        ? user.date.toDate().toLocaleString()
-                        : ""}
+                      {user.date ? user.date.toDate().toLocaleString() : ""}
                     </TableCell>
                     <TableCell>{user.service}</TableCell>
                     <TableCell>{user.counter}</TableCell>
-
                   </TableRow>
                 ))}
               </TableBody>

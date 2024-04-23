@@ -72,7 +72,7 @@ import {
         <Button onPress={onOpen} className="bg-[#6236F5] text-white">
           Add Counter
         </Button>
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
           <ModalContent>
             <ModalHeader className="flex flex-col gap-1">Add Counter</ModalHeader>
             <ModalBody>
@@ -81,23 +81,27 @@ import {
                 label="Counter Name"
                 value={counterName}
                 onChange={(e) => setCounterName(e.target.value)}
+                variant="bordered"
               />
               <Input
                 type="email"
                 label="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                variant="bordered"
               />
               <Input
                 type="password"
                 label="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                variant="bordered"
               />
               <Select
                 label="Select your Reason to be here"
                 onChange={handleServiceChange}
                 required
+                variant="bordered"
               >
                 {services.map((item) => (
                   <SelectItem className="font-[Outfit]" value={item} key={item}>
@@ -107,10 +111,10 @@ import {
               </Select>
             </ModalBody>
             <ModalFooter>
-              <Button color="danger" variant="light" onPress={onClose}>
+              <Button color="danger" onPress={onClose} className="w-full">
                 Close
               </Button>
-              <Button color="primary" onPress={handleSubmit}>
+              <Button color="primary" onPress={handleSubmit} className="w-full">
                 Submit
               </Button>
             </ModalFooter>

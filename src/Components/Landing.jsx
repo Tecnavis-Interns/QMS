@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
 import landingComp from '../assets/landingComp.png'  
@@ -6,7 +5,7 @@ import landingComp from '../assets/landingComp.png'
 const LandingContent = () => {
   const navigate = useNavigate();
   return (
-    <div className="flex-1 flex md:p-0 p-5">
+    <div className="flex-1 flex md:mx-48 mx-10">
       <div className="md:w-[50%] flex flex-col justify-center">
         <h3 className="text-5xl">Manage Your</h3>
         <h1 className="text-6xl font-bold">Queues Perfectly</h1>

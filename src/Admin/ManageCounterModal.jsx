@@ -72,11 +72,11 @@ export default function ManageCounterModal({ onClose }) {
       <Button onPress={handleOpenModal} className="bg-[#6236F5] text-white">
         Manage Counter
       </Button>
-      <Modal isOpen={isOpen} onClose={handleCloseModal}>
+      <Modal isOpen={isOpen} onClose={handleCloseModal} className="bg-[#F8F8F9] font-[Outfit]">
         <ModalContent>
           <ModalHeader>Manage Counters</ModalHeader>
           <ModalBody>
-            <Table aria-label="Example static collection table">
+            <Table aria-label="Example static collection table" removeWrapper>
               <TableHeader>
                 <TableColumn>Sl.no</TableColumn>
                 <TableColumn>Counter Name</TableColumn>
@@ -88,13 +88,15 @@ export default function ManageCounterModal({ onClose }) {
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{counter.counterName}</TableCell>
                     <TableCell>
-                      <Button onClick={() => handleEditCounter(counter.id)}>Edit</Button>
+                      <div className="flex gap-5">
+                      <Button color="secondary" onClick={() => handleEditCounter(counter.id)}>Edit</Button>
                       <Button
-                        className="bg-red-500 ml-4"
+                        color="danger"
                         onClick={() => handleDeleteCounter(counter.id)}
                       >
                         Delete
                       </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -102,7 +104,7 @@ export default function ManageCounterModal({ onClose }) {
             </Table>
           </ModalBody>
           <ModalFooter>
-            <Button color="primary" onClick={handleCloseModal}>
+            <Button color="warning" className="w-full" onClick={handleCloseModal}>
               Close
             </Button>
           </ModalFooter>

@@ -63,11 +63,11 @@ export default function ManageCounterModal({ onClose }) {
             <Button onPress={handleOpenModal} className="bg-[#6236F5] text-white">
                 Reset
             </Button>
-            <Modal isOpen={isOpen} onClose={handleCloseModal}>
+            <Modal isOpen={isOpen} onClose={handleCloseModal} className="font-[Outfit] bg-[#F8F8F9]">
                 <ModalContent>
                     <ModalHeader>Reset tokens</ModalHeader>
                     <ModalBody>
-                        <Table aria-label="Example static collection table">
+                        <Table aria-label="Example static collection table" removeWrapper>
                             <TableHeader>
                                 <TableColumn>Sl.no</TableColumn>
                                 <TableColumn>Token ID</TableColumn>
@@ -85,8 +85,8 @@ export default function ManageCounterModal({ onClose }) {
                         </Table>
                     </ModalBody>
                     <ModalFooter>
-                        <Button className="bg-blue-500" onClick={handleResetToken}>Set Token to 1</Button>
-                        <Button color="primary" onClick={handleCloseModal}>Close</Button>
+                        <Button className="w-full" color="primary" onClick={handleResetToken}>Set Token to 1</Button>
+                        <Button className="w-full" color="danger" onClick={handleCloseModal}>Close</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

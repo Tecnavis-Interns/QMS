@@ -34,10 +34,10 @@ const Login = () => {
   }
 
   return (
-    <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-col min-h-dvh min-w-screen">
+    <div className=" flex flex-col min-h-dvh min-w-screen">
       <Navbar />
-      <div className="flex flex-1 items-center justify-center">
-        <Card className="p-5 md:min-w-96">
+      <div className="md:mx-64 mx-2 md:py-10 py-5 flex flex-1 items-center justify-center">
+        <Card className="p-2 md:p-5 md:min-w-96 min-w-[75vw]">
           <CardHeader className="justify-center">
             <h2 className="font-semibold">Please Login Here</h2>
           </CardHeader>
@@ -50,6 +50,7 @@ const Login = () => {
                 autoComplete='off'
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                variant='bordered'
               />
               <Input
                 type="password"
@@ -58,6 +59,7 @@ const Login = () => {
                 id="password"
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                variant='bordered'
               />
               {error && <p className="text-red-500 text-xs italic">{error}</p>}
               <Button className="bg-[#6236F5] text-white" type="submit">Submit</Button>
