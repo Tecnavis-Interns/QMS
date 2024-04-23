@@ -11,6 +11,8 @@ import {
 } from 'react-router-dom';
 import UserForm from './User/UserForm'
 import Login from './login/Login'
+import CounterDash from './Counter/CounterDash';
+import AdminDash from './Admin/AdminDash'
 
 const router = createBrowserRouter([
   {
@@ -24,6 +26,14 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/counterDash',
+    element: <CounterDash />,
+  },
+  {
+    path: '/adminDash',
+    element: <AdminDash />,
   },
 ]);
 
