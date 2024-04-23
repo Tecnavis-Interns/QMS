@@ -2,14 +2,16 @@ import { useState } from "react";
 import Navbar from "./Navbar";
 import { signIn } from "../firebase";
 import { Card, CardHeader, CardBody, Input, Button } from "@nextui-org/react";
-import AdminDash from "../Admin/AdminDash"
-import CounterDash from "../Counter/CounterDash"
+// import AdminDash from "../Admin/AdminDash"
+// import CounterDash from "../Counter/CounterDash"
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loggedInAs, setLoggedInAs] = useState(null);
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,11 +28,11 @@ const Login = () => {
       setError(error.message);
     }
   };
-  if (loggedInAs === "admin") {
-    return <AdminDash />;
-  } else if (loggedInAs === "counter") {
-    return <CounterDash />;
 
+  if (loggedInAs === "admin") {
+    navigate("/adminDash");
+  } else if (loggedInAs === "counter") {
+    navigate("/counterDash");
   }
 
   return (
