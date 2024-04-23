@@ -22,8 +22,22 @@ import {
   doc,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { getAuth } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 const CounterDash = () => {
+  const navigate = useNavigate();
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (user === undefined) {
+    navigate("/login");
+  } else {
+    const email = user?.email ?? undefined
+    if (email !== "counter@tecnavis.com") {
+      navigate("/login");
+    }
+  }
+
   const [userData, setUserData] = useState([]);
   const [selectedRecords, setSelectedRecords] = useState([]);
 
@@ -57,17 +71,11 @@ const CounterDash = () => {
   }, []);
 
   const isValidUserData = (user) => {
-    return (
-      user.name &&
-      user.phone &&
-      user.date &&
-      user.service &&
-      user.token
-    );
+    return user.name && user.phone && user.date && user.service && user.token;
   };
 
   const handleCheckboxChange = (event, userId) => {
-      setSelectedRecords((prevSelected) => [...prevSelected, userId]);
+    setSelectedRecords((prevSelected) => [...prevSelected, userId]);
   };
 
   const handleSaveButtonClick = async () => {
@@ -140,7 +148,9 @@ const CounterDash = () => {
               })}
             </TableBody>
           </Table>
-          <Button onClick={handleSaveButtonClick} color="primary">Save</Button>
+          <Button onClick={handleSaveButtonClick} color="primary">
+            Save
+          </Button>
         </div>
       </div>
     </div>

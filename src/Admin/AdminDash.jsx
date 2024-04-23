@@ -6,7 +6,6 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
 import {
@@ -20,8 +19,21 @@ import { db } from "../firebase";
 import ModalCounter from "./ModalCounter";
 import EditToken from "./EditToken";
 import ManageCounterModal from "./ManageCounterModal"; // Import the ManageCounterModal component
+import { useNavigate } from "react-router-dom";
+import { getAuth } from "firebase/auth";
 
 const AdminDash = () => {
+  const navigate = useNavigate();
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (user === undefined) {
+    navigate("/login");
+  } else {
+    const email = user?.email ?? undefined
+    if (email !== "admin@tecnavis.com") {
+      navigate("/login");
+    }
+  }
   const [userData, setUserData] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedCounter, setSelectedCounter] = useState(null); // State to manage selected counter data
