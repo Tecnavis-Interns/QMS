@@ -21,10 +21,8 @@ const LandingContent = () => {
           Book your slot
         </Button>
         <Button
-          as={Link}
           className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-          href="/login"
-          variant="flat">
+          onClick={() => navigate("/login")}>
             Login
           </Button>
         </div>
