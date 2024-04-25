@@ -5,7 +5,7 @@ import landingComp from '../assets/landingComp.png'
 const LandingContent = () => {
   const navigate = useNavigate();
   return (
-    <div className="flex-1 flex md:mx-48 mx-10">
+    <div className="flex-1 flex lg:mx-24 mx-10">
       <div className="md:w-[50%] flex flex-col justify-center">
         <h3 className="text-5xl">Manage Your</h3>
         <h1 className="text-6xl font-bold">Queues Perfectly</h1>
@@ -28,7 +28,7 @@ const LandingContent = () => {
         </div>
       </div>
       <div className="flex-1 relative">
-        <img src={landingComp} className="absolute top-16" alt="" />
+        <img src={landingComp} className="absolute lg:top-16 top-48" alt="" />
       </div>
     </div>
   );

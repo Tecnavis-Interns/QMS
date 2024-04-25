@@ -93,7 +93,7 @@ const AdminDash = () => {
   return (
     <div className=" flex flex-col min-h-screen">
       <Navbar />
-      <div className="md:mx-64 mx-2 md:py-16 py-16 flex justify-center flex-wrap gap-10">
+      <div className="lg:mx-24 flex justify-center flex-wrap gap-10">
         <div className="flex items-center justify-center gap-10 w-full py-10">
           <div className="flex flex-col items-center gap-10">
             <ModalCounter />

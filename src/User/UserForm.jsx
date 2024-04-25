@@ -261,15 +261,15 @@ export default function UserForm() {
   return (
     <div className="flex flex-col min-h-dvh">
       <Navbar />
-      <div className="flex flex-1 justify-center flex-wrap md:mx-64 mx-2 md:py-10 py-5">
+      <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
             <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
-            <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" >
+            <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
               {services.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item} key={item} d>{item}</SelectItem>
+                <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
               ))}
             </Select>
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
