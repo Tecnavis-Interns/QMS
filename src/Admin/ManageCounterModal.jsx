@@ -10,6 +10,8 @@ import {
   TableRow,
   TableCell,
 } from "@nextui-org/react";
+import { MdEdit } from 'react-icons/md';
+
 
 export default function ManageCounterModal({ onClose }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,8 +71,8 @@ export default function ManageCounterModal({ onClose }) {
 
   return (
     <>
-      <Button onPress={handleOpenModal} className="bg-[#6236F5] text-white">
-        Manage Counter
+      <Button onPress={handleOpenModal}  >
+         <MdEdit size={15} />
       </Button>
       <Modal isOpen={isOpen} onClose={handleCloseModal} className="bg-[#F8F8F9] font-[Outfit]">
         <ModalContent>

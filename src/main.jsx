@@ -12,7 +12,7 @@ import UserForm from './User/UserForm'
 import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
 import AdminDash from './Admin/AdminDash'
-
+import Staff from './Admin/Staff';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -33,6 +33,10 @@ const router = createBrowserRouter([
   {
     path: '/adminDash',
     element: <AdminDash />,
+  },
+  {
+    path: '/staff',
+    element: <Staff/>,
   },
 ]);
 

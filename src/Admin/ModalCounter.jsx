@@ -70,7 +70,7 @@ import {
     return (
       <>
         <Button onPress={onOpen} className="bg-[#6236F5] text-white">
-          Add Counter
+          Add Counter +
         </Button>
         <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
           <ModalContent>
