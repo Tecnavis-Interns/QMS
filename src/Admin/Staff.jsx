@@ -122,7 +122,9 @@ return (
     <div className="lg:mx-24 flex justify-start flex-wrap gap-1">
       <div className="flex items-center justify-start gap-1 w-full py-6">
           <div className="flex flex-col items-center gap-1">
-            <ModalCounter />
+          <Button className="bg-[#6236F5] text-white">
+          Add Staff +
+          </Button>
           </div>
           <div className="w-[340px] h-[240px] px-8 rounded-2xl flex justify-center items-center bg-[#9075e9] ml-[150px]">
             <div>
