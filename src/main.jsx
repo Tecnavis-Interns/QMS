@@ -13,6 +13,7 @@ import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
 import AdminDash from './Admin/AdminDash'
 import Staff from './Admin/Staff';
+import Counter from './Admin/Counter'
 
 const router = createBrowserRouter([
   {
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
   {
     path: '/adminDash',
     element: <AdminDash />,
+  },
+  {
+    path: '/counter',
+    element: <Counter />,
   },
   {
     path: '/staff',
