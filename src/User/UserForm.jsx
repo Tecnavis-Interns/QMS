@@ -17,6 +17,7 @@ import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb } from 'pdf-lib';
 
+
 export default function UserForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -258,23 +259,52 @@ export default function UserForm() {
     };
   }, []);
 
+
+  
   return (
     <div className="flex flex-col min-h-dvh">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
-          <h2 className="font-semibold md:text-xl">Create a request</h2>
+          <h2 className="font-semibold md:text-xl">Enter the Details</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
             <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
+            <Input type="email" label="Email" required autoComplete="off" id="email" variant="bordered" />
+            {/* <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
+              {services.map((item) => (
+                <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
+              ))}
+            </Select> */}
+            {/* <Button className="bg-[#6236F5] text-white w-1/3" type="submit">Submit</Button> */}
+            <div  class="flex justify-between">
+             <Button className="bg-[#6236F5] text-white w-1/3">Cancel</Button>
+             <Button className="bg-[#6236F5] text-white w-1/3">Register</Button>
+            </div>
+          </form>
+        </div>
+       {/* secound from */}
+       <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
+          
+          <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
               {services.map((item) => (
                 <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
               ))}
             </Select>
-            <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
+            <div  class="flex justify-center">
+             <Button className="bg-[#6236F5] text-white w-1/3"type="submit">Submit</Button>
+            </div>
+            <div  class="flex justify-center">
+            <h2 className="font-semibold md:text-xl">Your Token is:</h2>
+            </div>
+            <div  class="flex justify-center">
+             <Button className="bg-[#6236F5] text-white w-1/3">Print Token</Button>
+            </div>
           </form>
         </div>
+
+
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
           <div className="overflow-auto w-full md:min-h-64 md:max-h-64">
