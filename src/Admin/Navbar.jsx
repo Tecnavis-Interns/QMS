@@ -27,7 +27,7 @@ export default function App() {
           <p className="font-bold text-white sm:hidden">QMS</p>
         </div>
         <div className="flex flex-col items-center p-4">
-          <p className="text-white">Admin Dashboard</p>
+          <p className="text-white">Dashboard</p>
         </div>
         <div className="flex flex-col items-center p-4">
           <Button
