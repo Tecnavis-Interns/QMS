@@ -24,7 +24,7 @@ import {
 import { db } from "../firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import {Card, CardHeader, CardBody, CardFooter} from "@nextui-org/card";
+import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 
 
 const CounterDash = () => {
@@ -157,12 +157,12 @@ const CounterDash = () => {
               </CardHeader>
               <CardBody className="overflow-visible py-2">
                 <div className="flex flex-col items-center justify-end h-full">
-                  <div className="flex justify-end mb-4"> 
+                  <div className="flex justify-end mb-4">
                     <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
                       Completed
                     </Button>
                   </div>
-                  <div className="flex justify-end mb-0"> 
+                  <div className="flex justify-end mb-0">
                     <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
                       Pending
                     </Button>
@@ -177,25 +177,25 @@ const CounterDash = () => {
                 Next
               </Button>
             </div>
-            <div className="flex justify-end mb-5"> 
+            <div className="flex justify-end mb-5">
               <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Call
               </Button>
             </div>
-            <div className="flex justify-end mb-5"> 
+            <div className="flex justify-end mb-5">
               <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Recall
               </Button>
             </div>
-            <div className="flex justify-end mb-5"> 
+            <div className="flex justify-end mb-5">
               <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Start
               </Button>
             </div>
-            <div className="flex justify-end mb-5"> 
+            <div className="flex justify-end mb-5">
               <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Close
-              </Button> 
+              </Button>
             </div>
           </div>
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
@@ -241,6 +241,6 @@ const CounterDash = () => {
       </div>
     </div>
   );
-  
-};  
+
+};
 export default CounterDash;
