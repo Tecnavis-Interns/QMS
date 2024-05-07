@@ -29,28 +29,33 @@ export default function App() {
           <div className="mt-20 w-64">
           <Button
             as={Link}
-            className="w-full text-white rounded-none "
             href="#"
+            className="w-full text-white rounded-none"
             variant="flat"
-            onClick={handleLogout}
+            onClick={()=>navigate(handleLogout)}
           >
             Dashboard
           </Button>
           <Button
             as={Link}
-            className="w-full text-white rounded-none"
             href="#"
             variant="flat"
-            onClick={handleLogout}
+            onClick={()=>navigate("/adminDash")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/adminDash' ? 'bg-gray-900' : ''
+            }`}
+            
           >
             Counter
           </Button>
           <Button
             as={Link}
-            className="w-full text-white rounded-none"
-            href="#"
+            href=""
             variant="flat"
-            onClick={handleLogout}
+            onClick={()=>navigate("/staff")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/staff' ? 'bg-gray-900' : ''
+            }`}
           >
             Staff
           </Button>
