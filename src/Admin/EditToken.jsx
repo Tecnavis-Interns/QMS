@@ -10,7 +10,7 @@ import {
     TableRow,
     TableCell,
 } from "@nextui-org/react";
-import { MdDelete } from 'react-icons/md';
+
 export default function ManageCounterModal({ onClose }) {
     const [isOpen, setIsOpen] = useState(false);
     const [counters, setCounters] = useState([]);
@@ -64,8 +64,8 @@ export default function ManageCounterModal({ onClose }) {
 
     return (
         <>
-            <Button onPress={handleOpenModal} >
-                    <MdDelete size={15} />
+            <Button onPress={handleOpenModal} className="bg-[#6236F5] text-white">
+                Reset
             </Button>
             <Modal isOpen={isOpen} onClose={handleCloseModal} className="font-[Outfit] bg-[#F8F8F9]">
                 <ModalContent>
