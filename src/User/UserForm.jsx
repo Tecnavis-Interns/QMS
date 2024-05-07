@@ -20,6 +20,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 export default function UserForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [service, setService] = useState("");
   const [userData, setUserData] = useState([]);
   const [counter, setCounter] = useState([]);
@@ -30,6 +31,9 @@ export default function UserForm() {
     "Counter 4": 0,
     "Counter 5": 0,
   });
+  const [tokenNumber, setTokenNumber] = useState("");
+  const [step, setStep] = useState(1);
+  const [showToken, setShowToken] = useState(false);
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -39,35 +43,17 @@ export default function UserForm() {
     setPhone(event.target.value.replace(/\D/g, "").slice(0, 10));
   };
 
+  const handleEmailChange = (event) => {
+    setEmail(event.target.value);
+  };
+
   const handleServiceChange = (event) => {
     setService(event.target.value);
   };
 
   const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
 
-  useEffect(() => {
-    const fetchLastTokenNumbers = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "counter"));
-        const countersData = querySnapshot.docs.map((doc) => doc.data());
-        setCounter(countersData);
-
-        // Fetch last token numbers from the counter collection and update state
-        const lastTokenNumbers = {};
-        querySnapshot.forEach((doc) => {
-          lastTokenNumbers[doc.data().counterName] = doc.data().lastTokenNumber;
-        });
-        setLastTokenNumbers(lastTokenNumbers);
-      } catch (error) {
-        console.error("Error fetching counters and last token numbers: ", error);
-      }
-    };
-
-    fetchLastTokenNumbers();
-  }, []);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleRegister = () => {
     if (phone.length < 10) {
       alert("Please enter a 10 digit Phone Number");
       return;
@@ -78,6 +64,11 @@ export default function UserForm() {
       return;
     }
 
+    setStep(2);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (service === "") {
       alert("Please select a service.")
       return;
@@ -98,23 +89,21 @@ export default function UserForm() {
         id: userId,
         name: name,
         phone: phone,
+        email: email,
         service: service,
         counter: counterName,
         token: tokenNumber
       });
 
-      generatePDF(tokenNumber);
-
-      setName("");
-      setPhone("");
-      setService("");
+      setTokenNumber(tokenNumber);
+      setShowToken(true);
+      setStep(3);
     } catch (error) {
       console.error("Error adding document: ", error);
     }
   };
 
-
-  const generatePDF = async (userTokenNumber) => {
+  const generatePDF = async () => {
     try {
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([612, 472]);
@@ -129,7 +118,7 @@ export default function UserForm() {
         color: rgb(0, 0, 0),
       });
 
-      page.drawText(userTokenNumber, {
+      page.drawText(tokenNumber, {
         x: width / 2 - 40,
         y: height / 2,
         size: 35,
@@ -154,10 +143,10 @@ export default function UserForm() {
       // Fetch the counter document from Firestore
       const counterDocRef = firestoreDoc(db, "counter", counterName);
       const counterDocSnap = await getDoc(counterDocRef);
-  
+
       // Get the current last token number from Firestore
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
-  
+
       let newTokenNumber;
       switch (counterName) {
         case "Counter 1":
@@ -178,18 +167,16 @@ export default function UserForm() {
         default:
           newTokenNumber = "";
       }
-  
+
       // Update the last token number in the counter collection
       await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-  
+
       return newTokenNumber;
     } catch (error) {
       console.error("Error generating token number: ", error);
       return "";
     }
   };
-  
-
 
   const fetchData = async () => {
     try {
@@ -262,19 +249,37 @@ export default function UserForm() {
     <div className="flex flex-col min-h-dvh">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
-        <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
-          <h2 className="font-semibold md:text-xl">Create a request</h2>
-          <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
-            <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
-            <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
-            <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
-              {services.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
-              ))}
-            </Select>
-            <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
-          </form>
-        </div>
+        {step === 1 && (
+          <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
+            <h2 className="font-semibold md:text-xl">Enter the Details</h2>
+            <form onSubmit={handleRegister} className="flex flex-col w-full gap-4">
+              <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
+              <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
+              <Input type="email" label="Email" value={email} onChange={handleEmailChange} required autoComplete="off" id="email" variant="bordered" />
+              <Button className="bg-[#6236F5] text-white w-full" type="submit">Register</Button>
+            </form>
+          </div>
+        )}
+        {step === 2 && (
+          <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
+            <h2 className="font-semibold md:text-xl">Reason to be here</h2>
+            <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
+              <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
+                {services.map((item) => (
+                  <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
+                ))}
+              </Select>
+              <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
+            </form>
+          </div>
+        )}
+        {step === 3 && showToken && (
+          <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
+            <h2 className="font-semibold md:text-xl">Token</h2>
+            <p className="text-lg font-semibold mb-4">Your Token is: {tokenNumber}</p>
+            <Button className="bg-[#6236F5] text-white w-full" onClick={generatePDF}>Print Token</Button>
+          </div>
+        )}
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Current Queue</h2>
           <div className="overflow-auto w-full md:min-h-64 md:max-h-64">
