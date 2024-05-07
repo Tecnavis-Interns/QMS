@@ -11,7 +11,7 @@ export default function App() {
   return (
     <Navbar position="sticky">
       <NavbarContent>
-      <NavbarBrand>
+        <NavbarBrand>
           <p className="font-bold text-inherit sm:hidden">QMS</p>
           <p className="font-bold text-inherit hidden sm:block">
             Queue Management System
@@ -30,11 +30,11 @@ export default function App() {
           </Button>
         </NavbarItem>
         <NavbarItem>
-        <Button
-          as={Link}
-          className="bg-[#6236F5] text-white"
-          href="/login"
-          variant="flat">
+          <Button
+            as={Link}
+            className="bg-[#6236F5] text-white"
+            href="/login"
+            variant="flat">
             Login
           </Button>
         </NavbarItem>

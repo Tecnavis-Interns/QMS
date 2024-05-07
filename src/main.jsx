@@ -1,4 +1,4 @@
-// main.tsx or main.jsx
+// main.tsx or main.jsx 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { NextUIProvider } from '@nextui-org/react';
@@ -12,6 +12,8 @@ import UserForm from './User/UserForm'
 import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
 import AdminDash from './Admin/AdminDash'
+import Staff from './Admin/Staff';
+import Counter from './Admin/Counter'
 
 const router = createBrowserRouter([
   {
@@ -34,6 +36,14 @@ const router = createBrowserRouter([
     path: '/adminDash',
     element: <AdminDash />,
   },
+  {
+    path: '/counter',
+    element: <Counter />,
+  },
+  {
+    path: '/staff',
+    element: <Staff />,
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
