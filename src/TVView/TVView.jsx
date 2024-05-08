@@ -49,7 +49,7 @@ export default function UserForm() {
                   <TableColumn className="text-2xl bg-[#6236F5] text-white text-center">Next Tokens</TableColumn>
                 </TableHeader>
                 <TableBody>
-                  {counter.tokens.map((token, tokenIndex) => (
+                  {counter.tokens.slice(1).map((token, tokenIndex) => ( // Skip the first token
                     <TableRow key={tokenIndex}>
                       <TableCell className="text-xl text-center">{token}</TableCell>
                     </TableRow>
