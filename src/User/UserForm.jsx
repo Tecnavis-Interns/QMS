@@ -102,6 +102,15 @@ export default function UserForm() {
         counter: counterName,
         token: tokenNumber
       });
+      // Update the collection name dynamically based on the counterName
+      await submitDataToFirestore(counterName, {
+        id: userId,
+        name: name,
+        phone: phone,
+        service: service,
+        counter: counterName,
+        token: tokenNumber
+      });
 
       generatePDF(tokenNumber);
 
@@ -112,6 +121,7 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
+
 
 
   const generatePDF = async (userTokenNumber) => {
@@ -154,10 +164,10 @@ export default function UserForm() {
       // Fetch the counter document from Firestore
       const counterDocRef = firestoreDoc(db, "counter", counterName);
       const counterDocSnap = await getDoc(counterDocRef);
-  
+
       // Get the current last token number from Firestore
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
-  
+
       let newTokenNumber;
       switch (counterName) {
         case "Counter 1":
@@ -178,17 +188,17 @@ export default function UserForm() {
         default:
           newTokenNumber = "";
       }
-  
+
       // Update the last token number in the counter collection
       await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-  
+
       return newTokenNumber;
     } catch (error) {
       console.error("Error generating token number: ", error);
       return "";
     }
   };
-  
+
 
 
   const fetchData = async () => {
