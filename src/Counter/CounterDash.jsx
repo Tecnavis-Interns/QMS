@@ -31,8 +31,12 @@ const CounterDash = () => {
   const auth = getAuth();
   const user = auth.currentUser;
 
-  // New state variable to track completed count
+  const [userData, setUserData] = useState([]);
+  const [selectedRecords, setSelectedRecords] = useState([]);
+  const [currentDate, setCurrentDate] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState('-');
+  
 
   useEffect(() => {
     const checkUser = async () => {
@@ -85,24 +89,6 @@ const CounterDash = () => {
     checkUser();
   }, [user]);
 
-  const [userData, setUserData] = useState([]);
-  const [selectedRecords, setSelectedRecords] = useState([]);
-  const [currentDate, setCurrentDate] = useState("");
-
-  // Function to get the current date in the desired format
-  const getCurrentDate = () => {
-    const dateObj = new Date();
-    const month = dateObj.toLocaleString("default", { month: "long" });
-    const day = dateObj.getDate();
-    const year = dateObj.getFullYear();
-    return `${month} ${day}, ${year}`;
-  };
-
-  // Set the current date
-  useEffect(() => {
-    setCurrentDate(getCurrentDate());
-  }, []);
-
   const isValidUserData = (user) => {
     return (
       user.name && user.phone && user.date && user.service && user.token
@@ -111,18 +97,101 @@ const CounterDash = () => {
 
   const handleCheckboxChange = async (event, userId) => {
     const isChecked = event.target.checked;
-  
+
     if (isChecked) {
-      // Add userId to selectedRecords
       setSelectedRecords((prevSelected) => [...prevSelected, userId]);
     } else {
-      // Remove userId from selectedRecords
       setSelectedRecords((prevSelected) =>
         prevSelected.filter((id) => id !== userId)
       );
     }
   };
 
+  const handlePendingButtonClick = async () => {
+    for (const userId of selectedRecords) {
+      await moveRecordToPending(userId);
+    }
+    setSelectedRecords([]); // Clear selected records after moving to pending
+  };
+  
+  const moveRecordToPending = async (userId) => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const pendingCollectionName = `PendingCounter${counterNumber}`;
+  
+      const q = query(collection(db, getCurrentCounterCollectionName()), where("id", "==", userId));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+  
+        await setDoc(doc(collection(db, pendingCollectionName), userId), userData);
+        await deleteDoc(querySnapshot.docs[0].ref);
+  
+        console.log("Record moved to 'pending' collection successfully.");
+      } else {
+        console.warn("Document with id", userId, "not found in current counter's collection.");
+      }
+    } catch (error) {
+      console.error("Error moving record to 'pending' collection: ", error);
+    }
+  };
+  const fetchPendingCount = async () => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const pendingCollectionName = `PendingCounter${counterNumber}`;
+      const pendingSnapshot = await getDocs(collection(db, pendingCollectionName));
+      setPendingCount(pendingSnapshot.size); // Update pending count
+    } catch (error) {
+      console.error("Error fetching pending count: ", error);
+    }
+  };
+
+  fetchPendingCount();
+  
+
+  const handleRecallButtonClick = async () => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const pendingCollectionName = `PendingCounter${counterNumber}`;
+  
+      const querySnapshot = await getDocs(collection(db, pendingCollectionName));
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+  
+        await setDoc(doc(collection(db, getCurrentCounterCollectionName()), userData.id), userData);
+        await deleteDoc(querySnapshot.docs[0].ref);
+  
+        // Update pending count after recalling
+        fetchPendingCount();
+  
+        console.log("Record recalled successfully.");
+      } else {
+        console.warn("No pending records found to recall.");
+      }
+    } catch (error) {
+      console.error("Error recalling record: ", error);
+    }
+  };
+
+  const handleNextButtonClick = async () => {
+    // Implement functionality for moving to the next customer in the queue
+  };
+
+  const handleCallButtonClick = async () => {
+    // Implement functionality for calling the current customer
+  };
+
+  const handleStartButtonClick = async () => {
+    // Implement functionality for starting the service
+  };
+
+  const handleCloseButtonClick = async () => {
+    // Implement functionality for closing the current service
+  };
   const handleSaveButtonClick = async () => {
     for (const userId of selectedRecords) {
       await moveRecordToVisited(userId);
@@ -142,6 +211,7 @@ const CounterDash = () => {
   
         // Add the document to the 'visited' collection
         await setDoc(doc(collection(db, "visited"), userId), userData);
+        await setDoc(doc(collection(db, `${collectionName}Visited`), userId), userData);
   
         // Delete the document from the 'Counter X' collection
         await deleteDoc(querySnapshot.docs[0].ref);
@@ -158,13 +228,22 @@ const CounterDash = () => {
     }
   };
 
-  // Function to get the current counter collection name
   const getCurrentCounterCollectionName = () => {
     const email = user.email;
-    const counterName = email.split("@")[0];
-    const counterNumber = parseInt(counterName.replace("counter", ""));
-    return `Counter ${counterNumber}`;
+    return `Counter ${parseInt(email.split("@")[0].replace("counter", ""))}`;
   };
+
+  const getCurrentDate = () => {
+    const dateObj = new Date();
+    const month = dateObj.toLocaleString("default", { month: "long" });
+    const day = dateObj.getDate();
+    const year = dateObj.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
+  useEffect(() => {
+    setCurrentDate(getCurrentDate());
+  }, [user,completedCount]);
 
   return (
     <div className="flex">
@@ -180,8 +259,7 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Total Customer</h3>
-                {/* Display total customer count */}
-                <p>{userData.length}</p>
+                <p className="font-bold text-large ">{userData.length}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
               </CardBody>
@@ -189,7 +267,6 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Next Token</h3>
-                {/* Display next token number */}
                 <p>{userData.length > 1 ? userData[1].token : '-'}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -198,7 +275,6 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Completed</h3>
-                {/* Display completed count */}
                 <p>{completedCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -207,8 +283,7 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Pending</h3>
-                {/* Display pending count */}
-                <p>{userData.length >0? userData.length - completedCount:'-'}</p>
+                <p>{pendingCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
               </CardBody>
@@ -228,7 +303,7 @@ const CounterDash = () => {
                     </Button>
                   </div>
                   <div className="flex justify-end mb-0">
-                    <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
+                    <Button onClick={handlePendingButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
                       Pending
                     </Button>
                   </div>
@@ -243,22 +318,22 @@ const CounterDash = () => {
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Call
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Recall
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Start
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleCloseButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Close
               </Button>
             </div>
@@ -303,6 +378,6 @@ const CounterDash = () => {
       </div>
     </div>
   );
-  
-};  
+};
+
 export default CounterDash;
