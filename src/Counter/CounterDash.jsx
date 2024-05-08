@@ -26,7 +26,6 @@ import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 
-
 const CounterDash = () => {
   const navigate = useNavigate();
   const auth = getAuth();
@@ -112,7 +111,7 @@ const CounterDash = () => {
 
   const handleCheckboxChange = async (event, userId) => {
     const isChecked = event.target.checked;
-
+  
     if (isChecked) {
       // Add userId to selectedRecords
       setSelectedRecords((prevSelected) => [...prevSelected, userId]);
@@ -128,33 +127,43 @@ const CounterDash = () => {
     for (const userId of selectedRecords) {
       await moveRecordToVisited(userId);
     }
-    setSelectedRecords([]); // Clear selected records after moving
+    setSelectedRecords([]); // Clear selected records after deletion
   };
 
   const moveRecordToVisited = async (userId) => {
     try {
-      const q = query(collection(db, `Counter ${counterNumber}`), where("token", "==", userId));
+      // Define collectionName within the function scope
+      const collectionName = getCurrentCounterCollectionName();
+      const q = query(collection(db, collectionName), where("id", "==", userId));
       const querySnapshot = await getDocs(q);
-
+  
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
-
+  
         // Add the document to the 'visited' collection
-        await setDoc(doc(collection(db, "visitor"), userId), userData);
-
+        await setDoc(doc(collection(db, "visited"), userId), userData);
+  
         // Delete the document from the 'Counter X' collection
         await deleteDoc(querySnapshot.docs[0].ref);
-
+  
         // Increment completed count
         setCompletedCount((prevCount) => prevCount + 1);
-
-        console.log("Record moved to 'visitor' collection successfully.");
+  
+        console.log("Record moved to 'visited' collection successfully.");
       } else {
-        console.warn("Document with token number", userId, "not found in 'Counter' collection.");
+        console.warn("Document with id", userId, "not found in 'Counter' collection.");
       }
     } catch (error) {
-      console.error("Error moving record to 'visitor' collection: ", error);
+      console.error("Error moving record to 'visited' collection: ", error);
     }
+  };
+
+  // Function to get the current counter collection name
+  const getCurrentCounterCollectionName = () => {
+    const email = user.email;
+    const counterName = email.split("@")[0];
+    const counterNumber = parseInt(counterName.replace("counter", ""));
+    return `Counter ${counterNumber}`;
   };
 
   return (
@@ -181,7 +190,7 @@ const CounterDash = () => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Next Token</h3>
                 {/* Display next token number */}
-                <p>{userData.length > 0 ? userData[1].token : '-'}</p>
+                <p>{userData.length > 1 ? userData[1].token : '-'}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
               </CardBody>
@@ -199,7 +208,7 @@ const CounterDash = () => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Pending</h3>
                 {/* Display pending count */}
-                <p>{userData.length > 0 ? userData.length - completedCount : '-'}</p>
+                <p>{userData.length >0? userData.length - completedCount:'-'}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
               </CardBody>
@@ -219,7 +228,7 @@ const CounterDash = () => {
                     </Button>
                   </div>
                   <div className="flex justify-end mb-0">
-                    <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
+                    <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
                       Pending
                     </Button>
                   </div>
@@ -229,27 +238,27 @@ const CounterDash = () => {
           </div>
           <div className="mb-2 mt-12 ml-9">
             <div className="flex justify-end mb-5">
-              <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Next
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Call
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Recall
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Start
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Close
               </Button>
             </div>
@@ -263,6 +272,7 @@ const CounterDash = () => {
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn>Token No</TableColumn>
+                <TableColumn>Visited</TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => {
@@ -276,6 +286,13 @@ const CounterDash = () => {
                       </TableCell>
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.token}</TableCell>
+                      <TableCell>
+                        <Checkbox
+                          onChange={(event) =>
+                            handleCheckboxChange(event, user.id)
+                          }
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -286,6 +303,6 @@ const CounterDash = () => {
       </div>
     </div>
   );
-
-};
+  
+};  
 export default CounterDash;
