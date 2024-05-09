@@ -1,4 +1,4 @@
-// main.tsx or main.jsx 
+// main.tsx or main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { NextUIProvider } from '@nextui-org/react';
@@ -13,6 +13,8 @@ import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
 import AdminDash from './Admin/AdminDash'
 import Staff from './Admin/Staff';
+import Counter from './Admin/Counter'
+import TVView from './TVView/TVView'
 
 const router = createBrowserRouter([
   {
