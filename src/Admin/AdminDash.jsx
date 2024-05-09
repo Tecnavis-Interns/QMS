@@ -130,7 +130,6 @@ const AdminDash = () => {
         {/* Queue Status */}
         <div className="flex flex-col gap-10">
           <h2 className="text-xl font-semibold">Current Queue Status</h2>
-
           <div className="flex justify-start items-center gap-6">
             <div className="bg-gray-200 p-4 rounded shadow w-1/6">
               <h3 className="text-lg font-semibold">Total Customers</h3>

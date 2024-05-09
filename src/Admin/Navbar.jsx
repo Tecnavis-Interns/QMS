@@ -27,47 +27,47 @@ export default function App() {
         <div className="flex flex-col items-center justify-between flex-grow p-4">
           {/* <p className="text-white">Counter Dashboard</p> */}
           <div className="mt-20 w-64">
-            <Button
-              as={Link}
-              href="#"
-              variant="flat"
-              onClick={() => navigate("/adminDash")}
-              className={`w-full text-white rounded-none py-2 ${location.pathname === '/adminDash' ? 'bg-gray-900' : ''
-                }`}
-
-            >
-              Dashboard
-            </Button>
-            <Button
-              as={Link}
-              href="#"
-              variant="flat"
-              onClick={() => navigate("/counter")}
-              className={`w-full text-white rounded-none py-2 ${location.pathname === '/counter' ? 'bg-gray-900' : ''
-                }`}
-
-            >
-              Counter
-            </Button>
-            <Button
-              as={Link}
-              href=""
-              variant="flat"
-              onClick={() => navigate("/staff")}
-              className={`w-full text-white rounded-none py-2 ${location.pathname === '/staff' ? 'bg-gray-900' : ''
-                }`}
-            >
-              Staff
-            </Button>
-            <Button
-              as={Link}
-              className="w-full text-white rounded-none"
-              href="#"
-              variant="flat"
-              onClick={handleLogout}
-            >
-              Services
-            </Button>
+          <Button
+            as={Link}
+            href="#"
+            className="w-full text-white rounded-none"
+            variant="flat"
+            onClick={()=>navigate(handleLogout)}
+          >
+            Dashboard
+          </Button>
+          <Button
+            as={Link}
+            href="#"
+            variant="flat"
+            onClick={()=>navigate("/adminDash")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/adminDash' ? 'bg-gray-900' : ''
+            }`}
+            
+          >
+            Counter
+          </Button>
+          <Button
+            as={Link}
+            href=""
+            variant="flat"
+            onClick={()=>navigate("/staff")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/staff' ? 'bg-gray-900' : ''
+            }`}
+          >
+            Staff
+          </Button>
+          <Button
+            as={Link}
+            className="w-full text-white rounded-none"
+            href="#"
+            variant="flat"
+            onClick={handleLogout}
+          >
+            Services
+          </Button>
           </div>
           <Button
             as={Link}
@@ -80,6 +80,11 @@ export default function App() {
           </Button>
         </div>
       </aside>
+<<<<<<<<< Temporary merge branch 1
     </div>
   );
+=========
+    </div>
+  );
+>>>>>>>>> Temporary merge branch 2
 }
