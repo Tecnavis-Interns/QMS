@@ -259,33 +259,33 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Total Customer</h3>
-                <p className="font-bold text-large ">{userData.length}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Next Token</h3>
-                <p>{userData.length > 1 ? userData[1].token : '-'}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <h3 className="font-bold text-large">Completed</h3>
-                <p>{completedCount}</p>
+                <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Pending</h3>
-                <p>{pendingCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
               </CardBody>
             </Card>
           </div>
@@ -293,9 +293,9 @@ const CounterDash = () => {
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
-                <p>{userData.length > 0 ? userData[0].token : '-'}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-9 mt-8">{userData.length > 0 ? userData[0].token : '-'}</p>
                 <div className="flex flex-col items-center justify-end h-full">
                   <div className="flex justify-end mb-4">
                     <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
