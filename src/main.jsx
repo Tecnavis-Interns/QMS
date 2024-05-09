@@ -13,6 +13,7 @@ import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
 import AdminDash from './Admin/AdminDash'
 import Staff from './Admin/Staff';
+import Counter from './Admin/Counter'
 import TVView from './TVView/TVView'
 
 const router = createBrowserRouter([
