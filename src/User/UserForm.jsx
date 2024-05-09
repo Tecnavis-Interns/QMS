@@ -94,6 +94,23 @@ export default function UserForm() {
         counter: counterName,
         token: tokenNumber
       });
+      // Update the collection name dynamically based on the counterName
+      await submitDataToFirestore(counterName, {
+        id: userId,
+        name: name,
+        phone: phone,
+        service: service,
+        counter: counterName,
+        token: tokenNumber
+      });
+      await submitDataToFirestore(counterName, {
+        id: userId,
+        name: name,
+        phone: phone,
+        service: service,
+        counter: counterName,
+        token: tokenNumber
+      });
 
       setTokenNumber(tokenNumber);
       setShowToken(true);
@@ -104,6 +121,9 @@ export default function UserForm() {
   };
 
   const generatePDF = async () => {
+
+
+  const generatePDF = async (userTokenNumber) => {
     try {
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([612, 472]);
@@ -177,6 +197,8 @@ export default function UserForm() {
       return "";
     }
   };
+
+
 
   const fetchData = async () => {
     try {
@@ -304,4 +326,5 @@ export default function UserForm() {
       </div>
     </div>
   );
+}
 }
