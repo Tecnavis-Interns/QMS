@@ -1,11 +1,5 @@
-import { useState, useEffect } from 'react';
-import {
-  collection,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-} from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
@@ -70,29 +64,26 @@ const AdminDash = () => {
   };
 
   const visibleQueueRows = showAll ? userData : userData.slice(0, 3); // Only slice here
-  const visibleActiveCounters = userData; // Always show all
 
-  const totalCustomers = userData.length;
-  const completedCustomers = userData.filter(
-    (user) => user.status === 'completed'
-  ).length;
-  const pendingCustomers = userData.filter(
-    (user) => user.status !== 'completed'
-  ).length;
-
-  const serviceSummary = {};
-  userData.forEach((user) => {
-    const serviceName = user.service;
-    if (!serviceSummary[serviceName]) {
-      serviceSummary[serviceName] = { total: 0, completed: 0, pending: 0 };
+  // Calculate the total number of customers for each active counter
+  const activeCounters = {};
+  userData.forEach(user => {
+    const { counter, service } = user;
+    if (!activeCounters[counter]) {
+      activeCounters[counter] = { service, totalCustomers: 0 };
     }
-    serviceSummary[serviceName].total += 1;
-    if (user.status === 'completed') {
-      serviceSummary[serviceName].completed += 1;
-    } else {
-      serviceSummary[serviceName].pending += 1;
-    }
+    activeCounters[counter].totalCustomers++;
   });
+
+  // Calculate service summary
+  const serviceSummary = userData.reduce((summary, user) => {
+    const { service, status } = user;
+    summary[service] = summary[service] || { total: 0, completed: 0, pending: 0 };
+    summary[service].total++;
+    if (status === 'completed') summary[service].completed++;
+    else summary[service].pending++;
+    return summary;
+  }, {});
 
   const serviceNames = Object.keys(serviceSummary);
 
@@ -104,23 +95,20 @@ const AdminDash = () => {
 
       <div className="flex-1 ml-64 p-6 relative">
         {/* Active Counters */}
-        <div
-          className="absolute top-16 right-16 bg-gray-200 p-4 rounded shadow w-1/4"
-        >
+        <div className="absolute top-16 right-16 bg-gray-200 p-4 rounded shadow w-1/4">
           <h3 className="text-lg font-semibold">Active Counters</h3>
           <Table aria-label="Active counters">
             <TableHeader>
-              <TableColumn>Counter no</TableColumn>
-              <TableColumn>Service type</TableColumn>
-              <TableColumn>Total Customer</TableColumn>
+              <TableColumn>Counter No</TableColumn>
+              <TableColumn>Service Type</TableColumn>
+              <TableColumn>Total Customers</TableColumn>
             </TableHeader>
-
             <TableBody>
-              {visibleActiveCounters.map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.counter}</TableCell>
-                  <TableCell>{user.service}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
+              {Object.keys(activeCounters).map((counter, index) => (
+                <TableRow key={index}>
+                  <TableCell>{counter}</TableCell>
+                  <TableCell>{activeCounters[counter].service}</TableCell>
+                  <TableCell>{activeCounters[counter].totalCustomers}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -130,19 +118,19 @@ const AdminDash = () => {
         {/* Queue Status */}
         <div className="flex flex-col gap-10">
           <h2 className="text-xl font-semibold">Current Queue Status</h2>
+
           <div className="flex justify-start items-center gap-6">
             <div className="bg-gray-200 p-4 rounded shadow w-1/6">
               <h3 className="text-lg font-semibold">Total Customers</h3>
-              <p>{totalCustomers}</p>
+              <p>{userData.length}</p>
             </div>
             <div className="bg-gray-200 p-4 rounded shadow w-1/6">
               <h3 className="text-lg font-semibold">Completed</h3>
-              <p>{completedCustomers}</p>
+              <p>{userData.filter(user => user.status === 'completed').length}</p>
             </div>
-
             <div className="bg-gray-200 p-4 rounded shadow w-1/6">
               <h3 className="text-lg font-semibold">Pending</h3>
-              <p>{pendingCustomers}</p>
+              <p>{userData.filter(user => user.status !== 'completed').length}</p>
             </div>
           </div>
 
@@ -151,9 +139,9 @@ const AdminDash = () => {
 
           <div className="flex flex-col gap-6">
             <div className="flex justify-start items-center gap-6">
-              {serviceNames.slice(0, 3).map((serviceName) => (
+              {serviceNames.slice(0, 3).map((serviceName, index) => (
                 <div
-                  key={serviceName}
+                  key={index}
                   className="bg-gray-200 p-4 rounded shadow w-1/6"
                 >
                   <h3 className="text-lg font-semibold">{serviceName}</h3>
@@ -163,11 +151,10 @@ const AdminDash = () => {
                 </div>
               ))}
             </div>
-
             <div className="flex justify-start items-center gap-6">
-              {serviceNames.slice(3, 5).map((serviceName) => (
+              {serviceNames.slice(3, 6).map((serviceName, index) => (
                 <div
-                  key={serviceName}
+                  key={index}
                   className="bg-gray-200 p-4 rounded shadow w-1/6"
                 >
                   <h3 className="text-lg font-semibold">{serviceName}</h3>
@@ -195,15 +182,13 @@ const AdminDash = () => {
                   <TableColumn>Counter</TableColumn>
                   <TableColumn>Status</TableColumn>
                 </TableHeader>
-
                 <TableBody>
                   {visibleQueueRows.map((user, index) => (
                     <TableRow key={user.id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{user.name}</TableCell>
                       <TableCell>{user.phone}</TableCell>
-                      <TableCell>{user.date ? user.date.toDate().toLocaleString() : ''}
-                      </TableCell>
+                      <TableCell>{user.date ? user.date.toDate().toLocaleString() : ''}</TableCell>
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.counter}</TableCell>
                       <TableCell>{user.status}</TableCell>
@@ -212,12 +197,8 @@ const AdminDash = () => {
                 </TableBody>
               </Table>
             )}
-
             <div className="text-right w-full">
-              <span
-                className="cursor-pointer text-black"
-                onClick={handleShowMoreLess}
-              >
+              <span className="cursor-pointer text-black" onClick={handleShowMoreLess}>
                 {showAll ? 'View Less' : 'View More'}
               </span>
             </div>
