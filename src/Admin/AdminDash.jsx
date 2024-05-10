@@ -65,15 +65,16 @@ const AdminDash = () => {
 
   const visibleQueueRows = showAll ? userData : userData.slice(0, 3); // Only slice here
 
-  // Calculate the total number of customers for each active counter
-  const activeCounters = {};
-  userData.forEach(user => {
-    const { counter, service } = user;
-    if (!activeCounters[counter]) {
-      activeCounters[counter] = { service, totalCustomers: 0 };
-    }
-    activeCounters[counter].totalCustomers++;
-  });
+ // Calculate the total number of customers for each active counter
+const activeCounters = {};
+userData.forEach(user => {
+  const { counter, service } = user;
+  if (!activeCounters[counter]) {
+    activeCounters[counter] = { service, totalCustomers: 0 };
+  }
+  activeCounters[counter].totalCustomers++;
+});
+
 
   // Calculate service summary
   const serviceSummary = userData.reduce((summary, user) => {
@@ -94,7 +95,8 @@ const AdminDash = () => {
       </div>
 
       <div className="flex-1 ml-64 p-6 relative">
-        {/* Active Counters */}
+
+        //Rendering Active Counters
         <div className="absolute top-16 right-16 bg-gray-200 p-4 rounded shadow w-1/4">
           <h3 className="text-lg font-semibold">Active Counters</h3>
           <Table aria-label="Active counters">
