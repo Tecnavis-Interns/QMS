@@ -1,11 +1,6 @@
-import { useState, useEffect } from "react";
-import {
-  Input,
-  Button,
-  Select,
-  SelectItem,
-} from "@nextui-org/react";
-import Navbar from "../Components/Navbar"; 
+import { useState } from "react";
+import { Input, Button, Select, SelectItem } from "@nextui-org/react";
+import Navbar from "../Components/Navbar";
 import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
@@ -84,13 +79,10 @@ export default function UserForm() {
 
       generatePDF(tokenNumber);
 
+      // Reset form fields
       setName("");
       setPhone("");
       setService("");
-
-      setTimeout(() => {
-        navigate('/tvView');
-      }, 2000);
     } catch (error) {
       console.error("Error adding document: ", error);
     }
