@@ -269,7 +269,7 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large">Next Token</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p>
+              <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
