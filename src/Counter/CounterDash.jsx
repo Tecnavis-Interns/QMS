@@ -201,7 +201,7 @@ const CounterDash = () => {
     }
   };
 
-  const handleNextButtonClick = async () => {
+  const handleStartButtonClick = async () => {
     if (!isServiceStarted) {
       setIsServiceStarted(true); // Start the service
     }
@@ -231,8 +231,24 @@ const CounterDash = () => {
   };
 
   const handleResetButtonClick = async () => {
-    // Implement functionality for closing the current service
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterCollectionName = `Counter ${counterNumber}`;
+
+      // Reference to the counter collection
+      const counterCollectionRef = doc(db, "counter", counterCollectionName);
+
+      // Delete the entire collection
+      await deleteDoc(counterCollectionRef);
+
+      console.log(`Collection '${counterCollectionName}' deleted successfully.`);
+    } catch (error) {
+      console.error("Error deleting collection: ", error);
+    }
   };
+
+
   const handleSaveButtonClick = async () => {
     for (const userId of selectedRecords) {
       await moveRecordToVisited(userId);
@@ -375,8 +391,8 @@ const CounterDash = () => {
           </div>
           <div className="mb-2 mt-12 ml-9">
             <div className="flex justify-end mb-5">
-              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
-                Next
+              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+                Start
               </Button>
             </div>
             <div className="flex justify-end mb-5">

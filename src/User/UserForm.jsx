@@ -140,7 +140,7 @@ export default function UserForm() {
       const counterDocRef = firestoreDoc(db, "counter", counterName);
       const counterDocSnap = await getDoc(counterDocRef);
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
-
+  
       let newTokenNumber;
       switch (counterName) {
         case "Counter 1":
@@ -161,15 +161,16 @@ export default function UserForm() {
         default:
           newTokenNumber = "";
       }
-
+  
       await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-
+  
       return newTokenNumber;
     } catch (error) {
       console.error("Error generating token number: ", error);
       return "";
     }
   };
+  
 
   return (
     <div className="flex flex-col min-h-dvh">
