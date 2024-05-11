@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input, Button, Select, SelectItem } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
 import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
@@ -12,7 +12,18 @@ export default function UserForm() {
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
   const [token, setToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (showToken) {
+      const timeout = setTimeout(() => {
+        setShowToken(false); // Hide the token after 2 seconds
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [showToken]);
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -57,6 +68,7 @@ export default function UserForm() {
 
       const tokenNumber = await generateTokenNumber(counterName);
       setToken(tokenNumber);
+      setShowToken(true); // Set to true to show the token
 
       const userId = uuidv4();
       await submitDataToFirestore('requests', {
@@ -178,7 +190,7 @@ export default function UserForm() {
         </div>
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Token Number</h2>
-          {token}
+          {showToken && token}
         </div>
       </div>
     </div>

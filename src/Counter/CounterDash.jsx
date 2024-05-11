@@ -35,8 +35,9 @@ const CounterDash = () => {
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
-  const [pendingCount, setPendingCount] = useState('-');
-  
+  const [pendingCount, setPendingCount] = useState("-");
+  const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
+  const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
 
   useEffect(() => {
     const checkUser = async () => {
@@ -91,7 +92,11 @@ const CounterDash = () => {
 
   const isValidUserData = (user) => {
     return (
-      user.name && user.phone && user.date && user.service && user.token
+      user.name &&
+      user.phone &&
+      user.date &&
+      user.service &&
+      user.token
     );
   };
 
@@ -113,25 +118,34 @@ const CounterDash = () => {
     }
     setSelectedRecords([]); // Clear selected records after moving to pending
   };
-  
+
   const moveRecordToPending = async (userId) => {
     try {
       const email = user.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterNumber = parseInt(
+        email.split("@")[0].replace("counter", "")
+      );
       const pendingCollectionName = `PendingCounter${counterNumber}`;
-  
-      const q = query(collection(db, getCurrentCounterCollectionName()), where("id", "==", userId));
+
+      const q = query(
+        collection(db, getCurrentCounterCollectionName()),
+        where("id", "==", userId)
+      );
       const querySnapshot = await getDocs(q);
-  
+
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
-  
+
         await setDoc(doc(collection(db, pendingCollectionName), userId), userData);
         await deleteDoc(querySnapshot.docs[0].ref);
-  
+
         console.log("Record moved to 'pending' collection successfully.");
       } else {
-        console.warn("Document with id", userId, "not found in current counter's collection.");
+        console.warn(
+          "Document with id",
+          userId,
+          "not found in current counter's collection."
+        );
       }
     } catch (error) {
       console.error("Error moving record to 'pending' collection: ", error);
@@ -140,9 +154,13 @@ const CounterDash = () => {
   const fetchPendingCount = async () => {
     try {
       const email = user.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterNumber = parseInt(
+        email.split("@")[0].replace("counter", "")
+      );
       const pendingCollectionName = `PendingCounter${counterNumber}`;
-      const pendingSnapshot = await getDocs(collection(db, pendingCollectionName));
+      const pendingSnapshot = await getDocs(
+        collection(db, pendingCollectionName)
+      );
       setPendingCount(pendingSnapshot.size); // Update pending count
     } catch (error) {
       console.error("Error fetching pending count: ", error);
@@ -150,24 +168,30 @@ const CounterDash = () => {
   };
 
   fetchPendingCount();
-  
 
   const handleRecallButtonClick = async () => {
     try {
       const email = user.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterNumber = parseInt(
+        email.split("@")[0].replace("counter", "")
+      );
       const pendingCollectionName = `PendingCounter${counterNumber}`;
-  
-      const querySnapshot = await getDocs(collection(db, pendingCollectionName));
+
+      const querySnapshot = await getDocs(
+        collection(db, pendingCollectionName)
+      );
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
-  
-        await setDoc(doc(collection(db, getCurrentCounterCollectionName()), userData.id), userData);
+
+        await setDoc(
+          doc(collection(db, getCurrentCounterCollectionName()), userData.id),
+          userData
+        );
         await deleteDoc(querySnapshot.docs[0].ref);
-  
+
         // Update pending count after recalling
         fetchPendingCount();
-  
+
         console.log("Record recalled successfully.");
       } else {
         console.warn("No pending records found to recall.");
@@ -178,18 +202,35 @@ const CounterDash = () => {
   };
 
   const handleNextButtonClick = async () => {
-    // Implement functionality for moving to the next customer in the queue
+    if (!isServiceStarted) {
+      setIsServiceStarted(true); // Start the service
+    }
+    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
+      // Check if the previous token has been served
+      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
+        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
+        setNextTokenIndex(newNextTokenIndex + 1);
+        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+      } else {
+        console.log("Previous token has not been served yet.");
+      }
+    } else {
+      console.log("No more tokens in queue");
+    }
   };
 
   const handleCallButtonClick = async () => {
-    // Implement functionality for calling the current customer
+    // Move the next token to currently serving
+    if (userData.length > nextTokenIndex) {
+      const nextTokenUser = userData[nextTokenIndex];
+      // Implement logic to move nextTokenUser to currently serving
+      console.log(`Calling token ${nextTokenUser.token}`);
+    } else {
+      console.log("No more tokens in queue");
+    }
   };
 
-  const handleStartButtonClick = async () => {
-    // Implement functionality for starting the service
-  };
-
-  const handleCloseButtonClick = async () => {
+  const handleResetButtonClick = async () => {
     // Implement functionality for closing the current service
   };
   const handleSaveButtonClick = async () => {
@@ -203,22 +244,28 @@ const CounterDash = () => {
     try {
       // Define collectionName within the function scope
       const collectionName = getCurrentCounterCollectionName();
-      const q = query(collection(db, collectionName), where("id", "==", userId));
+      const q = query(
+        collection(db, collectionName),
+        where("id", "==", userId)
+      );
       const querySnapshot = await getDocs(q);
-  
+
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
-  
+
         // Add the document to the 'visited' collection
         await setDoc(doc(collection(db, "visited"), userId), userData);
-        await setDoc(doc(collection(db, `${collectionName}Visited`), userId), userData);
-  
+        await setDoc(
+          doc(collection(db, `${collectionName}Visited`), userId),
+          userData
+        );
+
         // Delete the document from the 'Counter X' collection
         await deleteDoc(querySnapshot.docs[0].ref);
-  
+
         // Increment completed count
         setCompletedCount((prevCount) => prevCount + 1);
-  
+
         console.log("Record moved to 'visited' collection successfully.");
       } else {
         console.warn("Document with id", userId, "not found in 'Counter' collection.");
@@ -243,7 +290,7 @@ const CounterDash = () => {
 
   useEffect(() => {
     setCurrentDate(getCurrentDate());
-  }, [user,completedCount]);
+  }, [user, completedCount]);
 
   return (
     <div className="flex">
@@ -267,7 +314,11 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Next Token</h3>
-                <p>{userData.length > 1 ? userData[1].token : '-'}</p>
+                {isServiceStarted ? (
+                  <p>{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                ) : (
+                  <p>-</p>
+                )}
               </CardHeader>
               <CardBody className="overflow-visible py-2">
               </CardBody>
@@ -293,27 +344,38 @@ const CounterDash = () => {
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
-                <p>{userData.length > 0 ? userData[0].token : '-'}</p>
+                {isServiceStarted && nextTokenIndex > 0 && (
+                  <p>{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                )}
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-                <div className="flex flex-col items-center justify-end h-full">
-                  <div className="flex justify-end mb-4">
-                    <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
-                      Completed
-                    </Button>
+              {isServiceStarted && nextTokenIndex > 0 && (
+                <CardBody className="overflow-visible py-2">
+                  <div className="flex flex-col items-center justify-end h-full">
+                    <div className="flex justify-end mb-4">
+                      <Button
+                        onClick={handleSaveButtonClick}
+                        className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                      >
+                        Completed
+                      </Button>
+                    </div>
+                    <div className="flex justify-end mb-0">
+                      <Button
+                        onClick={handlePendingButtonClick}
+                        className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                      >
+                        Pending
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex justify-end mb-0">
-                    <Button onClick={handlePendingButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32">
-                      Pending
-                    </Button>
-                  </div>
-                </div>
-              </CardBody>
+                </CardBody>
+              )}
             </Card>
+
           </div>
           <div className="mb-2 mt-12 ml-9">
             <div className="flex justify-end mb-5">
-              <Button onClick={handleSaveButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Next
               </Button>
             </div>
@@ -328,13 +390,8 @@ const CounterDash = () => {
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
-                Start
-              </Button>
-            </div>
-            <div className="flex justify-end mb-5">
-              <Button onClick={handleCloseButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
-                Close
+              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+                Reset Token
               </Button>
             </div>
           </div>
