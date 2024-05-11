@@ -315,10 +315,11 @@ const CounterDash = () => {
       </div>
       <div className="flex-1 ml-60">
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
-          <div className="mb-4 mt-4">
+          <div>
+          <div className="mb-4 mt-4 mr-24">
             <h1>Date : {currentDate} </h1>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4 mt-12 mr-5">
+          <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Total Customer</h3>
@@ -330,14 +331,19 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Next Token</h3>
-                {isServiceStarted ? (
+                {/* {isServiceStarted ? (
                   <p>{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p>-</p>
-                )}
+                )} */}
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p>
+              {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
+              {isServiceStarted ? (
+                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                ) : (
+                  <p className="text-6xl font-bold ml-12 mt-4">-</p>
+                )}
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -357,12 +363,13 @@ const CounterDash = () => {
               </CardBody>
             </Card>
           </div>
-          <div className="grid grid-cols-1 mb-4 mt-12">
+          </div>
+          <div className="grid grid-cols-1 mb-4 mt-16">
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p>{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -390,24 +397,24 @@ const CounterDash = () => {
             </Card>
 
           </div>
-          <div className="mb-2 mt-12 ml-9">
+          <div className="mb-2 mt-14 ml-14">
             <div className="flex justify-end mb-5">
-              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Start
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Call
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Recall
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Reset Token
               </Button>
             </div>
