@@ -35,8 +35,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import { FaSearch } from "react-icons/fa";
-import React from "react";
-const Staff = () => {
+const AdminDash = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const user = auth.currentUser;
@@ -52,7 +51,34 @@ const Staff = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCounter, setSelectedCounter] = useState(null); // State to manage selected counter data
 
-  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const querySnapshot = await getDocs(
+          query(collection(db, "requests"), orderBy("date", "asc"))
+        );
+        const data = querySnapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((user) => isValidUserData(user));
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    };
+
+    fetchData();
+    const unsubscribe = onSnapshot(
+      query(collection(db, "requests"), orderBy("date", "asc")),
+      (snapshot) => {
+        const updatedData = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((user) => isValidUserData(user));
+        setUserData(updatedData);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   const isValidUserData = (user) => {
     return (
@@ -121,31 +147,25 @@ const Staff = () => {
           <div className="flex flex-col items-center gap-1">
             <ModalCounter />
           </div>
-          <div className="w-[340px] h-[240px] px-8 rounded-2xl flex justify-center items-center bg-[#9075e9] ml-[150px]">
-            <div>
-            <div className="flex w-full flex-wrap md:flex-nowrap gap-4 pb-4 mb-4 mt-4">
-                <Input type="text" label="Employee Name" className="w-[150px] h-[30px]"/>
-                <Input type="email" label="Email" className="w-[150px] h-[30px]"/>
-            </div>
-            <div className="flex w-full flex-wrap md:flex-nowrap gap-4 pb-4 mb-4">
-                <Input type="text" label="Set User Id" className="w-[150px] h-[30px]"/>
-                <Input type="text" label="Select Service" className="w-[150px] h-[30px]"/>
-            </div>
-            <div className="flex w-full flex-wrap md:flex-nowrap gap-10 pb-4">
-            {/* <div className=" md:w-1/2"> */}
-                <Input type="password" label="Set Password" className="w-[150px] h-[30px]"/>
-                <Button className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 h-[30px]">
-                Save
-            </Button>
-             {/* </div> */}
-            <div >
-                
-            
-            </div> 
-            </div>
-            </div>
-
+          {/* <div className="flex flex-col items-center gap-10">
+            <ManageCounterModal />
+          </div> */}
+          {/* <div className="flex flex-col items-center gap-10">
+            <EditToken />
+          </div> */}
         </div>
+        
+        <div className="grid grid-cols-2 gap-1 mb-1 mt-1 mr-4 left-align">
+          <Card className="py-4 w-[300px] h-40">
+            <CardHeader className="pb-0 pt-2 px-4 flex-col items-start"></CardHeader>
+            <CardBody className="overflow-visible py-2"></CardBody>
+            <div className="flex justify-end">
+              <div className="flex items-end gap-2 justify-end mt-0 mr-4 ">
+                <ManageCounterModal />
+                <EditToken />
+              </div>
+            </div>
+          </Card>
         </div>
         <div className="flex flex-col justify-center py-5 gap-4 w-full">
           <div className="flex justify-between items-center w-full">
@@ -172,13 +192,15 @@ const Staff = () => {
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => (
-                  <TableRow>
-                    <TableCell children={undefined}></TableCell>
-                    <TableCell children={undefined}></TableCell>
-                    <TableCell children={undefined}></TableCell>
-                    <TableCell children={undefined}></TableCell>
-                    <TableCell children={undefined}></TableCell>
-                    <TableCell children={undefined}></TableCell>
+                  <TableRow key={user.id}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>
+                      {user.date ? user.date.toDate().toLocaleString() : ""}
+                    </TableCell>
+                    <TableCell>{user.service}</TableCell>
+                    <TableCell>{user.counter}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -186,20 +208,17 @@ const Staff = () => {
           )}
         </div>
       </div>
-      {/* {selectedCounter && (
+      {/* Render ManageCounterModal component */}
+      {selectedCounter && (
         <ManageCounterModal
           isOpen={true} // Always open when a counter is selected
           onClose={handleCloseModal}
           counterData={selectedCounter}
         />
-      )} */}
+      )}
     </div>
     </div>
   );
 };
 
-export default Staff;
-// function unsubscribe(): void | { [UNDEFINED_VOID_ONLY]: never; } {
-//     throw new Error("Function not implemented.");
-// }
-
+export default AdminDash;

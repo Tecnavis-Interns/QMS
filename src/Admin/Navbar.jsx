@@ -30,9 +30,12 @@ export default function App() {
           <Button
             as={Link}
             href="#"
-            className="w-full text-white rounded-none"
             variant="flat"
-            onClick={()=>navigate(handleLogout)}
+            onClick={()=>navigate("/adminDash")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/adminDash' ? 'bg-gray-900' : ''
+            }`}
+            
           >
             Dashboard
           </Button>
@@ -40,9 +43,9 @@ export default function App() {
             as={Link}
             href="#"
             variant="flat"
-            onClick={()=>navigate("/adminDash")}
+            onClick={()=>navigate("/counter")}
             className={`w-full text-white rounded-none py-2 ${
-              location.pathname === '/adminDash' ? 'bg-gray-900' : ''
+              location.pathname === '/counter' ? 'bg-gray-900' : ''
             }`}
             
           >

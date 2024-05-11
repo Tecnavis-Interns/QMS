@@ -322,9 +322,9 @@ const CounterDash = () => {
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Total Customer</h3>
-                <p className="font-bold text-large ">{userData.length}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -337,22 +337,23 @@ const CounterDash = () => {
                 )}
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <h3 className="font-bold text-large">Completed</h3>
-                <p>{completedCount}</p>
+                <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Pending</h3>
-                <p>{pendingCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
+              <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
               </CardBody>
             </Card>
           </div>
