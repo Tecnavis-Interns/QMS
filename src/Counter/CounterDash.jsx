@@ -452,11 +452,9 @@ const CounterDash = () => {
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.token}</TableCell>
                       <TableCell>
-                        <Checkbox
-                          onChange={(event) =>
-                            handleCheckboxChange(event, user.id)
-                          }
-                        />
+                      <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+                        Call
+                      </Button>
                       </TableCell>
                     </TableRow>
                   );
