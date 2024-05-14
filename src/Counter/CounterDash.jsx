@@ -230,6 +230,10 @@ const CounterDash = () => {
     }
   };
 
+  const handleNextButtonClick = async () => {
+    // next button function
+  };
+
   const handleResetButtonClick = async () => {
     try {
       const email = user.email;
@@ -397,23 +401,28 @@ const CounterDash = () => {
             </Card>
 
           </div>
-          <div className="mb-2 mt-14 ml-14">
-            <div className="flex justify-end mb-5">
+          <div className="mb-2 mt-10 ml-14">
+            <div className="flex justify-end mb-2">
               <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Start
               </Button>
             </div>
-            <div className="flex justify-end mb-5">
+            <div className="flex justify-end mb-2">
               <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Call
               </Button>
             </div>
-            <div className="flex justify-end mb-5">
+            <div className="flex justify-end mb-2">
+              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+                Next
+              </Button>
+            </div>
+            <div className="flex justify-end mb-2">
               <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Recall
               </Button>
             </div>
-            <div className="flex justify-end mb-5">
+            <div className="flex justify-end mb-2">
               <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
                 Reset Token
               </Button>
