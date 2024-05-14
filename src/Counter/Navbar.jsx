@@ -30,7 +30,7 @@ export default function App() {
           <p className="text-white">Counter Dashboard</p>
           <Button
             as={Link}
-            className="w-full mt-4 bg-gray-900 text-white"
+            className="w-full mt-4 bg-gray-900 text-white mt-[470px]"
             href="#"
             variant="flat"
             onClick={handleLogout}

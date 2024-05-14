@@ -13,6 +13,9 @@ import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
 import AdminDash from './Admin/AdminDash'
 import Staff from './Admin/Staff';
+import Counter from './Admin/Counter'
+import TVView from './TVView/TVView'
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -35,9 +38,17 @@ const router = createBrowserRouter([
     element: <AdminDash />,
   },
   {
-    path: '/staff',
-    element: <Staff/>,
+    path: '/counter',
+    element: <Counter />,
   },
+  {
+    path: '/staff',
+    element: <Staff />,
+  },
+  {
+    path: '/tvView',
+    element: <TVView />
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(

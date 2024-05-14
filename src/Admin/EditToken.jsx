@@ -77,7 +77,7 @@ export default function ManageCounterModal({ onClose }) {
                                 <TableColumn>Collection ID</TableColumn>
                                 <TableColumn>Actions</TableColumn>
                             </TableHeader>
-                            <TableBody>s
+                            <TableBody>
                                 {counters
                                     .filter((counter) => counter.id.startsWith("Counter"))
                                     .map((counter, index) => (
