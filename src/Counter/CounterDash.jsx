@@ -220,7 +220,11 @@ const CounterDash = () => {
   };
 
   const handleCallButtonClick = async () => {
-    // Move the next token to currently serving
+  
+  };
+
+  const handleNextButtonClick = async () => {
+     // Move the next token to currently serving
     if (userData.length > nextTokenIndex) {
       const nextTokenUser = userData[nextTokenIndex];
       // Implement logic to move nextTokenUser to currently serving
@@ -228,10 +232,6 @@ const CounterDash = () => {
     } else {
       console.log("No more tokens in queue");
     }
-  };
-
-  const handleNextButtonClick = async () => {
-    // next button function
   };
 
   const handleResetButtonClick = async () => {
@@ -333,7 +333,7 @@ const CounterDash = () => {
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Next Token</h3>
                 {/* {isServiceStarted ? (
                   <p>{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
@@ -344,14 +344,14 @@ const CounterDash = () => {
               <CardBody className="overflow-visible py-2">
               {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
               {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                  <p className="text-6xl font-bold ml-7 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p className="text-6xl font-bold ml-12 mt-4">-</p>
                 )}
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -359,7 +359,7 @@ const CounterDash = () => {
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Pending</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -370,10 +370,10 @@ const CounterDash = () => {
           </div>
           <div className="grid grid-cols-1 mb-4 mt-16">
             <Card className="py-4 ml-4 w-[200px]">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl  font-bold mt-7">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -430,14 +430,14 @@ const CounterDash = () => {
           </div>
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
             <Table aria-label="Example static collection table" removeWrapper>
-              <TableHeader>
+              <TableHeader >
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
                 <TableColumn>Phone</TableColumn>
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn>Token No</TableColumn>
-                <TableColumn>Visited</TableColumn>
+                <TableColumn>Call</TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => {
