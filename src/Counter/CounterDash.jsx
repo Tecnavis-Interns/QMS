@@ -452,7 +452,7 @@ const CounterDash = () => {
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.token}</TableCell>
                       <TableCell>
-                      <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+                      <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-10 mt-6">
                         Call
                       </Button>
                       </TableCell>
