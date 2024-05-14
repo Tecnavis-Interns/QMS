@@ -53,7 +53,7 @@ export default function ConfirmationPage() {
       <h2 className="font-semibold text-xl mb-6">Request Submitted Successfully</h2>
       <p className="mb-6">Your token number is: {tokenNumber}</p>
       <Button className="bg-[#6236F5] text-white" onClick={handleDownloadPDF}>Download Token</Button>
-      <Button className="bg-[#6236F5] text-white" onClick={() => navigate("/")}>Go Back Home</Button>
+      <Button className="bg-[#6236F5] text-white" onClick={() => navigate("/userForm")}>Go Back Home</Button>
     </div>
   );
 }

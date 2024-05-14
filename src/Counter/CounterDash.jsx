@@ -38,6 +38,7 @@ const CounterDash = () => {
   const [pendingCount, setPendingCount] = useState("-");
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
+  const [nowServingToken, setNowServingToken] = useState("");
 
   useEffect(() => {
     const checkUser = async () => {
@@ -67,7 +68,6 @@ const CounterDash = () => {
             ...doc.data(),
           }));
           setUserData(data.filter(isValidUserData)); // Filter out invalid data
-          setNextTokenIndex(0); // Initialize next token index
         } catch (error) {
           console.error("Error fetching data: ", error);
         }
@@ -152,23 +152,24 @@ const CounterDash = () => {
       console.error("Error moving record to 'pending' collection: ", error);
     }
   };
-
   const fetchPendingCount = async () => {
     try {
+      const user = auth.currentUser; // Get the current user
+      if (!user) {
+        console.log("User not authenticated");
+        return;
+      }
+  
       const email = user.email;
-      const counterNumber = parseInt(
-        email.split("@")[0].replace("counter", "")
-      );
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const pendingCollectionName = `PendingCounter${counterNumber}`;
-      const pendingSnapshot = await getDocs(
-        collection(db, pendingCollectionName)
-      );
+      const pendingSnapshot = await getDocs(collection(db, pendingCollectionName));
       setPendingCount(pendingSnapshot.size); // Update pending count
     } catch (error) {
       console.error("Error fetching pending count: ", error);
     }
   };
-
+  
   fetchPendingCount();
 
   const handleRecallButtonClick = async () => {
@@ -213,6 +214,12 @@ const CounterDash = () => {
         const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
         setNextTokenIndex(newNextTokenIndex + 1);
         console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+
+        // Update the currently serving token in the database
+        const tokenData = {
+          token: userData[newNextTokenIndex].token
+        };
+        await updateCurrentlyServing(tokenData);
       } else {
         console.log("Previous token has not been served yet.");
       }
@@ -221,16 +228,48 @@ const CounterDash = () => {
     }
   };
 
-  const handleNextButtonClick = async () => {
-    // Move the next token to currently serving
-    if (userData.length > nextTokenIndex) {
-      const nextTokenUser = userData[nextTokenIndex];
-      // Implement logic to move nextTokenUser to currently serving
-      console.log(`Calling token ${nextTokenUser.token}`);
-      // Update next token index
-      setNextTokenIndex(nextTokenIndex + 1);
-    } else {
-      console.log("No more tokens in queue");
+  const handleCallButtonClick = async () => {
+    try {
+      // Check if there is a token currently being served
+      if (nextTokenIndex > 0 && userData.length >= nextTokenIndex) {
+        const currentlyServingToken = userData[nextTokenIndex - 1].token;
+        console.log(`Calling token ${currentlyServingToken}`);
+  
+        // Update the currently serving token in the database
+        const tokenData = {
+          token: currentlyServingToken
+        };
+        await updateCurrentlyServing(tokenData);
+      } else {
+        console.log("No more tokens in queue");
+      }
+    } catch (error) {
+      console.error("Error calling token: ", error);
+    }
+  };
+  
+
+  const updateCurrentlyServing = async (tokenData) => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(
+        email.split("@")[0].replace("counter", "")
+      );
+      const servingCollectionName = `CurrentlyServingCounter${counterNumber}`;
+
+      // Get the current serving document
+      const querySnapshot = await getDocs(collection(db, servingCollectionName));
+      if (!querySnapshot.empty) {
+        // If document exists, update it
+        const docId = querySnapshot.docs[0].id;
+        await setDoc(doc(collection(db, servingCollectionName), docId), tokenData);
+      } else {
+        // If document doesn't exist, create a new one
+        await setDoc(doc(collection(db, servingCollectionName)), tokenData);
+      }
+      console.log("Currently serving token updated successfully.");
+    } catch (error) {
+      console.error("Error updating currently serving token: ", error);
     }
   };
 
@@ -400,8 +439,8 @@ const CounterDash = () => {
               </Button>
             </div>
             <div className="flex justify-end mb-5">
-              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
-                Next
+              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
+                Call
               </Button>
             </div>
             <div className="flex justify-end mb-5">
@@ -458,4 +497,3 @@ const CounterDash = () => {
 };
 
 export default CounterDash;
-
