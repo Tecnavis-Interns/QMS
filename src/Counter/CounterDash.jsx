@@ -101,25 +101,15 @@ const CounterDash = () => {
     );
   };
 
-  const handleCheckboxChange = async (event, userId) => {
-    const isChecked = event.target.checked;
-
-    if (isChecked) {
-      setSelectedRecords((prevSelected) => [...prevSelected, userId]);
-    } else {
-      setSelectedRecords((prevSelected) =>
-        prevSelected.filter((id) => id !== userId)
-      );
-    }
-  };
-
   const handlePendingButtonClick = async () => {
-    for (const userId of selectedRecords) {
-      await moveRecordToPending(userId);
+    if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
+      const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
+      await moveRecordToPending(userData[servingTokenIndex].id); // Move record to Pending when pending button is clicked
+    } else {
+      console.log("No token currently being served.");
     }
-    setSelectedRecords([]); // Clear selected records after moving to pending
   };
-
+  
   const moveRecordToPending = async (userId) => {
     try {
       const email = user.email;
@@ -159,7 +149,7 @@ const CounterDash = () => {
         console.log("User not authenticated");
         return;
       }
-  
+
       const email = user.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const pendingCollectionName = `PendingCounter${counterNumber}`;
@@ -169,7 +159,7 @@ const CounterDash = () => {
       console.error("Error fetching pending count: ", error);
     }
   };
-  
+
   fetchPendingCount();
 
   const handleRecallButtonClick = async () => {
@@ -234,7 +224,7 @@ const CounterDash = () => {
       if (nextTokenIndex > 0 && userData.length >= nextTokenIndex) {
         const currentlyServingToken = userData[nextTokenIndex - 1].token;
         console.log(`Calling token ${currentlyServingToken}`);
-  
+
         // Update the currently serving token in the database
         const tokenData = {
           token: currentlyServingToken
@@ -247,7 +237,7 @@ const CounterDash = () => {
       console.error("Error calling token: ", error);
     }
   };
-  
+
 
   const updateCurrentlyServing = async (tokenData) => {
     try {
@@ -293,11 +283,15 @@ const CounterDash = () => {
 
 
   const handleSaveButtonClick = async () => {
-    for (const userId of selectedRecords) {
-      await moveRecordToVisited(userId);
+    if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
+      const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
+      await moveRecordToVisited(userData[servingTokenIndex].id); // Move record to visited when completed button is clicked
+    } else {
+      console.log("No token currently being served.");
     }
-    setSelectedRecords([]); // Clear selected records after deletion
   };
+  
+
 
   const moveRecordToVisited = async (userId) => {
     try {
@@ -478,11 +472,12 @@ const CounterDash = () => {
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.token}</TableCell>
                       <TableCell>
-                        <Checkbox
-                          onChange={(event) =>
-                            handleCheckboxChange(event, user.id)
-                          }
-                        />
+                        <Button
+                          onClick={() => setNowServingToken(user.token)}
+                          className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+                        >
+                          Call
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
