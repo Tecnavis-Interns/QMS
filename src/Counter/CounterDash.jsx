@@ -67,6 +67,7 @@ const CounterDash = () => {
             ...doc.data(),
           }));
           setUserData(data.filter(isValidUserData)); // Filter out invalid data
+          setNextTokenIndex(0); // Initialize next token index
         } catch (error) {
           console.error("Error fetching data: ", error);
         }
@@ -151,6 +152,7 @@ const CounterDash = () => {
       console.error("Error moving record to 'pending' collection: ", error);
     }
   };
+
   const fetchPendingCount = async () => {
     try {
       const email = user.email;
@@ -219,19 +221,17 @@ const CounterDash = () => {
     }
   };
 
-  const handleCallButtonClick = async () => {
+  const handleNextButtonClick = async () => {
     // Move the next token to currently serving
     if (userData.length > nextTokenIndex) {
       const nextTokenUser = userData[nextTokenIndex];
       // Implement logic to move nextTokenUser to currently serving
       console.log(`Calling token ${nextTokenUser.token}`);
+      // Update next token index
+      setNextTokenIndex(nextTokenIndex + 1);
     } else {
       console.log("No more tokens in queue");
     }
-  };
-
-  const handleNextButtonClick = async () => {
-    // next button function
   };
 
   const handleResetButtonClick = async () => {
@@ -319,61 +319,53 @@ const CounterDash = () => {
       </div>
       <div className="flex-1 ml-60">
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
-          <div>
-          <div className="mb-4 mt-4 mr-24">
+          <div className="mb-4 mt-4">
             <h1>Date : {currentDate} </h1>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
+          <div className="grid grid-cols-2 gap-4 mb-4 mt-12 mr-5">
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Total Customer</h3>
+                <p className="font-bold text-large ">{userData.length}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Next Token</h3>
-                {/* {isServiceStarted ? (
+                {isServiceStarted ? (
                   <p>{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p>-</p>
-                )} */}
+                )}
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
-              {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
-                ) : (
-                  <p className="text-6xl font-bold ml-12 mt-4">-</p>
-                )}
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <h3 className="font-bold text-large ">Completed</h3>
+                <h3 className="font-bold text-large">Completed</h3>
+                <p>{completedCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Pending</h3>
+                <p>{pendingCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
               </CardBody>
             </Card>
           </div>
-          </div>
-          <div className="grid grid-cols-1 mb-4 mt-16">
+          <div className="grid grid-cols-1 mb-4 mt-12">
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p>{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -401,29 +393,24 @@ const CounterDash = () => {
             </Card>
 
           </div>
-          <div className="mb-2 mt-10 ml-14">
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+          <div className="mb-2 mt-12 ml-9">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Start
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
-                Call
-              </Button>
-            </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Next
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Recall
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Reset Token
               </Button>
             </div>
@@ -452,9 +439,11 @@ const CounterDash = () => {
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.token}</TableCell>
                       <TableCell>
-                      <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-10 mt-6">
-                        Call
-                      </Button>
+                        <Checkbox
+                          onChange={(event) =>
+                            handleCheckboxChange(event, user.id)
+                          }
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -469,3 +458,4 @@ const CounterDash = () => {
 };
 
 export default CounterDash;
+
