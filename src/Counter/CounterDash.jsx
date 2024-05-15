@@ -344,14 +344,14 @@ const CounterDash = () => {
               <CardBody className="overflow-visible py-2">
               {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
               {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                  <p className="text-6xl font-bold ml-3 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p className="text-6xl font-bold ml-12 mt-4">-</p>
                 )}
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -373,7 +373,7 @@ const CounterDash = () => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold  mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -437,7 +437,7 @@ const CounterDash = () => {
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn>Token No</TableColumn>
-                <TableColumn>Call</TableColumn>
+                <TableColumn></TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => {
