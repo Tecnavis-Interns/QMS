@@ -15,6 +15,7 @@ import AdminDash from './Admin/AdminDash'
 import Staff from './Admin/Staff';
 import Counter from './Admin/Counter'
 import TVView from './TVView/TVView'
+import ConfirmationPage from './User/Confirmation'
 
 const router = createBrowserRouter([
   {
@@ -48,7 +49,11 @@ const router = createBrowserRouter([
   {
     path: '/tvView',
     element: <TVView />
-  }
+  },
+  {
+    path: '/Confirmation',
+    element: <ConfirmationPage />,
+  },
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(

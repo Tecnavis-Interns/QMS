@@ -89,7 +89,7 @@ export default function UserForm() {
         token: tokenNumber
       });
 
-      generatePDF(tokenNumber);
+      navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage
 
       // Reset form fields
       setName("");
@@ -97,41 +97,6 @@ export default function UserForm() {
       setService("");
     } catch (error) {
       console.error("Error adding document: ", error);
-    }
-  };
-
-  const generatePDF = async (userTokenNumber) => {
-    try {
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([612, 472]);
-      const { width, height } = page.getSize();
-      const fontSize = 19.2;
-      const textHeight = fontSize + 10;
-
-      page.drawText("Queue Management System by Tecnavis", {
-        x: width / 2 - 200,
-        y: height - 100,
-        size: 24,
-        color: rgb(0, 0, 0),
-      });
-
-      page.drawText(userTokenNumber, {
-        x: width / 2 - 40,
-        y: height / 2,
-        size: 35,
-        color: rgb(0, 0, 0),
-      });
-
-      const pdfBytes = await pdfDoc.save();
-      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(pdfBlob);
-      a.download = 'token.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error("Error generating PDF: ", error);
     }
   };
 
@@ -170,7 +135,6 @@ export default function UserForm() {
       return "";
     }
   };
-  
 
   return (
     <div className="flex flex-col min-h-dvh">
@@ -188,10 +152,6 @@ export default function UserForm() {
             </Select>
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
           </form>
-        </div>
-        <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
-          <h2 className="font-semibold md:text-xl">Token Number</h2>
-          {showToken && token}
         </div>
       </div>
     </div>

@@ -220,11 +220,7 @@ const CounterDash = () => {
   };
 
   const handleCallButtonClick = async () => {
-  
-  };
-
-  const handleNextButtonClick = async () => {
-     // Move the next token to currently serving
+    // Move the next token to currently serving
     if (userData.length > nextTokenIndex) {
       const nextTokenUser = userData[nextTokenIndex];
       // Implement logic to move nextTokenUser to currently serving
@@ -232,6 +228,10 @@ const CounterDash = () => {
     } else {
       console.log("No more tokens in queue");
     }
+  };
+
+  const handleNextButtonClick = async () => {
+    // next button function
   };
 
   const handleResetButtonClick = async () => {
@@ -344,14 +344,14 @@ const CounterDash = () => {
               <CardBody className="overflow-visible py-2">
               {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
               {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-7 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p className="text-6xl font-bold ml-12 mt-4">-</p>
                 )}
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -373,7 +373,7 @@ const CounterDash = () => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl  font-bold mt-7">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
