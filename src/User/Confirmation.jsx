@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Button } from "@nextui-org/react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PDFDocument, rgb } from 'pdf-lib';
-
+import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 export default function ConfirmationPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,10 +50,24 @@ export default function ConfirmationPage() {
 
   return (
     <div className="flex flex-col min-h-dvh justify-center items-center">
-      <h2 className="font-semibold text-xl mb-6">Request Submitted Successfully</h2>
-      <p className="mb-6">Your token number is: {tokenNumber}</p>
-      <Button className="bg-[#6236F5] text-white" onClick={handleDownloadPDF}>Download Token</Button>
-      <Button className="bg-[#6236F5] text-white" onClick={() => navigate("/userForm")}>Go Back Home</Button>
+      <Card className="py-8 px-6 w-full max-w-lg mx-auto">
+        <CardHeader className="pb-0 pt-4 px-6 flex-col items-center">
+          <h1 className="font-semibold text-2xl mb-8">Request Submitted Successfully</h1>
+        </CardHeader>
+        <CardBody className="overflow-visible py-4 px-6">
+          <div className="flex flex-col justify-center items-center">
+          <p className="mb-8 text-lg font-semibold">Your token number is: {tokenNumber}</p>
+          </div>
+          <div className="flex flex-col justify-center items-center space-y-4">
+            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={handleDownloadPDF}>
+              Download Token
+            </Button>
+            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={() => navigate("/")}>
+              Go Back Home
+            </Button>
+          </div>
+        </CardBody>
+      </Card>  
     </div>
   );
 }

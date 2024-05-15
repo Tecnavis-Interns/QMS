@@ -365,7 +365,7 @@ const CounterDash = () => {
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Next Token</h3>
                 {isServiceStarted ? (
                   <p>{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
@@ -385,7 +385,7 @@ const CounterDash = () => {
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Pending</h3>
                 <p>{pendingCount}</p>
               </CardHeader>
@@ -395,7 +395,7 @@ const CounterDash = () => {
           </div>
           <div className="grid grid-cols-1 mb-4 mt-12">
             <Card className="py-4 ml-4 w-[200px]">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
                   <p>{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
@@ -450,14 +450,14 @@ const CounterDash = () => {
           </div>
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
             <Table aria-label="Example static collection table" removeWrapper>
-              <TableHeader>
+              <TableHeader >
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
                 <TableColumn>Phone</TableColumn>
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn>Token No</TableColumn>
-                <TableColumn>Visited</TableColumn>
+                <TableColumn></TableColumn>
               </TableHeader>
               <TableBody>
                 {userData.map((user, index) => {
