@@ -38,6 +38,7 @@ const CounterDash = () => {
   const [pendingCount, setPendingCount] = useState("-");
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
+  const [nowServingToken, setNowServingToken] = useState("");
 
   useEffect(() => {
     const checkUser = async () => {
@@ -100,25 +101,15 @@ const CounterDash = () => {
     );
   };
 
-  const handleCheckboxChange = async (event, userId) => {
-    const isChecked = event.target.checked;
-
-    if (isChecked) {
-      setSelectedRecords((prevSelected) => [...prevSelected, userId]);
-    } else {
-      setSelectedRecords((prevSelected) =>
-        prevSelected.filter((id) => id !== userId)
-      );
-    }
-  };
-
   const handlePendingButtonClick = async () => {
-    for (const userId of selectedRecords) {
-      await moveRecordToPending(userId);
+    if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
+      const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
+      await moveRecordToPending(userData[servingTokenIndex].id); // Move record to Pending when pending button is clicked
+    } else {
+      console.log("No token currently being served.");
     }
-    setSelectedRecords([]); // Clear selected records after moving to pending
   };
-
+  
   const moveRecordToPending = async (userId) => {
     try {
       const email = user.email;
@@ -153,14 +144,16 @@ const CounterDash = () => {
   };
   const fetchPendingCount = async () => {
     try {
+      const user = auth.currentUser; // Get the current user
+      if (!user) {
+        console.log("User not authenticated");
+        return;
+      }
+
       const email = user.email;
-      const counterNumber = parseInt(
-        email.split("@")[0].replace("counter", "")
-      );
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const pendingCollectionName = `PendingCounter${counterNumber}`;
-      const pendingSnapshot = await getDocs(
-        collection(db, pendingCollectionName)
-      );
+      const pendingSnapshot = await getDocs(collection(db, pendingCollectionName));
       setPendingCount(pendingSnapshot.size); // Update pending count
     } catch (error) {
       console.error("Error fetching pending count: ", error);
@@ -211,6 +204,12 @@ const CounterDash = () => {
         const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
         setNextTokenIndex(newNextTokenIndex + 1);
         console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+
+        // Update the currently serving token in the database
+        const tokenData = {
+          token: userData[newNextTokenIndex].token
+        };
+        await updateCurrentlyServing(tokenData);
       } else {
         console.log("Previous token has not been served yet.");
       }
@@ -220,18 +219,48 @@ const CounterDash = () => {
   };
 
   const handleCallButtonClick = async () => {
-    // Move the next token to currently serving
-    if (userData.length > nextTokenIndex) {
-      const nextTokenUser = userData[nextTokenIndex];
-      // Implement logic to move nextTokenUser to currently serving
-      console.log(`Calling token ${nextTokenUser.token}`);
-    } else {
-      console.log("No more tokens in queue");
+    try {
+      // Check if there is a token currently being served
+      if (nextTokenIndex > 0 && userData.length >= nextTokenIndex) {
+        const currentlyServingToken = userData[nextTokenIndex - 1].token;
+        console.log(`Calling token ${currentlyServingToken}`);
+
+        // Update the currently serving token in the database
+        const tokenData = {
+          token: currentlyServingToken
+        };
+        await updateCurrentlyServing(tokenData);
+      } else {
+        console.log("No more tokens in queue");
+      }
+    } catch (error) {
+      console.error("Error calling token: ", error);
     }
   };
 
-  const handleNextButtonClick = async () => {
-    // next button function
+
+  const updateCurrentlyServing = async (tokenData) => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(
+        email.split("@")[0].replace("counter", "")
+      );
+      const servingCollectionName = `CurrentlyServingCounter${counterNumber}`;
+
+      // Get the current serving document
+      const querySnapshot = await getDocs(collection(db, servingCollectionName));
+      if (!querySnapshot.empty) {
+        // If document exists, update it
+        const docId = querySnapshot.docs[0].id;
+        await setDoc(doc(collection(db, servingCollectionName), docId), tokenData);
+      } else {
+        // If document doesn't exist, create a new one
+        await setDoc(doc(collection(db, servingCollectionName)), tokenData);
+      }
+      console.log("Currently serving token updated successfully.");
+    } catch (error) {
+      console.error("Error updating currently serving token: ", error);
+    }
   };
 
   const handleResetButtonClick = async () => {
@@ -254,11 +283,15 @@ const CounterDash = () => {
 
 
   const handleSaveButtonClick = async () => {
-    for (const userId of selectedRecords) {
-      await moveRecordToVisited(userId);
+    if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
+      const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
+      await moveRecordToVisited(userData[servingTokenIndex].id); // Move record to visited when completed button is clicked
+    } else {
+      console.log("No token currently being served.");
     }
-    setSelectedRecords([]); // Clear selected records after deletion
   };
+  
+
 
   const moveRecordToVisited = async (userId) => {
     try {
@@ -319,61 +352,53 @@ const CounterDash = () => {
       </div>
       <div className="flex-1 ml-60">
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
-          <div>
-          <div className="mb-4 mt-4 mr-24">
+          <div className="mb-4 mt-4">
             <h1>Date : {currentDate} </h1>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
+          <div className="grid grid-cols-2 gap-4 mb-4 mt-12 mr-5">
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large">Total Customer</h3>
+                <p className="font-bold text-large ">{userData.length}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Next Token</h3>
-                {/* {isServiceStarted ? (
+                {isServiceStarted ? (
                   <p>{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p>-</p>
-                )} */}
+                )}
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
-              {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-3 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
-                ) : (
-                  <p className="text-6xl font-bold ml-12 mt-4">-</p>
-                )}
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large ">Completed</h3>
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+                <h3 className="font-bold text-large">Completed</h3>
+                <p>{completedCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Pending</h3>
+                <p>{pendingCount}</p>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
               </CardBody>
             </Card>
           </div>
-          </div>
-          <div className="grid grid-cols-1 mb-4 mt-16">
+          <div className="grid grid-cols-1 mb-4 mt-12">
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p>{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -401,29 +426,24 @@ const CounterDash = () => {
             </Card>
 
           </div>
-          <div className="mb-2 mt-10 ml-14">
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+          <div className="mb-2 mt-12 ml-9">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Start
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Call
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleNextButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
-                Next
-              </Button>
-            </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Recall
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
-              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-36 mt-6">
+            <div className="flex justify-end mb-5">
+              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3">
                 Reset Token
               </Button>
             </div>
@@ -452,9 +472,12 @@ const CounterDash = () => {
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.token}</TableCell>
                       <TableCell>
-                      <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-10 mt-6">
-                        Call
-                      </Button>
+                        <Button
+                          onClick={() => setNowServingToken(user.token)}
+                          className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+                        >
+                          Call
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
