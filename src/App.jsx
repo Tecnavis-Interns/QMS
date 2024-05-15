@@ -1,5 +1,6 @@
 import Landing from './Components/Landing'
 import Navbar from './Components/Navbar'
+import '@babel/polyfill';
 
 export default function App() {
   return (

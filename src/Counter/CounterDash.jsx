@@ -109,7 +109,7 @@ const CounterDash = () => {
       console.log("No token currently being served.");
     }
   };
-  
+
   const moveRecordToPending = async (userId) => {
     try {
       const email = user.email;
@@ -219,17 +219,23 @@ const CounterDash = () => {
   };
 
   const handleCallButtonClick = async () => {
+    const email = user.email;
+    const counterNumber = parseInt(
+      email.split("@")[0].replace("counter", "")
+    );
     try {
       // Check if there is a token currently being served
       if (nextTokenIndex > 0 && userData.length >= nextTokenIndex) {
         const currentlyServingToken = userData[nextTokenIndex - 1].token;
         console.log(`Calling token ${currentlyServingToken}`);
-
         // Update the currently serving token in the database
         const tokenData = {
           token: currentlyServingToken
         };
         await updateCurrentlyServing(tokenData);
+        const message = `${currentlyServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
+        console.log(tokenData)
+        speak(message)
       } else {
         console.log("No more tokens in queue");
       }
@@ -237,6 +243,12 @@ const CounterDash = () => {
       console.error("Error calling token: ", error);
     }
   };
+
+  const speak = (message) => {
+    const speechSynthesis = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(message);
+    speechSynthesis.speak(utterance);
+  }
 
 
   const updateCurrentlyServing = async (tokenData) => {
@@ -286,12 +298,29 @@ const CounterDash = () => {
     if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
       const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
       await moveRecordToVisited(userData[servingTokenIndex].id); // Move record to visited when completed button is clicked
+      await deleteCurrentlyServingDoc(); //delete currently serving token
     } else {
       console.log("No token currently being served.");
     }
   };
-  
 
+  const deleteCurrentlyServingDoc = async () => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const servingCollectionName = `CurrentlyServingCounter${counterNumber}`;
+
+      const querySnapshot = await getDocs(collection(db, servingCollectionName));
+      if (!querySnapshot.empty) {
+        await deleteDoc(querySnapshot.docs[0].ref);
+        console.log("Currently serving document deleted successfully.");
+      } else {
+        console.warn("No currently serving document found.");
+      }
+    } catch (error) {
+      console.error("Error deleting currently serving document: ", error);
+    }
+  };
 
   const moveRecordToVisited = async (userId) => {
     try {
