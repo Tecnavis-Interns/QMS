@@ -62,7 +62,7 @@ export default function ConfirmationPage() {
             <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={handleDownloadPDF}>
               Download Token
             </Button>
-            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={() => navigate("/")}>
+            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={() => navigate("/userForm")}>
               Go Back Home
             </Button>
           </div>
