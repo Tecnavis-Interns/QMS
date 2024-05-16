@@ -59,79 +59,36 @@ const AdminDash = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleShowMoreLess = () => {
-    setShowAll(!showAll);
+  const isValidUserData = (user) => {
+    return (
+      user.name &&
+      user.date &&
+      user.phone &&
+      user.service &&
+      user.counter &&
+      user.token
+    );
   };
 
-  const visibleQueueRows = showAll ? userData : userData.slice(0, 3); // Only slice here
+  const handleAddCounter = () => {
+    setShowModal(true);
+  };
 
-  // Calculate the total number of customers for each active counter
-  const activeCounters = {};
-  userData.forEach(user => {
-    const { counter, service } = user;
-    if (!activeCounters[counter]) {
-      activeCounters[counter] = { service, totalCustomers: 0 };
-    }
-    activeCounters[counter].totalCustomers++;
-  });
+  const handleManageCounter = (counter) => {
+    setSelectedCounter(counter);
+  };
 
-  // Calculate service summary
-  const serviceSummary = userData.reduce((summary, user) => {
-    const { service, status } = user;
-    summary[service] = summary[service] || { total: 0, completed: 0, pending: 0 };
-    summary[service].total++;
-    if (status === 'completed') summary[service].completed++;
-    else summary[service].pending++;
-    return summary;
-  }, {});
-
-  const serviceNames = Object.keys(serviceSummary);
+  const handleCloseModal = () => {
+    setSelectedCounter(null);
+  };
 
   return (
-    <div className="flex min-h-screen">
-      <div className="w-64 fixed top-0 left-0 bottom-0 bg-gray-800">
-        <Navbar />
-      </div>
-
-      <div className="flex-1 ml-64 p-6 relative">
-        {/* Active Counters */}
-        <div className="absolute top-16 right-16 bg-gray-200 p-4 rounded shadow w-1/4">
-          <h3 className="text-lg font-semibold">Active Counters</h3>
-          <Table aria-label="Active counters">
-            <TableHeader>
-              <TableColumn>Counter No</TableColumn>
-              <TableColumn>Service Type</TableColumn>
-              <TableColumn>Total Customers</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {Object.keys(activeCounters).map((counter, index) => (
-                <TableRow key={index}>
-                  <TableCell>{counter}</TableCell>
-                  <TableCell>{activeCounters[counter].service}</TableCell>
-                  <TableCell>{activeCounters[counter].totalCustomers}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Queue Status */}
-        <div className="flex flex-col gap-10">
-          <h2 className="text-xl font-semibold">Current Queue Status</h2>
-
-          <div className="flex justify-start items-center gap-6">
-            <div className="bg-gray-200 p-4 rounded shadow w-1/6">
-              <h3 className="text-lg font-semibold">Total Customers</h3>
-              <p>{userData.length}</p>
-            </div>
-            <div className="bg-gray-200 p-4 rounded shadow w-1/6">
-              <h3 className="text-lg font-semibold">Completed</h3>
-              <p>{userData.filter(user => user.status === 'completed').length}</p>
-            </div>
-            <div className="bg-gray-200 p-4 rounded shadow w-1/6">
-              <h3 className="text-lg font-semibold">Pending</h3>
-              <p>{userData.filter(user => user.status !== 'completed').length}</p>
-            </div>
+    <div className=" flex flex-col min-h-screen">
+      <Navbar />
+      <div className="lg:mx-24 flex justify-center flex-wrap gap-10">
+        <div className="flex items-center justify-center gap-10 w-full py-10">
+          <div className="flex flex-col items-center gap-10">
+            <ModalCounter />
           </div>
 
           {/* Services */}
