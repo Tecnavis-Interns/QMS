@@ -412,6 +412,22 @@ const CounterDash = () => {
   useEffect(() => {
     setCurrentDate(getCurrentDate());
   }, [user, completedCount]);
+  useEffect(() => {
+    const fetchCompletedCount = async () => {
+      try {
+        const email = user.email;
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+        const visitedCollectionName = `Counter ${counterNumber}Visited`;
+        const visitedSnapshot = await getDocs(collection(db, visitedCollectionName));
+        setCompletedCount(visitedSnapshot.size); // Update completed count
+      } catch (error) {
+        console.error("Error fetching completed count: ", error);
+      }
+    };
+  
+    fetchCompletedCount();
+  }, [user]);
+  
 
   return (
     <div className="flex">
