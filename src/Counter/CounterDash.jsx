@@ -210,6 +210,7 @@ const CounterDash = () => {
           token: userData[newNextTokenIndex].token
         };
         await updateCurrentlyServing(tokenData);
+        await storeNextTokenData(userData[newNextTokenIndex]);
       } else {
         console.log("Previous token has not been served yet.");
       }
@@ -236,6 +237,7 @@ const CounterDash = () => {
         const message = `${currentlyServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
         console.log(tokenData)
         speak(message)
+        await storeNextTokenData(userData[nextTokenIndex]);
       } else {
         console.log("No more tokens in queue");
       }
@@ -274,6 +276,43 @@ const CounterDash = () => {
       console.error("Error updating currently serving token: ", error);
     }
   };
+  
+  const storeNextTokenData = async (tokenData) => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const nextTokenCollectionName = `nextTokenCounter${counterNumber}`;
+  
+      // Reference to the next token collection
+      const nextTokenCollectionRef = collection(db, nextTokenCollectionName);
+  
+      if (tokenData === '-' || !tokenData) {
+        // If the token data is '-' or undefined, delete the document from the collection
+        const querySnapshot = await getDocs(nextTokenCollectionRef);
+        querySnapshot.forEach(async (doc) => {
+          await deleteDoc(doc.ref);
+        });
+      } else {
+        // Otherwise, store the new token data in the database
+        // Check if a document already exists in the collection
+        const querySnapshot = await getDocs(nextTokenCollectionRef);
+        if (!querySnapshot.empty) {
+          // If a document exists, update it with the new token data
+          const docId = querySnapshot.docs[0].id;
+          await setDoc(doc(nextTokenCollectionRef, docId), { token: tokenData.token });
+        } else {
+          // If no document exists, create a new one with the token data
+          await setDoc(doc(nextTokenCollectionRef), { token: tokenData.token });
+        }
+      }
+  
+      console.log("Next token data stored successfully.");
+    } catch (error) {
+      console.error("Error storing next token data: ", error);
+    }
+  };
+  
+  
 
   const handleResetButtonClick = async () => {
     try {
@@ -373,6 +412,22 @@ const CounterDash = () => {
   useEffect(() => {
     setCurrentDate(getCurrentDate());
   }, [user, completedCount]);
+  useEffect(() => {
+    const fetchCompletedCount = async () => {
+      try {
+        const email = user.email;
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+        const visitedCollectionName = `Counter ${counterNumber}Visited`;
+        const visitedSnapshot = await getDocs(collection(db, visitedCollectionName));
+        setCompletedCount(visitedSnapshot.size); // Update completed count
+      } catch (error) {
+        console.error("Error fetching completed count: ", error);
+      }
+    };
+  
+    fetchCompletedCount();
+  }, [user]);
+  
 
   return (
     <div className="flex">
