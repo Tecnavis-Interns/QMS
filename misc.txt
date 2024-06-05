@@ -25,7 +25,7 @@ const CounterDash = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "requests"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(collection(db, "single requests"), orderBy("date", "desc"));
         const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setUserData(data);
       } catch (error) {
@@ -35,7 +35,7 @@ const CounterDash = () => {
 
     fetchData();
 
-    const unsubscribe = onSnapshot(collection(db, "requests"), (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, "single requests"), (snapshot) => {
       const updatedData = snapshot.docs.map((doc) => doc.data());
       const orderedData = updatedData.sort((a, b) => b.date - a.date);
       const reversedData = orderedData.reverse();
@@ -63,7 +63,7 @@ const CounterDash = () => {
     const counter = selectedCounter[userId];
     if (counter) {
       try {
-        await updateDoc(doc(db, "requests", userId), { counter: counter });
+        await updateDoc(doc(db, "single requests", userId), { counter: counter });
         console.log("Counter saved successfully.");
         alert("Counter saved successfully.");
       } catch (error) {

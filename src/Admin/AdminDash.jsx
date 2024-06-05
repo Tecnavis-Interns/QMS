@@ -31,7 +31,7 @@ const AdminDash = () => {
     const fetchData = async () => {
       try {
         const querySnapshot = await getDocs(
-          query(collection(db, 'requests'), orderBy('date', 'asc'))
+          query(collection(db, 'single requests'), orderBy('date', 'asc'))
         );
         const data = querySnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -46,7 +46,7 @@ const AdminDash = () => {
     fetchData();
 
     const unsubscribe = onSnapshot(
-      query(collection(db, 'requests'), orderBy('date', 'asc')),
+      query(collection(db, 'single requests'), orderBy('date', 'asc')),
       (snapshot) => {
         const updatedData = snapshot.docs.map((doc) => ({
           id: doc.id,

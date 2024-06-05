@@ -41,10 +41,6 @@ export default function UserForm() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (phone.length < 10) {
-      alert("Please enter a 10 digit Phone Number");
-      return;
-    }
 
     if (name === "") {
       alert("Please Enter your name.")
@@ -71,19 +67,16 @@ export default function UserForm() {
       setShowToken(true); // Set to true to show the token
 
       const userId = uuidv4();
-      await submitDataToFirestore('requests', {
+      await submitDataToFirestore('single requests', {
         id: userId,
         name: name,
-        phone: phone,
         service: service,
-        counter: counterName,
         token: tokenNumber
       });
 
       await submitDataToFirestore(counterName, {
         id: userId,
         name: name,
-        phone: phone,
         service: service,
         counter: counterName,
         token: tokenNumber
@@ -109,19 +102,19 @@ export default function UserForm() {
       let newTokenNumber;
       switch (counterName) {
         case "Counter 1":
-          newTokenNumber = "A" + (lastTokenNumber + 1);
+          newTokenNumber = (lastTokenNumber + 1);
           break;
         case "Counter 2":
-          newTokenNumber = "B" + (lastTokenNumber + 1);
+          newTokenNumber = (lastTokenNumber + 1);
           break;
         case "Counter 3":
-          newTokenNumber = "C" + (lastTokenNumber + 1);
+          newTokenNumber = (lastTokenNumber + 1);
           break;
         case "Counter 4":
-          newTokenNumber = "D" + (lastTokenNumber + 1);
+          newTokenNumber = (lastTokenNumber + 1);
           break;
         case "Counter 5":
-          newTokenNumber = "E" + (lastTokenNumber + 1);
+          newTokenNumber = (lastTokenNumber + 1);
           break;
         default:
           newTokenNumber = "";
@@ -144,7 +137,7 @@ export default function UserForm() {
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
-            <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
+            {/* <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" /> */}
             <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
               {services.map((item) => (
                 <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
