@@ -194,31 +194,6 @@ const CounterDash = () => {
     }
   };
 
-  const handleStartButtonClick = async () => {
-    if (!isServiceStarted) {
-      setIsServiceStarted(true); // Start the service
-    }
-    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
-      // Check if the previous token has been served
-      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
-        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
-        setNextTokenIndex(newNextTokenIndex + 1);
-        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
-
-        // Update the currently serving token in the database
-        const tokenData = {
-          token: userData[newNextTokenIndex].token
-        };
-        await updateCurrentlyServing(tokenData);
-        await storeNextTokenData(userData[newNextTokenIndex]);
-      } else {
-        console.log("Previous token has not been served yet.");
-      }
-    } else {
-      console.log("No more tokens in queue");
-    }
-  };
-
   const handleCallButtonClick = async () => {
     const email = user.email;
     const counterNumber = parseInt(
@@ -408,6 +383,33 @@ const CounterDash = () => {
     const year = dateObj.getFullYear();
     return `${month} ${day}, ${year}`;
   };
+useEffect(() => {
+  const startServiceAutomatically = async () => {
+    setIsServiceStarted(true); // Start the service automatically
+    // Other logic for starting the service automatically
+    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
+      // Check if the previous token has been served
+      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
+        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
+        setNextTokenIndex(newNextTokenIndex + 1);
+        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+        // Update the currently serving token in the database
+        const tokenData = {
+          token: userData[newNextTokenIndex].token
+        };
+        await updateCurrentlyServing(tokenData);
+        await storeNextTokenData(userData[newNextTokenIndex]);
+      } else {
+        console.log("Previous token has not been served yet.");
+      }
+    } else {
+      console.log("No more tokens in queue");
+    }
+  };
+
+  startServiceAutomatically(); // Call the function to start the service automatically
+}, [userData, nextTokenIndex]);
+
 
   useEffect(() => {
     setCurrentDate(getCurrentDate());
@@ -442,7 +444,7 @@ const CounterDash = () => {
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Total Customer</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
@@ -454,28 +456,28 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large">Next Token</h3>
                
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
+              <CardBody className="overflow-visible items-center py-2">
               {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-4 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                  <p className="text-6xl font-bold items-center  mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                 ) : (
                   <p>-</p>
                 )}
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
+              <CardBody className="overflow-visible items-center py-2">
+              <p className="text-6xl font-bold  mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large">Pending</h3>
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
+              <CardBody className="overflow-visible items-center py-2">
+              <p className="text-6xl font-bold mt-4">{pendingCount}</p>
               </CardBody>
             </Card>
           </div>
@@ -485,7 +487,7 @@ const CounterDash = () => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold  mt-10">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -513,12 +515,7 @@ const CounterDash = () => {
             </Card>
 
           </div>
-          <div className="mb-2 mt-12 ml-14">
-          <div className="flex justify-end mb-2">
-              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-10">
-                Start
-              </Button>
-            </div>
+          <div className="mb-2 mt-24 ml-14">
             <div className="flex justify-end mb-2">
               <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Call
