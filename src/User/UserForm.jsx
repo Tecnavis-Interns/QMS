@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Input, Button, Select, SelectItem } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
+import { doc as firestoreDoc, getDoc, collection, setDoc, writeBatch, doc, getDocs } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
-import { PDFDocument, rgb } from 'pdf-lib';
 import { useNavigate } from "react-router-dom";
 
 export default function UserForm() {
@@ -18,7 +17,7 @@ export default function UserForm() {
   useEffect(() => {
     if (showToken) {
       const timeout = setTimeout(() => {
-        setShowToken(false); // Hide the token after 2 seconds
+        setShowToken(false); // Hide the token after 3 seconds
       }, 3000);
 
       return () => clearTimeout(timeout);
@@ -37,7 +36,29 @@ export default function UserForm() {
     setService(event.target.value);
   };
 
-  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
+  const services = [
+    'Personal Service (Income, Community, Nativity, etc)',
+    'Home related Service',
+    'Land Related Service',
+    'Education Related Service',
+    'Other Services'
+  ];
+
+  const getAvailableCounter = async () => {
+    try {
+      const countersCollectionRef = collection(db, 'SingleQueueCounters'); // Adjusted collection name
+      const snapshot = await getDocs(countersCollectionRef);
+      const availableCounter = snapshot.docs.find(doc => !doc.data().occupied);
+      if (availableCounter) {
+        return availableCounter.id.slice(-1); // Extract the counter number from the document ID
+      } else {
+        return null; // No available counter found
+      }
+    } catch (error) {
+      console.error("Error getting available counter: ", error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -47,47 +68,42 @@ export default function UserForm() {
     }
 
     if (name === "") {
-      alert("Please Enter your name.")
+      alert("Please Enter your name.");
       return;
     }
 
     if (service === "") {
-      alert("Please select a service.")
+      alert("Please select a service.");
       return;
     }
 
     try {
-      const counterSnapshot = await getDocs(collection(db, "counter"));
-      let counterName = "";
-      counterSnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.service === service) {
-          counterName = data.counterName;
-        }
-      });
-
-      const tokenNumber = await generateTokenNumber(counterName);
+      const tokenNumber = await generateTokenNumber();
       setToken(tokenNumber);
       setShowToken(true); // Set to true to show the token
 
+      const availableCounter = await getAvailableCounter();
+      if (!availableCounter) {
+        alert("All counters are occupied. Please try again later.");
+        return;
+      }
+
+      // Submit data to Firestore
       const userId = uuidv4();
-      await submitDataToFirestore('requests', {
+      await submitDataToFirestore(`SingleQueueCounter${availableCounter}`, { // Adjusted collection name
         id: userId,
         name: name,
         phone: phone,
         service: service,
-        counter: counterName,
         token: tokenNumber
       });
 
-      await submitDataToFirestore(counterName, {
-        id: userId,
-        name: name,
-        phone: phone,
-        service: service,
-        counter: counterName,
-        token: tokenNumber
-      });
+      let counterNumber = (parseInt(tokenNumber) % 5);
+      if (counterNumber === 0) {
+        counterNumber = 5; // Reset counterNumber to 5 if it's 0
+      }
+      const counterDocRef = doc(db, 'SingleQueueCounters', `SingleQueueCounter${counterNumber}`);
+      await setDoc(counterDocRef, { occupied: true }, { merge: true });
 
       navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage
 
@@ -100,41 +116,50 @@ export default function UserForm() {
     }
   };
 
-  const generateTokenNumber = async (counterName) => {
+  const generateTokenNumber = async () => {
     try {
-      const counterDocRef = firestoreDoc(db, "counter", counterName);
+      const counterDocRef = firestoreDoc(db, "globalCounter", "counter");
       const counterDocSnap = await getDoc(counterDocRef);
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
-  
-      let newTokenNumber;
-      switch (counterName) {
-        case "Counter 1":
-          newTokenNumber = "A" + (lastTokenNumber + 1);
-          break;
-        case "Counter 2":
-          newTokenNumber = "B" + (lastTokenNumber + 1);
-          break;
-        case "Counter 3":
-          newTokenNumber = "C" + (lastTokenNumber + 1);
-          break;
-        case "Counter 4":
-          newTokenNumber = "D" + (lastTokenNumber + 1);
-          break;
-        case "Counter 5":
-          newTokenNumber = "E" + (lastTokenNumber + 1);
-          break;
-        default:
-          newTokenNumber = "";
-      }
-  
-      await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-  
-      return newTokenNumber;
+
+      let newTokenNumber = lastTokenNumber + 1;
+
+      await setDoc(counterDocRef, { lastTokenNumber: newTokenNumber }, { merge: true });
+
+      return newTokenNumber.toString();
     } catch (error) {
       console.error("Error generating token number: ", error);
       return "";
     }
   };
+  const initializeCounters = async () => {
+    try {
+      const countersCollectionRef = collection(db, 'SingleQueueCounters');
+
+      // Check if counters collection is empty
+      const countersSnapshot = await getDocs(countersCollectionRef);
+      if (countersSnapshot.empty) {
+        const batch = writeBatch(db);
+        for (let i = 1; i <= 5; i++) {
+          const counterDocRef = doc(countersCollectionRef, `SingleQueueCounter${i}`);
+          batch.set(counterDocRef, { occupied: false }); // Initialize each counter document with occupied set to false
+        }
+        await batch.commit();
+        console.log("Counters initialized successfully.");
+      } else {
+        console.log("Counters already initialized.");
+      }
+    } catch (error) {
+      console.error("Error initializing counters: ", error);
+      throw error;
+    }
+  };
+
+
+  // Call the initializeCounters function when needed
+  // For example, call it when the app starts or when the counters collection is created
+  initializeCounters();
+
 
   return (
     <div className="flex flex-col min-h-dvh">
