@@ -194,31 +194,6 @@ const CounterDash = () => {
     }
   };
 
-  const handleStartButtonClick = async () => {
-    if (!isServiceStarted) {
-      setIsServiceStarted(true); // Start the service
-    }
-    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
-      // Check if the previous token has been served
-      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
-        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
-        setNextTokenIndex(newNextTokenIndex + 1);
-        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
-
-        // Update the currently serving token in the database
-        const tokenData = {
-          token: userData[newNextTokenIndex].token
-        };
-        await updateCurrentlyServing(tokenData);
-        await storeNextTokenData(userData[newNextTokenIndex]);
-      } else {
-        console.log("Previous token has not been served yet.");
-      }
-    } else {
-      console.log("No more tokens in queue");
-    }
-  };
-
   const handleCallButtonClick = async () => {
     const email = user.email;
     const counterNumber = parseInt(
@@ -408,6 +383,33 @@ const CounterDash = () => {
     const year = dateObj.getFullYear();
     return `${month} ${day}, ${year}`;
   };
+useEffect(() => {
+  const startServiceAutomatically = async () => {
+    setIsServiceStarted(true); // Start the service automatically
+    // Other logic for starting the service automatically
+    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
+      // Check if the previous token has been served
+      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
+        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
+        setNextTokenIndex(newNextTokenIndex + 1);
+        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+        // Update the currently serving token in the database
+        const tokenData = {
+          token: userData[newNextTokenIndex].token
+        };
+        await updateCurrentlyServing(tokenData);
+        await storeNextTokenData(userData[newNextTokenIndex]);
+      } else {
+        console.log("Previous token has not been served yet.");
+      }
+    } else {
+      console.log("No more tokens in queue");
+    }
+  };
+
+  startServiceAutomatically(); // Call the function to start the service automatically
+}, [userData, nextTokenIndex]);
+
 
   useEffect(() => {
     setCurrentDate(getCurrentDate());
@@ -514,11 +516,6 @@ const CounterDash = () => {
 
           </div>
           <div className="mb-2 mt-12 ml-14">
-          <div className="flex justify-end mb-2">
-              <Button onClick={handleStartButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-10">
-                Start
-              </Button>
-            </div>
             <div className="flex justify-end mb-2">
               <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Call
