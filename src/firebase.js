@@ -13,14 +13,15 @@ import {
 // import bcrypt from "bcrypt"
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAlDyDm8lmGzm741WtcZ9gJIdhlym5LkeU",
-  authDomain: "qms-project-27a3c.firebaseapp.com",
-  projectId: "qms-project-27a3c",
-  storageBucket: "qms-project-27a3c.appspot.com",
-  messagingSenderId: "986396859546",
-  appId: "1:986396859546:web:7f5ae033f09a6cbb2b5323",
-  measurementId: "G-ESCP4WYSLZ",
+  apiKey: "AIzaSyCBtstvUk4S8OpRH1LFfp3vVhgPHK_0nZc",
+  authDomain: "single-queue-qms.firebaseapp.com",
+  projectId: "single-queue-qms",
+  storageBucket: "single-queue-qms.appspot.com",
+  messagingSenderId: "1093945224747",
+  appId: "1:1093945224747:web:ce10f71277d5af4bce046e",
+  measurementId: "G-PKKDP6B4FR"
 };
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -45,7 +46,7 @@ const submitDataToFirestore = async (collectionName, data) => {
 const signIn = async (email, password) => {
     await signInWithEmailAndPassword(auth, email, password);
     const isAdmin = email === "admin@tecnavis.com";
-    const isCounter = email.endsWith("@tecnavis.com")
+    const isCounter = email === "counter@tecnavis.com"
 
     if (isAdmin) {
       return "admin";

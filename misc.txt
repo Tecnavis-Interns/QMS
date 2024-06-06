@@ -19,7 +19,7 @@ import { db } from "../firebase";
 
 const CounterDash = () => {
   const [userData, setUserData] = useState([]);
-  const [selectedCounter, setSelectedCounter] = useState({});
+  const [selected, setSelectedCounter] = useState({});
   const [visitedUsers, setVisitedUsers] = useState([]);
 
   useEffect(() => {

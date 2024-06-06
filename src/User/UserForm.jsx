@@ -29,9 +29,6 @@ export default function UserForm() {
     setName(event.target.value);
   };
 
-  const handlePhoneChange = (event) => {
-    setPhone(event.target.value.replace(/\D/g, "").slice(0, 10));
-  };
 
   const handleServiceChange = (event) => {
     setService(event.target.value);
@@ -53,16 +50,9 @@ export default function UserForm() {
     }
 
     try {
-      const counterSnapshot = await getDocs(collection(db, "counter"));
-      let counterName = "";
-      counterSnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.service === service) {
-          counterName = data.counterName;
-        }
-      });
+      // const counterSnapshot = await getDocs(collection(db, "single counter"));
 
-      const tokenNumber = await generateTokenNumber(counterName);
+      const tokenNumber = await generateTokenNumber();
       setToken(tokenNumber);
       setShowToken(true); // Set to true to show the token
 
@@ -74,11 +64,10 @@ export default function UserForm() {
         token: tokenNumber
       });
 
-      await submitDataToFirestore(counterName, {
+      await submitDataToFirestore('single counter', {
         id: userId,
         name: name,
         service: service,
-        counter: counterName,
         token: tokenNumber
       });
 
@@ -86,39 +75,20 @@ export default function UserForm() {
 
       // Reset form fields
       setName("");
-      setPhone("");
       setService("");
     } catch (error) {
       console.error("Error adding document: ", error);
     }
   };
 
-  const generateTokenNumber = async (counterName) => {
+  const generateTokenNumber = async () => {
     try {
-      const counterDocRef = firestoreDoc(db, "counter", counterName);
+      const counterDocRef = firestoreDoc(db, "single counter/counterDoc");
       const counterDocSnap = await getDoc(counterDocRef);
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
   
-      let newTokenNumber;
-      switch (counterName) {
-        case "Counter 1":
-          newTokenNumber = (lastTokenNumber + 1);
-          break;
-        case "Counter 2":
-          newTokenNumber = (lastTokenNumber + 1);
-          break;
-        case "Counter 3":
-          newTokenNumber = (lastTokenNumber + 1);
-          break;
-        case "Counter 4":
-          newTokenNumber = (lastTokenNumber + 1);
-          break;
-        case "Counter 5":
-          newTokenNumber = (lastTokenNumber + 1);
-          break;
-        default:
-          newTokenNumber = "";
-      }
+      let newTokenNumber=(lastTokenNumber + 1);
+      
   
       await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
   
@@ -137,7 +107,6 @@ export default function UserForm() {
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
-            {/* <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" /> */}
             <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
               {services.map((item) => (
                 <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>

@@ -49,12 +49,7 @@ const CounterDash = () => {
 
       const email = user.email;
       const counterName = email.split("@")[0];
-      const counterNumber = parseInt(counterName.replace("counter", ""));
-
-      if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
-        navigate("/login");
-        return;
-      }
+      
 
       const fetchData = async () => {
         try {
