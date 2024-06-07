@@ -39,6 +39,26 @@ const CounterDash = () => {
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
   const [nowServingToken, setNowServingToken] = useState("");
+  const [totalCustomerCount, setTotalCustomerCount] = useState(0);
+  const [singleCounterData, setSingleCounterData] = useState([]);
+
+  useEffect(() => {
+    const fetchSingleCounterData = async () => {
+      try {
+        const singleCounterSnapshot = await getDocs(collection(db, 'single counter'));
+        const data = singleCounterSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setSingleCounterData(data);
+      } catch (error) {
+        console.error("Error fetching single counter data: ", error);
+      }
+    };
+
+    fetchSingleCounterData();
+  }, []);
+
 
   useEffect(() => {
     const checkUser = async () => {
@@ -46,50 +66,52 @@ const CounterDash = () => {
         navigate("/login");
         return;
       }
-
+  
       const email = user.email;
       const counterName = email.split("@")[0];
       const counterNumber = parseInt(counterName.replace("counter", ""));
-
+  
       if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
         navigate("/login");
         return;
       }
-
+  
       const fetchData = async () => {
         try {
-          const collectionName = `Counter ${counterNumber}`;
-          const querySnapshot = await getDocs(
-            collection(db, collectionName),
-            orderBy("date", "desc")
-          );
-          const data = querySnapshot.docs.map((doc) => ({
+          // Fetch data from 'single counter' collection
+          const singleCounterSnapshot = await getDocs(collection(db, 'single counter'));
+          const data = singleCounterSnapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data(),
+            ...doc.data()
           }));
           setUserData(data.filter(isValidUserData)); // Filter out invalid data
+  
+          // Fetch total number of customers in "single counter" collection
+          setTotalCustomerCount(singleCounterSnapshot.size);
         } catch (error) {
           console.error("Error fetching data: ", error);
         }
       };
-
+  
       fetchData();
-
+  
       const unsubscribe = onSnapshot(
         collection(db, `Counter ${counterNumber}`),
-        (snapshot) => {
-          const updatedData = snapshot.docs.map((doc) => doc.data());
+        snapshot => {
+          const updatedData = snapshot.docs.map(doc => doc.data());
           const orderedData = updatedData.sort((a, b) => b.date - a.date);
           const reversedData = orderedData.reverse();
           setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
         }
       );
-
+  
+  
       return () => unsubscribe(); // Unsubscribe when component unmounts
     };
-
+  
     checkUser();
   }, [user]);
+  
 
   const isValidUserData = (user) => {
     return (
@@ -100,6 +122,7 @@ const CounterDash = () => {
       user.token
     );
   };
+  
 
   const handlePendingButtonClick = async () => {
     if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
@@ -448,7 +471,7 @@ useEffect(() => {
                 <h3 className="font-bold text-large">Total Customer</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
+              <p className="text-6xl font-bold ml-12 mt-4">{totalCustomerCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -538,36 +561,30 @@ useEffect(() => {
               <TableHeader >
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
-                <TableColumn>Phone</TableColumn>
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn>Token No</TableColumn>
                 <TableColumn></TableColumn>
               </TableHeader>
               <TableBody>
-                {userData.map((user, index) => {
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.phone}</TableCell>
-                      <TableCell>
-                        {user.date ? user.date.toDate().toLocaleString() : ""}
-                      </TableCell>
-                      <TableCell>{user.service}</TableCell>
-                      <TableCell>{user.token}</TableCell>
-                      <TableCell>
-                        <Button
-                          onClick={() => setNowServingToken(user.token)}
-                          className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-                        >
-                          Call
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
+              {singleCounterData.map((user, index) => (
+                <TableRow key={user.id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.date ? user.date.toDate().toLocaleString() : ""}</TableCell>
+                  <TableCell>{user.service}</TableCell>
+                  <TableCell>{user.token}</TableCell>
+                  <TableCell>
+                    <Button
+                      onClick={() => handleCallButtonClick(user.token)}
+                      className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+                    >
+                      Call
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
             </Table>
           </div>
         </div>
