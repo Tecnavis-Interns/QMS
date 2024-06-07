@@ -66,47 +66,53 @@ export default function UserForm() {
       alert("Please enter a 10 digit Phone Number");
       return;
     }
-
+  
     if (name === "") {
       alert("Please Enter your name.");
       return;
     }
-
+  
     if (service === "") {
       alert("Please select a service.");
       return;
     }
-
+  
     try {
       const tokenNumber = await generateTokenNumber();
       setToken(tokenNumber);
       setShowToken(true); // Set to true to show the token
-
-      const availableCounter = await getAvailableCounter();
-      if (!availableCounter) {
-        alert("All counters are occupied. Please try again later.");
-        return;
+  
+      let availableCounter = await getAvailableCounter();
+  
+      // If the request is one of the first five, assign it to a specific counter
+      if (availableCounter) {
+        // Submit data to Firestore under specific counter collection
+        const userId = uuidv4();
+        await submitDataToFirestore(`SingleQueueCounter${availableCounter}`, {
+          id: userId,
+          name: name,
+          phone: phone,
+          service: service,
+          token: tokenNumber
+        });
+  
+        // Update the status of the assigned counter
+        const counterDocRef = doc(db, 'SingleQueueCounters', `SingleQueueCounter${availableCounter}`);
+        await setDoc(counterDocRef, { occupied: true }, { merge: true });
+      } else {
+        // If no specific counter is available, store the data in the general "SingleQueue" collection
+        const userId = uuidv4();
+        await submitDataToFirestore(`SingleQueue`, {
+          id: userId,
+          name: name,
+          phone: phone,
+          service: service,
+          token: tokenNumber
+        });
       }
-
-      // Submit data to Firestore
-      const userId = uuidv4();
-      await submitDataToFirestore(`SingleQueueCounter${availableCounter}`, { // Adjusted collection name
-        id: userId,
-        name: name,
-        phone: phone,
-        service: service,
-        token: tokenNumber
-      });
-
-      let counterNumber = (parseInt(tokenNumber) % 5);
-      if (counterNumber === 0) {
-        counterNumber = 5; // Reset counterNumber to 5 if it's 0
-      }
-      const counterDocRef = doc(db, 'SingleQueueCounters', `SingleQueueCounter${counterNumber}`);
-      await setDoc(counterDocRef, { occupied: true }, { merge: true });
-
+  
       navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage
-
+  
       // Reset form fields
       setName("");
       setPhone("");
@@ -115,6 +121,7 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
+  
 
   const generateTokenNumber = async () => {
     try {
