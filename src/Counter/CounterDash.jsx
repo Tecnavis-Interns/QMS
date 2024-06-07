@@ -51,13 +51,17 @@ const CounterDash = () => {
           ...doc.data()
         }));
         setSingleCounterData(data);
+        if (data.length > 0) {
+          setNowServingToken(data[0].token);
+        }
       } catch (error) {
         console.error("Error fetching single counter data: ", error);
       }
     };
-
+  
     fetchSingleCounterData();
   }, []);
+  
 
 
   useEffect(() => {
@@ -121,6 +125,25 @@ const CounterDash = () => {
       user.service &&
       user.token
     );
+  };
+  
+  const deleteFromSingleRequests = async (token) => {
+    try {
+      const singleRequestsRef = collection(db, 'single requests');
+      const q = query(singleRequestsRef, where('token', '==', token));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        querySnapshot.forEach(async (doc) => {
+          await deleteDoc(doc.ref);
+        });
+        console.log(`Document with token ${token} deleted from 'single requests'.`);
+      } else {
+        console.warn(`No document found with token ${token} in 'single requests'.`);
+      }
+    } catch (error) {
+      console.error('Error deleting document from single requests:', error);
+    }
   };
   
 
@@ -510,7 +533,7 @@ useEffect(() => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold  mt-4">{nowServingToken}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
