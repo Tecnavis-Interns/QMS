@@ -45,7 +45,7 @@ const CounterDash = () => {
   useEffect(() => {
     const fetchSingleCounterData = async () => {
       try {
-        const singleCounterSnapshot = await getDocs(collection(db, 'single counter'));
+        const singleCounterSnapshot = await getDocs(collection(db, 'single requests'));
         const data = singleCounterSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -79,7 +79,7 @@ const CounterDash = () => {
       const fetchData = async () => {
         try {
           // Fetch data from 'single counter' collection
-          const singleCounterSnapshot = await getDocs(collection(db, 'single counter'));
+          const singleCounterSnapshot = await getDocs(collection(db, 'single requests'));
           const data = singleCounterSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
