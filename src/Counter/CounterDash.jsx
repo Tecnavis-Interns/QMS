@@ -148,46 +148,56 @@ const CounterDash = () => {
   
 
   const handlePendingButtonClick = async () => {
-    if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
-      const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
-      await moveRecordToPending(userData[servingTokenIndex].id); // Move record to Pending when pending button is clicked
-    } else {
-      console.log("No token currently being served.");
-    }
-  };
-
-  const moveRecordToPending = async (userId) => {
     try {
-      const email = user.email;
-      const counterNumber = parseInt(
-        email.split("@")[0].replace("counter", "")
-      );
-      const pendingCollectionName = `PendingCounter${counterNumber}`;
-
-      const q = query(
-        collection(db, getCurrentCounterCollectionName()),
-        where("id", "==", userId)
-      );
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userData = querySnapshot.docs[0].data();
-
-        await setDoc(doc(collection(db, pendingCollectionName), userId), userData);
-        await deleteDoc(querySnapshot.docs[0].ref);
-
-        console.log("Record moved to 'pending' collection successfully.");
+      if (nowServingToken && nowServingToken !== '') {
+        await moveCurrentlyServingToPending(nowServingToken);
+  
+        // Fetch the next token from the "single requests" collection
+        const nextTokenSnapshot = await getDocs(collection(db, 'single requests'));
+        const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
+        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
+  
+        // Increment the pending count
+        setPendingCount((prevCount) => prevCount + 1);
+  
+        // Update the state variables
+        setNowServingToken(nextToken);
+        setNextTokenIndex(nextTokenIndex + 1);
+  
+        console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
       } else {
-        console.warn(
-          "Document with id",
-          userId,
-          "not found in current counter's collection."
-        );
+        console.log("No token currently being served.");
       }
     } catch (error) {
-      console.error("Error moving record to 'pending' collection: ", error);
+      console.error("Error handling pending: ", error);
     }
   };
+  
+  
+  
+  
+  const moveCurrentlyServingToPending = async (token) => {
+    try {
+      // Get a reference to the "single pending" collection
+      const singlePendingRef = collection(db, 'single pending');
+  
+      // Find the document with the current serving token
+      const querySnapshot = await getDocs(
+        query(singlePendingRef, where('token', '==', token))
+      );
+  
+      // If the document doesn't exist, move the token to "single pending"
+      if (querySnapshot.empty) {
+        await setDoc(doc(singlePendingRef), { token });
+        console.log(`Token ${token} moved to 'single pending' collection.`);
+      } else {
+        console.warn(`Token ${token} already exists in 'single pending' collection.`);
+      }
+    } catch (error) {
+      console.error("Error moving currently serving to pending: ", error);
+    }
+  };
+  
   const fetchPendingCount = async () => {
     try {
       const user = auth.currentUser; // Get the current user
@@ -247,15 +257,14 @@ const CounterDash = () => {
     );
     try {
       // Check if there is a token currently being served
-      if (nextTokenIndex > 0 && userData.length >= nextTokenIndex) {
-        const currentlyServingToken = userData[nextTokenIndex - 1].token;
-        console.log(`Calling token ${currentlyServingToken}`);
+      if (nowServingToken && nowServingToken !== '-') {
+        console.log(`Calling token ${nowServingToken}`);
         // Update the currently serving token in the database
         const tokenData = {
-          token: currentlyServingToken
+          token: nowServingToken
         };
         await updateCurrentlyServing(tokenData);
-        const message = `${currentlyServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
+        const message = `${nowServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
         console.log(tokenData)
         speak(message)
         await storeNextTokenData(userData[nextTokenIndex]);
@@ -355,14 +364,50 @@ const CounterDash = () => {
 
 
   const handleSaveButtonClick = async () => {
-    if (nextTokenIndex > 0 && nextTokenIndex <= userData.length) {
-      const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
-      await moveRecordToVisited(userData[servingTokenIndex].id); // Move record to visited when completed button is clicked
-      await deleteCurrentlyServingDoc(); //delete currently serving token
-    } else {
-      console.log("No token currently being served.");
+    try {
+      if (nowServingToken && nowServingToken !== '') {
+  
+        // Delete the data from the "single requests" collection
+        const singleRequestsRef = collection(db, 'single requests');
+        const querySnapshot = await getDocs(query(singleRequestsRef, where('token', '==', nowServingToken)));
+        
+        if (!querySnapshot.empty) {
+          querySnapshot.forEach(async (doc) => {
+            await deleteDoc(doc.ref);
+            console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
+          });
+  
+          // Fetch the updated data from "single requests" collection
+          const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
+          const updatedData = updatedDataSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+  
+          // Update the singleCounterData state with the updated data
+          setSingleCounterData(updatedData);
+        } else {
+          console.warn(`No data found with token ${nowServingToken} in 'single requests'.`);
+        }
+  
+        // Fetch the next data's token number from the "single requests" collection
+        const nextTokenSnapshot = await getDocs(collection(db, 'single requests'));
+        const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
+        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
+  
+        // Update the state variables
+        setNowServingToken(nextToken);
+        setNextTokenIndex(nextTokenIndex + 1);
+  
+        console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
+      } else {
+        console.log("No token currently being served.");
+      }
+    } catch (error) {
+      console.error("Error handling completed: ", error);
     }
   };
+  
 
   const deleteCurrentlyServingDoc = async () => {
     try {
@@ -429,33 +474,31 @@ const CounterDash = () => {
     const year = dateObj.getFullYear();
     return `${month} ${day}, ${year}`;
   };
-useEffect(() => {
-  const startServiceAutomatically = async () => {
-    setIsServiceStarted(true); // Start the service automatically
-    // Other logic for starting the service automatically
-    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
-      // Check if the previous token has been served
-      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
-        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
-        setNextTokenIndex(newNextTokenIndex + 1);
-        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
-        // Update the currently serving token in the database
-        const tokenData = {
-          token: userData[newNextTokenIndex].token
-        };
-        await updateCurrentlyServing(tokenData);
-        await storeNextTokenData(userData[newNextTokenIndex]);
+  useEffect(() => {
+    const startServiceAutomatically = async () => {
+      setIsServiceStarted(true); // Start the service automatically
+      // Other logic for starting the service automatically
+      if (userData.length > nextTokenIndex || nextTokenIndex === null) {
+        // Check if the previous token has been served
+        if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
+          const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
+          setNextTokenIndex(newNextTokenIndex + 1);
+          console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+          // Update the currently serving token in the database
+          const tokenData = {
+            token: userData[newNextTokenIndex].token
+          };
+          await updateCurrentlyServing(tokenData);
+          await storeNextTokenData(userData[newNextTokenIndex]);
+        } else {
+          console.log("Previous token has not been served yet.");
+        }
       } else {
-        console.log("Previous token has not been served yet.");
+        console.log("No more tokens in queue");
       }
-    } else {
-      console.log("No more tokens in queue");
-    }
-  };
-
-  startServiceAutomatically(); // Call the function to start the service automatically
-}, [userData, nextTokenIndex]);
-
+    };
+    startServiceAutomatically(); // Call the function to start the service automatically
+  }, [userData, nextTokenIndex]);
 
   useEffect(() => {
     setCurrentDate(getCurrentDate());
@@ -590,7 +633,7 @@ useEffect(() => {
                 <TableColumn></TableColumn>
               </TableHeader>
               <TableBody>
-              {singleCounterData.map((user, index) => (
+              {singleCounterData.sort((a, b) => (a.token > b.token) ? 1 : -1).map((user, index) => (
                 <TableRow key={user.id}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{user.name}</TableCell>
