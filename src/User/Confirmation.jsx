@@ -13,7 +13,7 @@ export default function ConfirmationPage() {
   const [remainingTime, setRemainingTime] = useState(15); // Remaining time in seconds
 
   useEffect(() => {
-    // Scroll to the top of the page when the component mounts
+    // Scroll to the top of the page when the component mounts 
     window.scrollTo(0, 0);
 
     // Set the download timeout
@@ -43,8 +43,11 @@ export default function ConfirmationPage() {
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([612, 472]);
       const { width, height } = page.getSize();
-      const fontSize = 19.2;
-      const textHeight = fontSize + 10;
+
+      // Get the current date and time
+      const now = new Date();
+      const dateString = now.toLocaleDateString();
+      const timeString = now.toLocaleTimeString();
 
       page.drawText("Queue Management System by Tecnavis", {
         x: width / 2 - 200,
@@ -53,10 +56,25 @@ export default function ConfirmationPage() {
         color: rgb(0, 0, 0),
       });
 
-      page.drawText(tokenNumber, {
-        x: width / 2 - 40,
+      page.drawText(`Token Number: ${tokenNumber}`, {
+        x: width / 2 - 80,
         y: height / 2,
         size: 35,
+        color: rgb(0, 0, 0),
+      });
+
+      // Add current date and time to the PDF page
+      page.drawText(`Date: ${dateString}`, {
+        x: width / 2 - 80,
+        y: height / 2 - 50,
+        size: 16,
+        color: rgb(0, 0, 0),
+      });
+                                                                        
+      page.drawText(`Time: ${timeString}`, {
+        x: width / 2 - 80,
+        y: height / 2 - 70,
+        size: 16,
         color: rgb(0, 0, 0),
       });
 
@@ -98,7 +116,7 @@ export default function ConfirmationPage() {
             <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={downloadTokenPDF}>
               Download Token
             </Button>
-            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={() => navigate("/userForm")}>
+            <Button className="bg-[#6236F5] text-white w-64 y-3 text-lg" onClick={() => navigate("/userForm")}>
               Go Back Home
             </Button>
             {remainingTime > 0 && (

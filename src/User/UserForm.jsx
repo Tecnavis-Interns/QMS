@@ -8,11 +8,10 @@ import { useNavigate } from "react-router-dom";
 
 export default function UserForm() {
   const [name, setName] = useState("");
-  const [services, setServices] = useState([]);
+  const [selectedService, setSelectedService] = useState("");
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
-  
   const submissionTimerRef = useRef(null); // Ref for the form submission timer
 
   useEffect(() => {
@@ -29,13 +28,7 @@ export default function UserForm() {
   };
 
   const handleServiceChange = (event) => {
-    const value = event.target.value;
-    const checked = event.target.checked;
-    if (checked) {
-      setServices([...services, value]);
-    } else {
-      setServices(services.filter((service) => service !== value));
-    }
+    setSelectedService(event.target.value);
   };
 
   const servicesList = [
@@ -54,8 +47,8 @@ export default function UserForm() {
       return;
     }
 
-    if (services.length === 0) {
-      alert("Please select at least one service.");
+    if (selectedService === "") {
+      alert("Please select a service.");
       return;
     }
 
@@ -64,10 +57,14 @@ export default function UserForm() {
       let counterName = "";
       counterSnapshot.forEach(doc => {
         const data = doc.data();
-        if (services.includes(data.service)) {
-          counterName = data.counterName;
+        if (selectedService === data.service) {
+          counterName = doc.id; // Use the document ID directly
         }
       });
+
+      if (!counterName) {
+        throw new Error("No matching counter found for the selected service.");
+      }
 
       const tokenNumber = await generateTokenNumber(counterName);
       setToken(tokenNumber);
@@ -77,7 +74,7 @@ export default function UserForm() {
       await submitDataToFirestore('requests', {
         id: userId,
         name: name,
-        services: services,
+        service: selectedService,
         counter: counterName,
         token: tokenNumber
       });
@@ -85,7 +82,7 @@ export default function UserForm() {
       await submitDataToFirestore(counterName, {
         id: userId,
         name: name,
-        services: services,
+        service: selectedService,
         counter: counterName,
         token: tokenNumber
       });
@@ -93,7 +90,7 @@ export default function UserForm() {
       navigate(`/confirmation`, { state: { tokenNumber } });
 
       setName("");
-      setServices([]);
+      setSelectedService("");
       
       // Set the submission timer
       submissionTimerRef.current = setTimeout(() => {
@@ -105,6 +102,10 @@ export default function UserForm() {
   };
 
   const generateTokenNumber = async (counterName) => {
+    if (!counterName) {
+      throw new Error("Invalid counter name");
+    }
+
     try {
       const counterDocRef = firestoreDoc(db, "counter", counterName);
       const counterDocSnap = await getDoc(counterDocRef);
@@ -153,15 +154,15 @@ export default function UserForm() {
               {servicesList.map((item) => (
                 <label key={item} className="flex items-center gap-2">
                   <input
-                    type="checkbox"
+                    type="radio"
                     name="service"
                     value={item}
-                    checked={services.includes(item)}
+                    checked={selectedService === item}
                     onChange={handleServiceChange}
                   />
                   <Button
-                    onClick={() => handleServiceChange({ target: { value: item, checked: !services.includes(item) } })}
-                    className={`w-full ${services.includes(item) ? 'bg-[#6236F5] text-white' : 'bg-gray-200 text-black'}`}
+                    onClick={() => handleServiceChange({ target: { value: item } })}
+                    className={`w-full ${selectedService === item ? 'bg-[#6236F5] text-white' : 'bg-gray-200 text-black'}`}
                   >
                     {item}
                   </Button>
