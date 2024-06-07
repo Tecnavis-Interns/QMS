@@ -5,7 +5,7 @@ import { db } from "../firebase";
 import { getAuth } from "firebase/auth";
 import React from "react";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, Chip, Tooltip, getKeyValue} from "@nextui-org/react";
-
+import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
 export default function UserForm() {
   const auth = getAuth();
   const [countersData, setCountersData] = useState([]);
@@ -100,7 +100,9 @@ export default function UserForm() {
        
       </CardHeader>
       <CardBody className="overflow-visible justify-center flex flex-col items-center py-2">
-        <h1>Space for ads</h1>
+      <div className="w-full h-full ">
+            <AutomaticSlideshow />
+          </div>
       </CardBody>
     </Card>
    </div>
@@ -131,4 +133,3 @@ export default function UserForm() {
   );
 
 }
-
