@@ -1,26 +1,25 @@
-import { useState, useEffect } from "react";
-import { Input, Button, Select, SelectItem } from "@nextui-org/react";
+import { useState, useEffect, useRef } from "react";
+import { Input, Button } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
 import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
-import { PDFDocument, rgb } from 'pdf-lib';
 import { useNavigate } from "react-router-dom";
 
 export default function UserForm() {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [service, setService] = useState("");
+  const [services, setServices] = useState([]);
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
+  
+  const submissionTimerRef = useRef(null); // Ref for the form submission timer
 
   useEffect(() => {
     if (showToken) {
-      const timeout = setTimeout(() => {
-        setShowToken(false); // Hide the token after 2 seconds
+      const timeout = setTimeout(() => {     
+        setShowToken(false);
       }, 3000);
-
       return () => clearTimeout(timeout);
     }
   }, [showToken]);
@@ -29,30 +28,34 @@ export default function UserForm() {
     setName(event.target.value);
   };
 
-  const handlePhoneChange = (event) => {
-    setPhone(event.target.value.replace(/\D/g, "").slice(0, 10));
-  };
-
   const handleServiceChange = (event) => {
-    setService(event.target.value);
+    const value = event.target.value;
+    const checked = event.target.checked;
+    if (checked) {
+      setServices([...services, value]);
+    } else {
+      setServices(services.filter((service) => service !== value));
+    }
   };
 
-  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
+  const servicesList = [
+    'Personal Service (Income, Community, Nativity, etc)',
+    'Home related Service',
+    'Land Related Service',
+    'Education Related Service',
+    'Other Services'
+  ];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (phone.length < 10) {
-      alert("Please enter a 10 digit Phone Number");
-      return;
-    }
 
     if (name === "") {
       alert("Please Enter your name.")
       return;
     }
 
-    if (service === "") {
-      alert("Please select a service.")
+    if (services.length === 0) {
+      alert("Please select at least one service.");
       return;
     }
 
@@ -61,21 +64,20 @@ export default function UserForm() {
       let counterName = "";
       counterSnapshot.forEach(doc => {
         const data = doc.data();
-        if (data.service === service) {
+        if (services.includes(data.service)) {
           counterName = data.counterName;
         }
       });
 
       const tokenNumber = await generateTokenNumber(counterName);
       setToken(tokenNumber);
-      setShowToken(true); // Set to true to show the token
+      setShowToken(true);
 
       const userId = uuidv4();
       await submitDataToFirestore('requests', {
         id: userId,
         name: name,
-        phone: phone,
-        service: service,
+        services: services,
         counter: counterName,
         token: tokenNumber
       });
@@ -83,18 +85,20 @@ export default function UserForm() {
       await submitDataToFirestore(counterName, {
         id: userId,
         name: name,
-        phone: phone,
-        service: service,
+        services: services,
         counter: counterName,
         token: tokenNumber
       });
 
-      navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage
+      navigate(`/confirmation`, { state: { tokenNumber } });
 
-      // Reset form fields
       setName("");
-      setPhone("");
-      setService("");
+      setServices([]);
+      
+      // Set the submission timer
+      submissionTimerRef.current = setTimeout(() => {
+        navigate("/userForm"); // Redirect back to the form
+      }, 15000); // 15 seconds
     } catch (error) {
       console.error("Error adding document: ", error);
     }
@@ -144,12 +148,26 @@ export default function UserForm() {
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
-            <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
-            <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
-              {services.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
+            <div className="flex flex-col gap-2">
+              <label className="font-medium">Select your Reason to be here:</label>
+              {servicesList.map((item) => (
+                <label key={item} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="service"
+                    value={item}
+                    checked={services.includes(item)}
+                    onChange={handleServiceChange}
+                  />
+                  <Button
+                    onClick={() => handleServiceChange({ target: { value: item, checked: !services.includes(item) } })}
+                    className={`w-full ${services.includes(item) ? 'bg-[#6236F5] text-white' : 'bg-gray-200 text-black'}`}
+                  >
+                    {item}
+                  </Button>
+                </label>
               ))}
-            </Select>
+            </div>
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
           </form>
         </div>
