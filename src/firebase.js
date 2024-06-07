@@ -46,7 +46,7 @@ const submitDataToFirestore = async (collectionName, data) => {
 const signIn = async (email, password) => {
     await signInWithEmailAndPassword(auth, email, password);
     const isAdmin = email === "admin@tecnavis.com";
-    const isCounter = email === "counter@tecnavis.com"
+    const isCounter = email.endsWith("@tecnavis.com");
 
     if (isAdmin) {
       return "admin";
