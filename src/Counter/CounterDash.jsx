@@ -194,6 +194,12 @@ const CounterDash = () => {
     }
   };
 
+  const speak = (message) => {
+    const speechSynthesis = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(message);
+    speechSynthesis.speak(utterance);
+  }
+
   const handleCallButtonClick = async () => {
     const email = user.email;
     const counterNumber = parseInt(
@@ -220,12 +226,41 @@ const CounterDash = () => {
       console.error("Error calling token: ", error);
     }
   };
+  
 
-  const speak = (message) => {
-    const speechSynthesis = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(message);
-    speechSynthesis.speak(utterance);
-  }
+  const handleCallNowButtonClick = async (index) => {
+    try {
+      const email = user.email;
+      const counterNumber = parseInt(
+        email.split("@")[0].replace("counter", "")
+      );
+      const currentIndex = index; // Get the index of the clicked request
+      const tokenData = {
+        token: userData[currentIndex].token
+      };
+
+      // Update the currently serving token in the database
+      await updateCurrentlyServing(tokenData);
+
+      // Move the selected request to the front of the queue
+      const newUserData = [
+        userData[currentIndex],
+        ...userData.slice(0, currentIndex),
+        ...userData.slice(currentIndex + 1)
+      ];
+
+      setUserData(newUserData);
+      await storeNextTokenData(userData[0]); // Store the new "Next Token" data
+
+      const message = `${tokenData.token} PLEASE PROCEED TO COUNTER${counterNumber}`;
+      speak(message); // Speak out the token message
+    } catch (error) {
+      console.error("Error calling token: ", error);
+    }
+  };
+
+
+ 
 
 
   const updateCurrentlyServing = async (tokenData) => {
@@ -251,16 +286,16 @@ const CounterDash = () => {
       console.error("Error updating currently serving token: ", error);
     }
   };
-  
+
   const storeNextTokenData = async (tokenData) => {
     try {
       const email = user.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const nextTokenCollectionName = `nextTokenCounter${counterNumber}`;
-  
+
       // Reference to the next token collection
       const nextTokenCollectionRef = collection(db, nextTokenCollectionName);
-  
+
       if (tokenData === '-' || !tokenData) {
         // If the token data is '-' or undefined, delete the document from the collection
         const querySnapshot = await getDocs(nextTokenCollectionRef);
@@ -280,7 +315,7 @@ const CounterDash = () => {
           await setDoc(doc(nextTokenCollectionRef), { token: tokenData.token });
         }
       }
-  
+
       console.log("Next token data stored successfully.");
     } catch (error) {
       console.error("Error storing next token data: ", error);
@@ -381,32 +416,32 @@ const CounterDash = () => {
     const year = dateObj.getFullYear();
     return `${month} ${day}, ${year}`;
   };
-useEffect(() => {
-  const startServiceAutomatically = async () => {
-    setIsServiceStarted(true); // Start the service automatically
-    // Other logic for starting the service automatically
-    if (userData.length > nextTokenIndex || nextTokenIndex === null) {
-      // Check if the previous token has been served
-      if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
-        const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
-        setNextTokenIndex(newNextTokenIndex + 1);
-        console.log(`Next token is ${userData[newNextTokenIndex].token}`);
-        // Update the currently serving token in the database
-        const tokenData = {
-          token: userData[newNextTokenIndex].token
-        };
-        await updateCurrentlyServing(tokenData);
-        await storeNextTokenData(userData[newNextTokenIndex]);
+  useEffect(() => {
+    const startServiceAutomatically = async () => {
+      setIsServiceStarted(true); // Start the service automatically
+      // Other logic for starting the service automatically
+      if (userData.length > nextTokenIndex || nextTokenIndex === null) {
+        // Check if the previous token has been served
+        if (nextTokenIndex === null || nextTokenIndex === 0 || userData[nextTokenIndex - 1].visited) {
+          const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
+          setNextTokenIndex(newNextTokenIndex + 1);
+          console.log(`Next token is ${userData[newNextTokenIndex].token}`);
+          // Update the currently serving token in the database
+          const tokenData = {
+            token: userData[newNextTokenIndex].token
+          };
+          await updateCurrentlyServing(tokenData);
+          await storeNextTokenData(userData[newNextTokenIndex]);
+        } else {
+          console.log("Previous token has not been served yet.");
+        }
       } else {
-        console.log("Previous token has not been served yet.");
+        console.log("No more tokens in queue");
       }
-    } else {
-      console.log("No more tokens in queue");
-    }
-  };
+    };
 
-  startServiceAutomatically(); // Call the function to start the service automatically
-}, [userData, nextTokenIndex]);
+    startServiceAutomatically(); // Call the function to start the service automatically
+  }, [userData, nextTokenIndex]);
 
 
   useEffect(() => {
@@ -424,10 +459,10 @@ useEffect(() => {
         console.error("Error fetching completed count: ", error);
       }
     };
-  
+
     fetchCompletedCount();
   }, [user]);
-  
+
 
   return (
     <div className="flex">
@@ -436,56 +471,56 @@ useEffect(() => {
       </div>
       <div className="flex-1 ml-60">
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
-        <div>
-        <div className="mb-4 mt-4 mr-24">
-            <h1>Date : {currentDate} </h1>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
-            <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large">Total Customer</h3>
-              </CardHeader>
-              <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
-              </CardBody>
-            </Card>
-            <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large">Next Token</h3>
-               
-              </CardHeader>
-              <CardBody className="overflow-visible items-center py-2">
-              {isServiceStarted ? (
-                  <p className="text-6xl font-bold items-center  mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
-                ) : (
-                  <p>-</p>
-                )}
-              </CardBody>
-            </Card>
-            <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large ">Completed</h3>
-              </CardHeader>
-              <CardBody className="overflow-visible items-center py-2">
-              <p className="text-6xl font-bold  mt-4">{completedCount}</p>
-              </CardBody>
-            </Card>
-            <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large">Pending</h3>
-              </CardHeader>
-              <CardBody className="overflow-visible items-center py-2">
-              <p className="text-6xl font-bold mt-4">{pendingCount}</p>
-              </CardBody>
-            </Card>
-          </div>
+          <div>
+            <div className="mb-4 mt-4 mr-24">
+              <h1>Date : {currentDate} </h1>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
+              <Card className="py-4">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
+                  <h3 className="font-bold text-large">Total Customer</h3>
+                </CardHeader>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold  mt-4">{userData.length}</p>
+                </CardBody>
+              </Card>
+              <Card className="py-4">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
+                  <h3 className="font-bold text-large">Next Token</h3>
+
+                </CardHeader>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  {isServiceStarted ? (
+                    <p className="text-6xl font-bold  mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                  ) : (
+                    <p>-</p>
+                  )}
+                </CardBody>
+              </Card>
+              <Card className="py-4">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
+                  <h3 className="font-bold text-large ">Completed</h3>
+                </CardHeader>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold  mt-4">{completedCount}</p>
+                </CardBody>
+              </Card>
+              <Card className="py-4">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
+                  <h3 className="font-bold text-large">Pending</h3>
+                </CardHeader>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold">{pendingCount}</p>
+                </CardBody>
+              </Card>
+            </div>
           </div>
           <div className="grid grid-cols-1 mb-4 mt-16">
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-10">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold  mt-8">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -556,11 +591,12 @@ useEffect(() => {
                       <TableCell>{user.token}</TableCell>
                       <TableCell>
                         <Button
-                          onClick={() => setNowServingToken(user.token)}
+                          onClick={() => handleCallNowButtonClick(index)} // Pass index as a parameter
                           className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
                         >
-                          Call
+                          Call Now
                         </Button>
+
                       </TableCell>
                     </TableRow>
                   );
