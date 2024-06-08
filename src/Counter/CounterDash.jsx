@@ -286,8 +286,6 @@ const CounterDash = () => {
       console.error("Error storing next token data: ", error);
     }
   };
-  
-  
 
   const handleResetButtonClick = async () => {
     try {
