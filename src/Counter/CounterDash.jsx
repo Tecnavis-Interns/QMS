@@ -33,7 +33,7 @@ const CounterDash = () => {
   const user = auth.currentUser;
 
   const [userData, setUserData] = useState([]);
-  const [singleData,setSingleData] = useState([]);
+  const [singleData, setSingleData] = useState([]);
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
@@ -50,8 +50,7 @@ const CounterDash = () => {
       }
 
       const email = user.email;
-      const counterName = email.split("@")[0];
-      const counterNumber = parseInt(counterName.replace("counter", ""));
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
 
       if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
         navigate("/login");
@@ -114,7 +113,7 @@ const CounterDash = () => {
         }
       );
 
-      return () => unsubscribe(),Singleunsubscribe(); // Unsubscribe when component unmounts
+      return () => unsubscribe(), Singleunsubscribe(); // Unsubscribe when component unmounts
     };
 
     checkUser();
@@ -133,7 +132,8 @@ const CounterDash = () => {
   const handlePendingButtonClick = async () => {
     if (nextTokenIndex > 0 && nextTokenIndex <= singleData.length) {
       const servingTokenIndex = nextTokenIndex - 1; // Get the index of the token being served
-      await moveRecordToPending(singleData[servingTokenIndex].id); // Move record to Pending when pending button is clicked
+      await moveRecordToPending(singleData[servingTokenIndex].id);
+      console.log("record moved to pending"); // Move record to Pending when pending button is clicked
     } else {
       console.log("No token currently being served.");
     }
@@ -265,18 +265,22 @@ const CounterDash = () => {
     );
     try {
       // Check if there is a token currently being served
-      if (nextTokenIndex > 0 && singleData.length >= nextTokenIndex) {
-        const currentlyServingToken = singleData[nextTokenIndex - 1].token;
-        console.log(`Calling token ${currentlyServingToken}`);
+      if (singleData.length > 0) {
+        // Update the state with the currently serving token
+        setNowServingToken(singleData[0].token);
+        // Set isServiceStarted to true
+        setIsServiceStarted(true);
         // Update the currently serving token in the database
         const tokenData = {
-          token: currentlyServingToken
+          token: singleData[0].token
         };
         await updateCurrentlyServing(tokenData);
-        const message = `${currentlyServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
-        console.log(tokenData)
-        speak(message)
-        await storeNextTokenData(singleData[nextTokenIndex]);
+        // Remove the served token from the queue
+        // await deleteSingleQueueRecord(singleData[0].id);
+        // Store the next token data
+        await storeNextTokenData(singleData[1] || '-'); // Pass '-' if no next token
+        // Speak out the token message
+        speak(`${tokenData.token} PLEASE PROCEED TO COUNTER${counterNumber}`);
       } else {
         console.log("No more tokens in queue");
       }
@@ -293,32 +297,32 @@ const CounterDash = () => {
       );
       const currentIndex = index; // Get the index of the clicked request
       const selectedUserData = userData[currentIndex]; // Get the selected user data from the userData array
-  
+
       // Check if selectedUserData is valid
       if (selectedUserData && selectedUserData.token) {
         const tokenData = {
           token: selectedUserData.token
         };
-  
+
         // Update the currently serving token in the database
         await updateCurrentlyServing(tokenData);
-  
+
         // Move the selected request to the front of the queue in the singleData array
         const newSingleData = [
           selectedUserData,
           ...singleData
         ];
-  
+
         setSingleData(newSingleData);
-  
+
         // Move the data to the counter-specific queue collection
         await moveRecordToCounterQueue(selectedUserData, counterNumber);
-  
+
         // Delete the record from the SingleQueue collection
-        await deleteSingleQueueRecord(selectedUserData.id);
-  
-        await storeNextTokenData(selectedUserData); // Store the new "Next Token" data
-  
+        // await deleteSingleQueueRecord(selectedUserData.id);
+
+        // await storeNextTokenData(selectedUserData); // Store the new "Next Token" data
+
         const message = `${tokenData.token} PLEASE PROCEED TO COUNTER${counterNumber}`;
         speak(message); // Speak out the token message
       } else {
@@ -328,8 +332,8 @@ const CounterDash = () => {
       console.error("Error calling token: ", error);
     }
   };
-  
-  
+
+
   const deleteSingleQueueRecord = async (userId) => {
     try {
       await deleteDoc(doc(collection(db, "SingleQueue"), userId));
@@ -338,15 +342,15 @@ const CounterDash = () => {
       console.error("Error deleting record from 'SingleQueue' collection: ", error);
     }
   };
-  
+
 
   const moveRecordToCounterQueue = async (userData, counterNumber) => {
     try {
-      const queueCollectionName = `SingleCounterQueue${counterNumber}`;
-  
+      const queueCollectionName = `SingleQueueCounter${counterNumber}`;
+
       // Add the user data to the counter-specific queue collection
       await setDoc(doc(collection(db, queueCollectionName), userData.id), userData);
-  
+
       console.log("Record moved to counter-specific queue collection successfully.");
     } catch (error) {
       console.error("Error moving record to counter-specific queue collection: ", error);
@@ -467,26 +471,26 @@ const CounterDash = () => {
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const visitedCollectionName = `VisitedSingleCounter${counterNumber}`;
       const currentCollectionName = `SingleQueueCounter${counterNumber}`;
-  
+
       const q = query(
         collection(db, currentCollectionName),
         where("id", "==", userId)
       );
       const querySnapshot = await getDocs(q);
-  
+
       if (!querySnapshot.empty) {
         const singleData = querySnapshot.docs[0].data();
         const docRef = querySnapshot.docs[0].ref;
-  
+
         // Update the 'occupied' field to false before moving the record
         await updateDoc(docRef, { occupied: false });
-  
+
         // Move the record to the 'visited' collection
         await setDoc(doc(collection(db, visitedCollectionName), userId), singleData);
-  
+
         // Delete the record from the 'SingleQueueCounter' collection
         await deleteDoc(docRef);
-  
+
         console.log("Record moved to 'visited' collection successfully.");
       } else {
         console.warn(
@@ -514,20 +518,26 @@ const CounterDash = () => {
   };
   useEffect(() => {
     const startServiceAutomatically = async () => {
-      setIsServiceStarted(true); // Start the service automatically
-      // Other logic for starting the service automatically
-      if (singleData.length > nextTokenIndex || nextTokenIndex === null) {
+      if (singleData.length > 0 && (nextTokenIndex === null || nextTokenIndex <= singleData.length)) {
         // Check if the previous token has been served
-        if (nextTokenIndex === null || nextTokenIndex === 0 || singleData[nextTokenIndex - 1].visited) {
+        if (
+          nextTokenIndex === null || 
+          nextTokenIndex === 0 || 
+          (nextTokenIndex > 0 && singleData[nextTokenIndex - 1]?.visited)
+        ) {
           const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
           setNextTokenIndex(newNextTokenIndex + 1);
-          console.log(`Next token is ${singleData[newNextTokenIndex].token}`);
-          // Update the currently serving token in the database
-          const tokenData = {
-            token: singleData[newNextTokenIndex].token
-          };
-          await updateCurrentlyServing(tokenData);
-          await storeNextTokenData(singleData[newNextTokenIndex]);
+          if (singleData[newNextTokenIndex]) {
+            console.log(`Next token is ${singleData[newNextTokenIndex].token}`);
+            // Update the currently serving token in the database
+            const tokenData = {
+              token: singleData[newNextTokenIndex].token
+            };
+            await updateCurrentlyServing(tokenData);
+            await storeNextTokenData(singleData[newNextTokenIndex]);
+          } else {
+            console.log("No more tokens in queue");
+          }
         } else {
           console.log("Previous token has not been served yet.");
         }
@@ -535,9 +545,33 @@ const CounterDash = () => {
         console.log("No more tokens in queue");
       }
     };
-
+  
     startServiceAutomatically(); // Call the function to start the service automatically
-  }, [singleData, nextTokenIndex]);
+  }, [singleData, nextTokenIndex]);  
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const email = user.email;
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+        const collectionName = `SingleQueueCounter${counterNumber}`;
+        const querySnapshot = await getDocs(collection(db, collectionName));
+        const data = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSingleData(data); // Set singleData state with fetched data
+        // Set isServiceStarted to true if there is a token in the queue
+        setIsServiceStarted(data.length > 0);
+        // Set nextTokenIndex to 1 if there is a token in the queue
+        setNextTokenIndex(data.length > 0 ? 1 : null);
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    };
+
+    fetchData();
+  }, [user]);
 
 
   useEffect(() => {
@@ -615,8 +649,8 @@ const CounterDash = () => {
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
-                {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-10">{singleData.length > 0 ? singleData[nextTokenIndex - 1].token : "-"}</p>
+                {isServiceStarted && (
+                  <p className="text-6xl font-bold  mt-10">{nowServingToken || "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
