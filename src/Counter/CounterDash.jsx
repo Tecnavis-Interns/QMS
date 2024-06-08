@@ -185,7 +185,18 @@ const CounterDash = () => {
         // Update the pending counter with the size of the "single pending" collection
         const pendingCounterSnapshot = await getDocs(singlePendingRef);
         const pendingCounter = pendingCounterSnapshot.size;
+        const updatedDataSnapshot = await getDocs(collection(db, 'single requests'),orderBy("token", "asc"));
+        const nextTokenData = updatedDataSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
+        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
+  
+        // Update the state variables
+        setNowServingToken(nextToken);
+        setTotalCustomerCount(updatedDataSnapshot.size)
+        setNextTokenIndex(nextTokenIndex + 1);
         setPendingCount(pendingCounter);
+  
+        // setTotalCustomerCount(newSingleRequestsSnapshot.size);
+        
   
         console.log("Updated pending counter:", pendingCounter);
       } else {
@@ -391,26 +402,26 @@ const CounterDash = () => {
           });
   
           // Fetch the updated data from "single requests" collection
-          const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
+          const updatedDataSnapshot = await getDocs(collection(db, 'single requests'),orderBy("token", "asc"));
           const updatedData = updatedDataSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
-          setTotalCustomerCount(updatedDataSnapshot.size)
+        const nextTokenData = updatedDataSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
+        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
+  
+        // Update the state variables
+        setNowServingToken(nextToken);
+        setTotalCustomerCount(updatedDataSnapshot.size)
+        setNextTokenIndex(nextTokenIndex + 1);
           // Update the singleCounterData state with the updated data
-          setSingleCounterData(updatedData);
+          
+        setSingleCounterData(updatedData);
         } else {
           console.warn(`No data found with token ${nowServingToken} in 'single requests'.`);
         }
   
         // Fetch the next data's token number from the "single requests" collection
-        const nextTokenSnapshot = await getDocs(collection(db, 'single requests'));
-        const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
-        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
-  
-        // Update the state variables
-        setNowServingToken(nextToken);
-        setNextTokenIndex(nextTokenIndex + 1);
         
   
         console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
@@ -427,26 +438,25 @@ const CounterDash = () => {
       setNowServingToken(specialtoken);
   
       // Delete the document with the provided token number from the "single requests" collection
-      const singleRequestsRef = collection(db, 'single requests');
-      const q = query(singleRequestsRef, where('token', '==', specialtoken));
-      const querySnapshot = await getDocs(q);
+      // const singleRequestsRef = collection(db, 'single requests');
+      // const q = query(singleRequestsRef, where('token', '==', specialtoken));
+      // const querySnapshot = await getDocs(q);
   
-      if (!querySnapshot.empty) {
-        querySnapshot.forEach(async (doc) => {
-          await deleteDoc(doc.ref);
-        });
+      // if (!querySnapshot.empty) {
+        // querySnapshot.forEach(async (doc) => {
+        //   await deleteDoc(doc.ref);
+        // });
         const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
           const updatedData = updatedDataSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
-          setTotalCustomerCount(updatedDataSnapshot.size)
+          
+          // setTotalCustomerCount((updatedDataSnapshot.size)+1)
           // Update the singleCounterData state with the updated data
           setSingleCounterData(updatedData);
         console.log(`Document with token ${specialtoken} served and deleted from 'single requests'.`);
-      } else {
-        console.warn(`No document found with token ${specialtoken} in 'single requests'.`);
-      }
+      // }
     } catch (error) {
       console.log('Error in calling specific token:', error);
     }
