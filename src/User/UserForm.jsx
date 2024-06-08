@@ -11,18 +11,7 @@ export default function UserForm() {
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
   const [token, setToken] = useState('');
-  const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (showToken) {
-      const timeout = setTimeout(() => {
-        setShowToken(false); // Hide the token after 3 seconds
-      }, 3000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [showToken]);
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -44,22 +33,6 @@ export default function UserForm() {
     'Other Services'
   ];
 
-  const getAvailableCounter = async () => {
-    try {
-      const countersCollectionRef = collection(db, 'SingleQueueCounters'); // Adjusted collection name
-      const snapshot = await getDocs(countersCollectionRef);
-      const availableCounter = snapshot.docs.find(doc => !doc.data().occupied);
-      if (availableCounter) {
-        return availableCounter.id.slice(-1); // Extract the counter number from the document ID
-      } else {
-        return null; // No available counter found
-      }
-    } catch (error) {
-      console.error("Error getting available counter: ", error);
-      return null;
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (phone.length < 10) {
@@ -80,36 +53,15 @@ export default function UserForm() {
     try {
       const tokenNumber = await generateTokenNumber();
       setToken(tokenNumber);
-      setShowToken(true); // Set to true to show the token
   
-      let availableCounter = await getAvailableCounter();
-  
-      // If the request is one of the first five, assign it to a specific counter
-      if (availableCounter) {
-        // Submit data to Firestore under specific counter collection
-        const userId = uuidv4();
-        await submitDataToFirestore(`SingleQueueCounter${availableCounter}`, {
-          id: userId,
-          name: name,
-          phone: phone,
-          service: service,
-          token: tokenNumber
-        });
-  
-        // Update the status of the assigned counter
-        const counterDocRef = doc(db, 'SingleQueueCounters', `SingleQueueCounter${availableCounter}`);
-        await setDoc(counterDocRef, { occupied: true }, { merge: true });
-      } else {
-        // If no specific counter is available, store the data in the general "SingleQueue" collection
-        const userId = uuidv4();
-        await submitDataToFirestore(`SingleQueue`, {
-          id: userId,
-          name: name,
-          phone: phone,
-          service: service,
-          token: tokenNumber
-        });
-      }
+      const userId = uuidv4();
+      await submitDataToFirestore(`SingleQueue`, {
+        id: userId,
+        name: name,
+        phone: phone,
+        service: service,
+        token: tokenNumber
+      });
   
       navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage
   
@@ -121,7 +73,7 @@ export default function UserForm() {
       console.error("Error adding document: ", error);
     }
   };
-  
+    
 
   const generateTokenNumber = async () => {
     try {
@@ -139,33 +91,7 @@ export default function UserForm() {
       return "";
     }
   };
-  const initializeCounters = async () => {
-    try {
-      const countersCollectionRef = collection(db, 'SingleQueueCounters');
-
-      // Check if counters collection is empty
-      const countersSnapshot = await getDocs(countersCollectionRef);
-      if (countersSnapshot.empty) {
-        const batch = writeBatch(db);
-        for (let i = 1; i <= 5; i++) {
-          const counterDocRef = doc(countersCollectionRef, `SingleQueueCounter${i}`);
-          batch.set(counterDocRef, { occupied: false }); // Initialize each counter document with occupied set to false
-        }
-        await batch.commit();
-        console.log("Counters initialized successfully.");
-      } else {
-        console.log("Counters already initialized.");
-      }
-    } catch (error) {
-      console.error("Error initializing counters: ", error);
-      throw error;
-    }
-  };
-
-
-  // Call the initializeCounters function when needed
-  // For example, call it when the app starts or when the counters collection is created
-  initializeCounters();
+  
 
 
   return (
