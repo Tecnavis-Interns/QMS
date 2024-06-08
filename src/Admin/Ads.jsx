@@ -4,7 +4,6 @@ import { Button } from '@nextui-org/react';
 import { storage } from "../firebase"; 
 import { ref, uploadBytes, listAll, getDownloadURL, deleteObject } from 'firebase/storage';
 import { v4 } from 'uuid';
-import { Input } from "@nextui-org/input";
 
 const Slideshow = ({ imageList, currentImageIndex, nextImage, prevImage, onDeleteImage }) => {
   if (!imageList || imageList.length === 0) return null;
@@ -34,10 +33,11 @@ const Slideshow = ({ imageList, currentImageIndex, nextImage, prevImage, onDelet
   );
 };
 
-const Ads = ({ onShowSlideshow }) => {
+const Ads = () => {
   const [imageUpload, setImageUpload] = useState(null);
   const [imageList, setImageList] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // State to track current image index
+  const [refresh, setRefresh] = useState(false); // State to trigger refresh
   const imageListRef = ref(storage, "images/");
 
   const uploadImage = () => {
@@ -46,7 +46,7 @@ const Ads = ({ onShowSlideshow }) => {
     const imageRef = ref(storage, `images/${imageUpload.name + v4()}`);
     uploadBytes(imageRef, imageUpload).then(() => {
       alert("Image uploaded");
-      fetchImages(); // Fetch images again after upload
+      setRefresh(prev => !prev); // Toggle refresh state
     });
   };
 
@@ -70,7 +70,7 @@ const Ads = ({ onShowSlideshow }) => {
   const deleteImage = (imageRef) => {
     deleteObject(imageRef).then(() => {
       alert("Image deleted");
-      fetchImages(); // Fetch images again after delete
+      setRefresh(prev => !prev); // Toggle refresh state
     }).catch((error) => {
       console.error("Error deleting image: ", error);
     });
@@ -84,15 +84,9 @@ const Ads = ({ onShowSlideshow }) => {
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + imageList.length) % imageList.length);
   };
 
-  const showSlideshow = () => {
-    if (onShowSlideshow) {
-      onShowSlideshow(imageList, currentImageIndex, nextImage, prevImage); // Removed deleteImage parameter
-    }
-  };
-
   useEffect(() => {
     fetchImages();
-  }, []);
+  }, [refresh]);
 
   return (
     <div className="flex min-h-screen">

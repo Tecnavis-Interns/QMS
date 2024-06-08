@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getDownloadURL, listAll, ref } from 'firebase/storage';
-import { storage } from '../firebase'; // Adjust the path if needed
+import { storage } from '../firebase';
 
-const AutomaticSlideshow = () => {
+
+const AutomaticSlideshow = ({ refresh, setRefresh }) => { // Accept setRefresh as prop
   const [imageList, setImageList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const imageListRef = ref(storage, 'images/');
@@ -19,13 +20,13 @@ const AutomaticSlideshow = () => {
     };
 
     fetchImages();
-  }, []);
+  }, [refresh]); 
 
   useEffect(() => {
     if (imageList.length > 0) {
       const interval = setInterval(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % imageList.length);
-      }, 6000); // Change image every 3 seconds
+      }, 6000);
 
       return () => clearInterval(interval);
     }
@@ -37,10 +38,10 @@ const AutomaticSlideshow = () => {
         <img
           src={imageList[currentIndex]}
           alt="Automatic Slideshow"
-          className="w-full h-full object-cover" // Ensure the image covers the container while maintaining aspect ratio
+          className="w-full h-full object-cover" 
         />
       ) : (
-        <p>Loading adver..</p>
+        <p>Loading...</p>
       )}
     </div>
   );
