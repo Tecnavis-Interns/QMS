@@ -21,6 +21,7 @@ import {
   setDoc,
   limit,
   doc,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { getAuth } from "firebase/auth";
@@ -163,52 +164,37 @@ const CounterDash = () => {
 
   const handlePendingButtonClick = async () => {
     try {
-      if (nowServingToken && nowServingToken !== '') {
+      // Fetch the first data's token number from the "single requests" collection
+      const singleRequestsRef = collection(db, 'single requests');
+      const querySnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
+      
+      console.log("Query Snapshot size:", querySnapshot.size); // Log the size of the query snapshot
   
-        // Delete the data from the "single requests" collection
-        const singleRequestsRef = collection(db, 'single requests');
-        const querySnapshot = await getDocs(query(singleRequestsRef,orderBy("token", "asc"), where('token', '==', nowServingToken)));
-        
-        if (!querySnapshot.empty) {
-          querySnapshot.forEach(async (doc) => {
-            await deleteDoc(doc.ref);
-            console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
-          });
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        const token = doc.data().token;
   
-          // Fetch the updated data from "single requests" collection
-          const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
-          const updatedData = updatedDataSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
+        console.log("Document found with token:", token); // Log the token of the found document
   
-          // Update the singleCounterData state with the updated data
-          setSingleCounterData(updatedData);
-        } else {
-          console.warn(`No data found with token ${nowServingToken} in 'single requests'.`);
-        }
+        // Move the data to the "single pending" collection
+        const singlePendingRef = collection(db, 'single pending');
+        await addDoc(singlePendingRef, doc.data());
+        await deleteDoc(doc.ref);
+        console.log(`Data with token ${token} moved to 'single pending' and deleted from 'single requests'.`);
   
-        // Fetch the next data's token number from the "single requests" collection
-        const nextTokenSnapshot = await getDocs(
-          query(collection(db, "single requests"), orderBy("token", "asc"))
-        );
-        const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
-        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
+        // Update the pending counter with the size of the "single pending" collection
+        const pendingCounterSnapshot = await getDocs(singlePendingRef);
+        const pendingCounter = pendingCounterSnapshot.size;
+        setPendingCount(pendingCounter);
   
-        // Update the state variables
-        setNowServingToken(nextToken);
-        setNextTokenIndex(nextTokenIndex + 1);
-  
-        console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
+        console.log("Updated pending counter:", pendingCounter);
       } else {
-        console.log("No token currently being served.");
+        console.warn("No data found in 'single requests'.");
       }
     } catch (error) {
-      console.error("Error handling completed: ", error);
+      console.error("Error handling pending button click: ", error);
     }
   };
-  
-  
   
   
   const moveCurrentlyServingToPending = async (token) => {
@@ -250,10 +236,13 @@ const CounterDash = () => {
       if (!querySnapshot.empty) {
         // Get the data of the first document
         const userData = querySnapshot.docs[0].data();
-        const docId = querySnapshot.docs[0].id;
+        // const docId = querySnapshot.docs[0].id;
   
         // Insert the entire document data into the "single requests" collection
         await setDoc(doc(collection(db, "single requests"), userData));
+        const sortedQuerySnapshot = await getDocs(
+          query(collection(db, "single requests"), orderBy("token", "asc"))
+        );
   
         // Assign the token to the nowServingToken variable
         setNowServingToken(userData.token);
@@ -407,7 +396,7 @@ const CounterDash = () => {
             id: doc.id,
             ...doc.data()
           }));
-  
+          setTotalCustomerCount(updatedData.size)
           // Update the singleCounterData state with the updated data
           setSingleCounterData(updatedData);
         } else {
@@ -422,6 +411,7 @@ const CounterDash = () => {
         // Update the state variables
         setNowServingToken(nextToken);
         setNextTokenIndex(nextTokenIndex + 1);
+        setTotalCustomerCount(nextTokenSnapshot.size)
   
         console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
       } else {
@@ -431,6 +421,13 @@ const CounterDash = () => {
       console.error("Error handling completed: ", error);
     }
   };
+  const callSpecificToken = async () => {
+    try {
+      
+    } catch (error) {
+      console.log('Error in calling specific token');
+    }
+  }
   
 
   const deleteCurrentlyServingDoc = async () => {
@@ -685,7 +682,7 @@ const CounterDash = () => {
                   <TableCell>{user.token}</TableCell>
                   <TableCell>
                     <Button
-                      onClick={() => handleCallButtonClick(user.token)}
+                      onClick={callSpecificToken}
                       className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
                     >
                       Call

@@ -83,7 +83,7 @@ export default function UserForm() {
 
   const generateTokenNumber = async () => {
     try {
-      const counterDocRef = firestoreDoc(db, "single requests/counterDoc");
+      const counterDocRef = firestoreDoc(db, "single counter/counterDoc");
       const counterDocSnap = await getDoc(counterDocRef);
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
   

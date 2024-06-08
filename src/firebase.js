@@ -13,13 +13,13 @@ import {
 // import bcrypt from "bcrypt"
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCBtstvUk4S8OpRH1LFfp3vVhgPHK_0nZc",
-  authDomain: "single-queue-qms.firebaseapp.com",
-  projectId: "single-queue-qms",
-  storageBucket: "single-queue-qms.appspot.com",
-  messagingSenderId: "1093945224747",
-  appId: "1:1093945224747:web:ce10f71277d5af4bce046e",
-  measurementId: "G-PKKDP6B4FR"
+  apiKey: "AIzaSyB3ta9d93DcBl5asAkZimrTuhBIjnGD8Ho",
+  authDomain: "single-queue-85203.firebaseapp.com",
+  projectId: "single-queue-85203",
+  storageBucket: "single-queue-85203.appspot.com",
+  messagingSenderId: "120848826113",
+  appId: "1:120848826113:web:c982f6cca04ddef2af2500",
+  measurementId: "G-HX7L0ENMD7"
 };
 
 
