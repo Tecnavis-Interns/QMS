@@ -396,7 +396,7 @@ const CounterDash = () => {
             id: doc.id,
             ...doc.data()
           }));
-          setTotalCustomerCount(updatedData.size)
+          setTotalCustomerCount(updatedDataSnapshot.size)
           // Update the singleCounterData state with the updated data
           setSingleCounterData(updatedData);
         } else {
@@ -411,7 +411,7 @@ const CounterDash = () => {
         // Update the state variables
         setNowServingToken(nextToken);
         setNextTokenIndex(nextTokenIndex + 1);
-        setTotalCustomerCount(nextTokenSnapshot.size)
+        
   
         console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
       } else {
@@ -421,13 +421,36 @@ const CounterDash = () => {
       console.error("Error handling completed: ", error);
     }
   };
-  const callSpecificToken = async () => {
+  const callSpecificToken = async (specialtoken) => {
     try {
-      
+      // Set the nowServingToken state to the provided token number
+      setNowServingToken(specialtoken);
+  
+      // Delete the document with the provided token number from the "single requests" collection
+      const singleRequestsRef = collection(db, 'single requests');
+      const q = query(singleRequestsRef, where('token', '==', specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        querySnapshot.forEach(async (doc) => {
+          await deleteDoc(doc.ref);
+        });
+        const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
+          const updatedData = updatedDataSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setTotalCustomerCount(updatedDataSnapshot.size)
+          // Update the singleCounterData state with the updated data
+          setSingleCounterData(updatedData);
+        console.log(`Document with token ${specialtoken} served and deleted from 'single requests'.`);
+      } else {
+        console.warn(`No document found with token ${specialtoken} in 'single requests'.`);
+      }
     } catch (error) {
-      console.log('Error in calling specific token');
+      console.log('Error in calling specific token:', error);
     }
-  }
+  };
   
 
   const deleteCurrentlyServingDoc = async () => {
@@ -682,7 +705,7 @@ const CounterDash = () => {
                   <TableCell>{user.token}</TableCell>
                   <TableCell>
                     <Button
-                      onClick={callSpecificToken}
+                      onClick={() => callSpecificToken(user.token)}
                       className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
                     >
                       Call

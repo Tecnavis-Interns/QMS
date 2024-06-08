@@ -14,6 +14,7 @@ export default function UserForm() {
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
+  const [lastGeneratedToken, setLastGeneratedToken] = useState('');
 
   useEffect(() => {
     if (showToken) {
@@ -55,6 +56,7 @@ export default function UserForm() {
       const tokenNumber = await generateTokenNumber();
       setToken(tokenNumber);
       setShowToken(true); // Set to true to show the token
+      setLastGeneratedToken(tokenNumber);
 
       const userId = uuidv4();
       await submitDataToFirestore('single requests', {
