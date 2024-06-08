@@ -95,7 +95,7 @@ export default function UserForm() {
     <div className="flex flex-col  min-h-dvh">
     <div className="flex">
     <div className="flex flex-col justify-center min-dvh w-[600px] ">
-    <Card className="py-4 h-full">
+    <Card className="py-4 h-[660px]">
       <CardHeader className="pb-0 pt-2 px-4 flex-col items-between">
        
       </CardHeader>

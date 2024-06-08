@@ -32,7 +32,7 @@ const AutomaticSlideshow = () => {
   }, [imageList]);
 
   return (
-    <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-full">
+    <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px]">
       {imageList.length > 0 ? (
         <img
           src={imageList[currentIndex]}

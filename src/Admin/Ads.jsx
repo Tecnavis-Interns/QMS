@@ -7,6 +7,8 @@ import { v4 } from 'uuid';
 import { Input } from "@nextui-org/input";
 
 const Slideshow = ({ imageList, currentImageIndex, nextImage, prevImage, onDeleteImage }) => {
+  if (!imageList || imageList.length === 0) return null;
+
   return (
     <div className="relative border rounded-lg shadow-lg overflow-hidden" style={{ maxWidth: '500px', width: '100%', height: 'auto' }}>
       <img
@@ -38,9 +40,6 @@ const Ads = ({ onShowSlideshow }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // State to track current image index
   const imageListRef = ref(storage, "images/");
 
-
-  
-
   const uploadImage = () => {
     if (imageUpload == null) return;
 
@@ -59,7 +58,12 @@ const Ads = ({ onShowSlideshow }) => {
           return { url, ref: item }; // Save the reference to delete later
         });
       });
-      Promise.all(urls).then((urlList) => setImageList(urlList));
+      Promise.all(urls).then((urlList) => {
+        setImageList(urlList);
+        if (urlList.length > 0 && currentImageIndex >= urlList.length) {
+          setCurrentImageIndex(0); // Reset index if out of bounds
+        }
+      });
     });
   };
 
@@ -80,7 +84,7 @@ const Ads = ({ onShowSlideshow }) => {
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + imageList.length) % imageList.length);
   };
 
- const showSlideshow = () => {
+  const showSlideshow = () => {
     if (onShowSlideshow) {
       onShowSlideshow(imageList, currentImageIndex, nextImage, prevImage); // Removed deleteImage parameter
     }
@@ -97,28 +101,29 @@ const Ads = ({ onShowSlideshow }) => {
       </div>
       <div className="flex flex-col flex-1 ml-64 p-4">
         <div className="flex justify-center mt-4">
-          <div className="flex w-full flex-wrap justify-center md:flex-nowrap ">
-                    <div class="max-w-sm">
-            <form>
-              <label class="block">
-                <span class="sr-only">Choose profile photo</span>
-                <input type="file"  onChange={(event) => setImageUpload(event.target.files[0])} className="mb-2" class="block w-full text-sm text-gray-500
-                  file:me-4 file:py-2 file:px-4
-                  file:rounded-lg file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-[#6236F5] file:text-white
-                  hover:file:bg-blue-700
-                  file:disabled:opacity-50 file:disabled:pointer-events-none
-                  dark:text-neutral-500
-                  dark:file:bg-blue-500
-                  dark:hover:file:bg-blue-400
-                "/>
-              </label>
-            </form>
-          </div>
-          
+          <div className="flex w-full flex-wrap justify-center md:flex-nowrap">
+            <div className="max-w-sm">
+              <form>
+                <label className="block">
+                  <span className="sr-only">Choose profile photo</span>
+                  <input
+                    type="file"
+                    onChange={(event) => setImageUpload(event.target.files[0])}
+                    className="mb-2 block w-full text-sm text-gray-500
+                      file:me-4 file:py-2 file:px-4
+                      file:rounded-lg file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-[#6236F5] file:text-white
+                      hover:file:bg-blue-700
+                      file:disabled:opacity-50 file:disabled:pointer-events-none
+                      dark:text-neutral-500
+                      dark:file:bg-blue-500
+                      dark:hover:file:bg-blue-400"
+                  />
+                </label>
+              </form>
+            </div>
             <Button onClick={uploadImage}>Upload</Button>
-           
           </div>
         </div>
         {imageList.length > 0 && (
