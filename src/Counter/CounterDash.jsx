@@ -477,11 +477,11 @@ const CounterDash = () => {
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
               <Card className="py-4">
-                <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                   <h3 className="font-bold text-large">Total Customer</h3>
                 </CardHeader>
-                <CardBody className="overflow-visible py-2">
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length}</p>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold  mt-4">{userData.length}</p>
                 </CardBody>
               </Card>
               <Card className="py-4">
@@ -489,28 +489,28 @@ const CounterDash = () => {
                   <h3 className="font-bold text-large">Next Token</h3>
 
                 </CardHeader>
-                <CardBody className="overflow-visible py-2">
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
                   {isServiceStarted ? (
-                    <p className="text-6xl font-bold ml-4 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
+                    <p className="text-6xl font-bold  mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
                   ) : (
                     <p>-</p>
                   )}
                 </CardBody>
               </Card>
               <Card className="py-4">
-                <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                   <h3 className="font-bold text-large ">Completed</h3>
                 </CardHeader>
-                <CardBody className="overflow-visible py-2">
-                  <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold  mt-4">{completedCount}</p>
                 </CardBody>
               </Card>
               <Card className="py-4">
-                <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
+                <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                   <h3 className="font-bold text-large">Pending</h3>
                 </CardHeader>
-                <CardBody className="overflow-visible py-2">
-                  <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
+                <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold">{pendingCount}</p>
                 </CardBody>
               </Card>
             </div>
@@ -520,7 +520,7 @@ const CounterDash = () => {
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
                 {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                  <p className="text-6xl font-bold  mt-8">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
@@ -548,7 +548,7 @@ const CounterDash = () => {
             </Card>
 
           </div>
-          <div className="mb-2 mt-12 ml-14">
+          <div className="mb-2 mt-24 ml-14">
             <div className="flex justify-end mb-2">
               <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Call
@@ -611,4 +611,3 @@ const CounterDash = () => {
 };
 
 export default CounterDash;
-

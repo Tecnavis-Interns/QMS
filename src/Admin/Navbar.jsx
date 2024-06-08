@@ -71,6 +71,17 @@ export default function App() {
           >
             Services
           </Button>
+          <Button
+            as={Link}
+            href=""
+            variant="flat"
+            onClick={()=>navigate("/ads")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/ads' ? 'bg-gray-900' : ''
+            }`}
+          >
+            Advertisement
+          </Button>
           </div>
           <Button
             as={Link}
@@ -81,6 +92,7 @@ export default function App() {
           >
             Logout
           </Button>
+          
         </div>
       </aside>
     </div>

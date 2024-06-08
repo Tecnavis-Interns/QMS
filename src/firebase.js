@@ -10,6 +10,7 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { getStorage } from 'firebase/storage'
 // import bcrypt from "bcrypt"
 // Your Firebase configuration
 const firebaseConfig = {
@@ -26,6 +27,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+export const storage = getStorage(app)
 
 // Function to submit data to Firestore
 const submitDataToFirestore = async (collectionName, data) => {
@@ -64,4 +66,4 @@ const signOutUser = async () => {
     console.error("Error signing out: ", error);
   }
 };
-export { auth, db, submitDataToFirestore, signIn, signOutUser };
+export { auth, db, submitDataToFirestore, signIn, signOutUser};
