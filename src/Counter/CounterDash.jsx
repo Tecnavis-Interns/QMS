@@ -220,13 +220,12 @@ const CounterDash = () => {
       if (!querySnapshot.empty) {
         // Get the data of the first document
         const userData = querySnapshot.docs[0].data();
-        // const docId = querySnapshot.docs[0].id;
+  
+        // Convert the timestamp to a Date object
+        userData.date = userData.date.toDate();
   
         // Insert the entire document data into the "single requests" collection
-        await setDoc(doc(collection(db, "single requests"), userData));
-        const sortedQuerySnapshot = await getDocs(
-          query(collection(db, "single requests"), orderBy("token", "asc"))
-        );
+        await addDoc(collection(db, "single requests"), userData);
   
         // Assign the token to the nowServingToken variable
         setNowServingToken(userData.token);
@@ -364,7 +363,7 @@ const CounterDash = () => {
   
         // Delete the data from the "single requests" collection
         const singleRequestsRef = collection(db, 'single requests');
-        const querySnapshot = await getDocs(query(singleRequestsRef, where('token', '==', nowServingToken)));
+        const querySnapshot = await getDocs(query(singleRequestsRef,orderBy("token", "asc"), where('token', '==', nowServingToken)));
         
         if (!querySnapshot.empty) {
           querySnapshot.forEach(async (doc) => {
@@ -373,12 +372,7 @@ const CounterDash = () => {
           });
   
           // Fetch the updated data from "single requests" collection
-          const updatedDataSnapshot = await getDocs(collection(db, 'single requests'),orderBy("token", "asc"));
-          const updatedData = updatedDataSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-        const nextTokenData = updatedDataSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
+        const nextTokenData = querySnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
         const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
   
         // Update the state variables
@@ -408,15 +402,7 @@ const CounterDash = () => {
       // Set the nowServingToken state to the provided token number
       setNowServingToken(specialtoken);
   
-      // Delete the document with the provided token number from the "single requests" collection
-      // const singleRequestsRef = collection(db, 'single requests');
-      // const q = query(singleRequestsRef, where('token', '==', specialtoken));
-      // const querySnapshot = await getDocs(q);
-  
-      // if (!querySnapshot.empty) {
-        // querySnapshot.forEach(async (doc) => {
-        //   await deleteDoc(doc.ref);
-        // });
+      
         const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
           const updatedData = updatedDataSnapshot.docs.map(doc => ({
             id: doc.id,
@@ -493,21 +479,7 @@ const CounterDash = () => {
   useEffect(() => {
     setCurrentDate(getCurrentDate());
   }, [user, completedCount]);
-  useEffect(() => {
-    const fetchCompletedCount = async () => {
-      try {
-        const email = user.email;
-        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-        const visitedCollectionName = `Counter ${counterNumber}Visited`;
-        const visitedSnapshot = await getDocs(collection(db, visitedCollectionName));
-        setCompletedCount(visitedSnapshot.size); // Update completed count
-      } catch (error) {
-        console.error("Error fetching completed count: ", error);
-      }
-    };
   
-    fetchCompletedCount();
-  }, [user]);
   
 
   return (
