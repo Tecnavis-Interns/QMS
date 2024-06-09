@@ -120,6 +120,6 @@ export default function App() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </>
-    );
-  }
+    </>
+  );
+}
