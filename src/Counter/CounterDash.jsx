@@ -43,6 +43,7 @@ const CounterDash = () => {
   const [nowServingToken, setNowServingToken] = useState("");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [singleCounterData, setSingleCounterData] = useState([]);
+  const [lastTokenNumber, setLastTokenNumber] = useState(0);
 
   useEffect(() => {
     const fetchSingleCounterData = async () => {
@@ -58,6 +59,18 @@ const CounterDash = () => {
         if (data.length > 0) {
           setNowServingToken(data[0].token);
         }
+        const singleSnapshot = await getDocs(
+          query(collection(db, "single counter"), orderBy("token", "asc"))
+        );
+        const singleData = singleSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        if (data.length > 0) {
+          const lastToken = Math.max(...singleData.map(d => d.token));
+          setLastTokenNumber(lastToken);
+        }
+        
       } catch (error) {
         console.error("Error fetching single counter data: ", error);
       }
@@ -122,7 +135,7 @@ const CounterDash = () => {
   useEffect(() => {
     fetchPendingCount();
   }, []); 
-  const lastTokenNumber = singleCounterData.length > 0 ? singleCounterData[singleCounterData.length - 1].token : null;
+
 
   const isValidUserData = (user) => {
     return (
@@ -134,24 +147,6 @@ const CounterDash = () => {
     );
   };
   
-  const deleteFromSingleRequests = async (token) => {
-    try {
-      const singleRequestsRef = collection(db, 'single requests');
-      const q = query(singleRequestsRef, where('token', '==', token));
-      const querySnapshot = await getDocs(q);
-  
-      if (!querySnapshot.empty) {
-        querySnapshot.forEach(async (doc) => {
-          await deleteDoc(doc.ref);
-        });
-        console.log(`Document with token ${token} deleted from 'single requests'.`);
-      } else {
-        console.warn(`No document found with token ${token} in 'single requests'.`);
-      }
-    } catch (error) {
-      console.error('Error deleting document from single requests:', error);
-    }
-  };
   const fetchPendingCount = async () => {
     try {
       const pendingSnapshot = await getDocs(collection(db, "single pending"));
@@ -207,28 +202,6 @@ const CounterDash = () => {
     }
   };
   
-  
-  const moveCurrentlyServingToPending = async (token) => {
-    try {
-      // Get a reference to the "single pending" collection
-      const singlePendingRef = collection(db, 'single pending');
-  
-      // Find the document with the current serving token
-      const querySnapshot = await getDocs(
-        query(singlePendingRef, where('token', '==', token))
-      );
-  
-      // If the document doesn't exist, move the token to "single pending"
-      if (querySnapshot.empty) {
-        await setDoc(doc(singlePendingRef), { token });
-        console.log(`Token ${token} moved to 'single pending' collection.`);
-      } else {
-        console.warn(`Token ${token} already exists in 'single pending' collection.`);
-      }
-    } catch (error) {
-      console.error("Error moving currently serving to pending: ", error);
-    }
-  };
   
 
 
@@ -313,7 +286,7 @@ const CounterDash = () => {
       const counterNumber = parseInt(
         email.split("@")[0].replace("counter", "")
       );
-      const servingCollectionName = `CurrentlyServingCounter${counterNumber}`;
+      const servingCollectionName = `single CurrentlyServingCounter`;
 
       // Get the current serving document
       const querySnapshot = await getDocs(collection(db, servingCollectionName));
@@ -333,9 +306,7 @@ const CounterDash = () => {
   
   const storeNextTokenData = async (tokenData) => {
     try {
-      const email = user.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-      const nextTokenCollectionName = `nextTokenCounter${counterNumber}`;
+      const nextTokenCollectionName = `single nextTokenCounter`;
   
       // Reference to the next token collection
       const nextTokenCollectionRef = collection(db, nextTokenCollectionName);
@@ -462,64 +433,6 @@ const CounterDash = () => {
     }
   };
   
-
-  const deleteCurrentlyServingDoc = async () => {
-    try {
-      const email = user.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-      const servingCollectionName = `CurrentlyServingCounter${counterNumber}`;
-
-      const querySnapshot = await getDocs(collection(db, servingCollectionName));
-      if (!querySnapshot.empty) {
-        await deleteDoc(querySnapshot.docs[0].ref);
-        console.log("Currently serving document deleted successfully.");
-      } else {
-        console.warn("No currently serving document found.");
-      }
-    } catch (error) {
-      console.error("Error deleting currently serving document: ", error);
-    }
-  };
-
-  const moveRecordToVisited = async (userId) => {
-    try {
-      // Define collectionName within the function scope
-      const collectionName = getCurrentCounterCollectionName();
-      const q = query(
-        collection(db, collectionName),
-        where("id", "==", userId)
-      );
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userData = querySnapshot.docs[0].data();
-
-        // Add the document to the 'visited' collection
-        await setDoc(doc(collection(db, "visited"), userId), userData);
-        await setDoc(
-          doc(collection(db, `${collectionName}Visited`), userId),
-          userData
-        );
-
-        // Delete the document from the 'Counter X' collection
-        await deleteDoc(querySnapshot.docs[0].ref);
-
-        // Increment completed count
-        setCompletedCount((prevCount) => prevCount + 1);
-
-        console.log("Record moved to 'visited' collection successfully.");
-      } else {
-        console.warn("Document with id", userId, "not found in 'Counter' collection.");
-      }
-    } catch (error) {
-      console.error("Error moving record to 'visited' collection: ", error);
-    }
-  };
-
-  const getCurrentCounterCollectionName = () => {
-    const email = user.email;
-    return `Counter ${parseInt(email.split("@")[0].replace("counter", ""))}`;
-  };
 
   const getCurrentDate = () => {
     const dateObj = new Date();
@@ -718,7 +631,7 @@ const CounterDash = () => {
                       onClick={() => callSpecificToken(user.token)}
                       className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
                     >
-                      Call
+                      Call Now
                     </Button>
                   </TableCell>
                 </TableRow>
