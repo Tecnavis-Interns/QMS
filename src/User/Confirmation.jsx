@@ -16,27 +16,31 @@ export default function ConfirmationPage() {
     // Scroll to the top of the page when the component mounts 
     window.scrollTo(0, 0);
 
-    // Set the download timeout
-    downloadTimeoutRef.current = setTimeout(() => {
-      // Redirect back to the form after 15 seconds if token is not downloaded
-      if (!downloaded) {
-        showManualDownloadOption();
-      }
-    }, 15000); // 15 seconds
-
     // Try to download the token automatically
     downloadTokenPDF();
 
+    // Set the download timeout and redirect
+    const timeout = setTimeout(() => {
+      navigate("/userForm"); // Redirect back to the form after 15 seconds
+    }, 15000); // 15 seconds
+
     // Update remaining time every second
     const interval = setInterval(() => {
-      setRemainingTime((prevTime) => prevTime - 1);
+      setRemainingTime((prevTime) => {
+        if (prevTime > 1) {
+          return prevTime - 1;
+        } else {
+          clearInterval(interval); // Clear interval when time reaches 0
+          return 0;
+        }
+      });
     }, 1000);
 
     return () => {
-      clearTimeout(downloadTimeoutRef.current);
-      clearInterval(interval);
+      clearTimeout(timeout); // Clear timeout on unmount
+      clearInterval(interval); // Clear interval on unmount
     };
-  }, []);
+  }, [navigate]);
 
   const downloadTokenPDF = async () => {
     try {
@@ -70,7 +74,7 @@ export default function ConfirmationPage() {
         size: 16,
         color: rgb(0, 0, 0),
       });
-                                                                        
+
       page.drawText(`Time: ${timeString}`, {
         x: width / 2 - 80,
         y: height / 2 - 70,
@@ -116,7 +120,7 @@ export default function ConfirmationPage() {
             <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={downloadTokenPDF}>
               Download Token
             </Button>
-            <Button className="bg-[#6236F5] text-white w-64 y-3 text-lg" onClick={() => navigate("/userForm")}>
+            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={() => navigate("/userForm")}>
               Go Back Home
             </Button>
             {remainingTime > 0 && (

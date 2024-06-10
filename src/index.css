@@ -38,3 +38,53 @@ input[type="number"] {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Radio button styles for user form */
+.radio-button {
+  display: inline-block;
+  flex: 1;
+  /* Ensures equal space for buttons */
+  text-align: center;
+  padding: 10px 20px;
+  margin: 3px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.radio-button.selected {
+  background-color: #6236F5;
+  color: white;
+  border-color: #6236F5;
+}
+
+.radio-button input[type="radio"] {
+  display: none;
+}
+
+.radio-button:hover {
+  background-color: #ddd;
+}
+
+.radio-button.selected:hover {
+  background-color: #4a29cc;
+}
+
+.radio-button-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-container {
+  width: 100%;
+}

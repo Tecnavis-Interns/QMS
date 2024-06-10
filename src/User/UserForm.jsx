@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Input, Button } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
 import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
@@ -8,17 +8,18 @@ import { useNavigate } from "react-router-dom";
 
 export default function UserForm() {
   const [name, setName] = useState("");
-  const [selectedService, setSelectedService] = useState("");
+  //const [phone, setPhone] = useState("");
+  const [service, setService] = useState("");
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
-  const submissionTimerRef = useRef(null); // Ref for the form submission timer
 
   useEffect(() => {
     if (showToken) {
-      const timeout = setTimeout(() => {     
-        setShowToken(false);
+      const timeout = setTimeout(() => {
+        setShowToken(false); // Hide the token after 3 seconds
       }, 3000);
+
       return () => clearTimeout(timeout);
     }
   }, [showToken]);
@@ -27,27 +28,32 @@ export default function UserForm() {
     setName(event.target.value);
   };
 
+ /* const handlePhoneChange = (event) => {
+    setPhone(event.target.value.replace(/\D/g, "").slice(0, 10));
+  };
+  */
+
   const handleServiceChange = (event) => {
-    setSelectedService(event.target.value);
+    setService(event.target.value);
   };
 
-  const servicesList = [
-    'Personal Service (Income, Community, Nativity, etc)',
-    'Home related Service',
-    'Land Related Service',
-    'Education Related Service',
-    'Other Services'
-  ];
+  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    /* 
+    if (phone.length < 10) {
+      alert("Please enter a 10 digit Phone Number");
+      return;
+    } 
+    */
 
     if (name === "") {
-      alert("Please Enter your name.")
+      alert("Please Enter your name.");
       return;
     }
 
-    if (selectedService === "") {
+    if (service === "") {
       alert("Please select a service.");
       return;
     }
@@ -57,8 +63,8 @@ export default function UserForm() {
       let counterName = "";
       counterSnapshot.forEach(doc => {
         const data = doc.data();
-        if (selectedService === data.service) {
-          counterName = doc.id; // Use the document ID directly
+        if (data.service === service) {
+          counterName = data.counterName;
         }
       });
 
@@ -74,7 +80,8 @@ export default function UserForm() {
       await submitDataToFirestore('requests', {
         id: userId,
         name: name,
-        service: selectedService,
+        //phone: phone,
+        service: service,
         counter: counterName,
         token: tokenNumber
       });
@@ -82,35 +89,29 @@ export default function UserForm() {
       await submitDataToFirestore(counterName, {
         id: userId,
         name: name,
-        service: selectedService,
+        //phone: phone,
+        service: service,
         counter: counterName,
         token: tokenNumber
       });
 
-      navigate(`/confirmation`, { state: { tokenNumber } });
+      navigate("/confirmation", { state: { tokenNumber } });
 
+      // Reset form fields
       setName("");
-      setSelectedService("");
-      
-      // Set the submission timer
-      submissionTimerRef.current = setTimeout(() => {
-        navigate("/userForm"); // Redirect back to the form
-      }, 15000); // 15 seconds
+      //setPhone("");
+      setService("");
     } catch (error) {
       console.error("Error adding document: ", error);
     }
   };
 
   const generateTokenNumber = async (counterName) => {
-    if (!counterName) {
-      throw new Error("Invalid counter name");
-    }
-
     try {
       const counterDocRef = firestoreDoc(db, "counter", counterName);
       const counterDocSnap = await getDoc(counterDocRef);
       let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
-  
+
       let newTokenNumber;
       switch (counterName) {
         case "Counter 1":
@@ -129,11 +130,11 @@ export default function UserForm() {
           newTokenNumber = "E" + (lastTokenNumber + 1);
           break;
         default:
-          newTokenNumber = "";
+          throw new Error("Invalid counter name");
       }
-  
+
       await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-  
+
       return newTokenNumber;
     } catch (error) {
       console.error("Error generating token number: ", error);
@@ -145,30 +146,29 @@ export default function UserForm() {
     <div className="flex flex-col min-h-dvh">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
-        <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
+        <div className="md:min-w-[40%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Create a request</h2>
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
             <div className="flex flex-col gap-2">
-              <label className="font-medium">Select your Reason to be here:</label>
-              {servicesList.map((item) => (
-                <label key={item} className="flex items-center gap-2">
+            <div className="flex flex-col gap-2">
+            <label className="font-medium">Select your Reason to be here:</label>
+            <div className="flex flex-col gap-2">
+              {services.map((item) => (
+                <label key={item} className={`radio-button ${service === item ? 'selected' : ''}`}>
                   <input
                     type="radio"
-                    name="service"
                     value={item}
-                    checked={selectedService === item}
+                    checked={service === item}
                     onChange={handleServiceChange}
+                    className="hidden"
                   />
-                  <Button
-                    onClick={() => handleServiceChange({ target: { value: item } })}
-                    className={`w-full ${selectedService === item ? 'bg-[#6236F5] text-white' : 'bg-gray-200 text-black'}`}
-                  >
-                    {item}
-                  </Button>
+                  {item}
                 </label>
               ))}
             </div>
+          </div>
+          </div>
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
           </form>
         </div>
