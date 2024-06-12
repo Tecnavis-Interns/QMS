@@ -89,8 +89,10 @@ export default function UserForm() {
 
     setCurrentDateTime(getCurrentDateTime());
   }, []);
-
-  
+  const [refresh, setRefresh] = useState(false);
+  useEffect(() => {
+    console.log("Refresh state changed:", refresh);
+  }, [refresh]);
   return (
     <div className="flex flex-col  min-h-dvh">
     <div className="flex">
@@ -101,7 +103,7 @@ export default function UserForm() {
       </CardHeader>
       <CardBody className="overflow-visible justify-center flex flex-col items-center py-2">
       <div className="w-full h-full ">
-            <AutomaticSlideshow />
+      <AutomaticSlideshow refresh={refresh} setRefresh={setRefresh} />
           </div>
       </CardBody>
     </Card>

@@ -6,6 +6,7 @@ import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { useNavigate } from "react-router-dom";
+import {RadioGroup, Radio} from "@nextui-org/radio";
 
 export default function UserForm() {
   const [name, setName] = useState("");
@@ -145,11 +146,16 @@ export default function UserForm() {
           <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4">
             <Input type="text" label="Name" value={name} onChange={handleNameChange} required autoComplete="off" id="name" variant="bordered" />
             <Input type="tel" label="Phone" value={phone} onChange={handlePhoneChange} required autoComplete="off" id="phone" variant="bordered" />
-            <Select label="Select your Reason to be here" onChange={handleServiceChange} required variant="bordered" selectedKeys={[service]}>
+            <RadioGroup
+              label="Select your Reason to be here"
+              onChange={handleServiceChange}
+              value={service}
+            >
               {services.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
+                <Radio className="font-[Outfit]" value={item} key={item}>{item}</Radio>
               ))}
-            </Select>
+            </RadioGroup>
+
             <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
           </form>
         </div>
