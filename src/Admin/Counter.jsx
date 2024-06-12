@@ -84,7 +84,7 @@ const AdminDash = () => {
     return (
       user.name &&
       user.date &&
-      user.phone &&
+     // user.phone &&
       user.service &&
       user.counter &&
       user.token
@@ -185,7 +185,7 @@ const AdminDash = () => {
               <TableHeader>
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
-                <TableColumn>Phone</TableColumn>
+                {/* <TableColumn>Phone</TableColumn> */}
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn className="w-1/6">Counter</TableColumn>
@@ -195,7 +195,7 @@ const AdminDash = () => {
                   <TableRow key={user.id}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
+                    {/* <TableCell>{user.phone}</TableCell> */}
                     <TableCell>
                       {user.date ? user.date.toDate().toLocaleString() : ""}
                     </TableCell>
