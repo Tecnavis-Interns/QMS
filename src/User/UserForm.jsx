@@ -5,6 +5,7 @@ import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "fireba
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
+import {RadioGroup, Radio} from "@nextui-org/radio";
 
 export default function UserForm() {
   const [name, setName] = useState("");
