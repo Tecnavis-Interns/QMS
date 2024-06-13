@@ -1,7 +1,8 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@nextui-org/react";
 import { useState, useEffect } from "react";
-import { collection, getDocs, onSnapshot, deleteDoc, doc, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
+import { getAuth, deleteUser } from "firebase/auth";
 import {
     Table,
     TableHeader,
@@ -11,15 +12,21 @@ import {
     TableCell,
 } from "@nextui-org/react";
 import { MdDelete } from 'react-icons/md';
+
 export default function ManageCounterModal({ onClose }) {
     const [isOpen, setIsOpen] = useState(false);
     const [counters, setCounters] = useState([]);
+    const auth = getAuth(); // Get the Firebase Auth instance
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const querySnapshot = await getDocs(collection(db, "counter"));
-                const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+                const data = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    uid: doc.data().uid,
+                    ...doc.data()
+                }));
                 setCounters(data);
             } catch (error) {
                 console.error("Error fetching data: ", error);
@@ -44,9 +51,11 @@ export default function ManageCounterModal({ onClose }) {
         onClose();
     };
 
-    const handleDeleteCounter = async (counterId) => {
+    const handleDeleteCounter = async (counterId, uid) => {
         try {
+
             console.log("CounterId:", counterId);
+            console.log("User UID:", uid);
 
             // Construct a reference to the specific document using the counter's id
             const counterRef = doc(db, "counter", counterId);
@@ -54,6 +63,10 @@ export default function ManageCounterModal({ onClose }) {
             // Delete the document from the Firestore database
             await deleteDoc(counterRef);
             console.log("Counter deleted successfully from the database");
+
+            // Delete the user from Firebase Authentication
+            await deleteUser(auth, uid);
+            console.log("User deleted successfully from Firebase Authentication");
 
             // Update the UI by removing the deleted document from the counters array
             setCounters(prevCounters => prevCounters.filter(item => item.id !== counterId));
@@ -65,7 +78,7 @@ export default function ManageCounterModal({ onClose }) {
     return (
         <>
             <Button onPress={handleOpenModal} >
-                    <MdDelete size={15} />
+                <MdDelete size={15} />
             </Button>
             <Modal isOpen={isOpen} onClose={handleCloseModal} className="font-[Outfit] bg-[#F8F8F9]">
                 <ModalContent>
@@ -85,7 +98,7 @@ export default function ManageCounterModal({ onClose }) {
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{counter.id}</TableCell>
                                             <TableCell>
-                                                <Button className="bg-red-500 ml-4" onClick={() => handleDeleteCounter(counter.id)}>Delete</Button>
+                                                <Button className="bg-red-500 ml-4" onClick={() => handleDeleteCounter(counter.id, counter.uid)}>Delete</Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}

@@ -15,11 +15,15 @@ const Login = () => {
     e.preventDefault();
     try {
       const role = await signIn(email, password);
+      console.log("Role determined:",role); // Ensure role is correctly determined
+
       if (role === "admin") {
         setLoggedInAs("admin");
+        console.log("Navigating to /adminDash");
         navigate("/adminDash"); // Navigate after setting the state
       } else if (role === "counter") {
         setLoggedInAs("counter");
+        console.log("Navigating to /counterDash");
         navigate("/counterDash"); // Navigate after setting the state
       } else {
         setError("Unauthorized access");

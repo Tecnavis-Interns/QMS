@@ -52,7 +52,7 @@ const CounterDash = () => {
       const email = user.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
 
-      if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
+      if (isNaN(counterNumber) ) {
         navigate("/login");
         return;
       }
