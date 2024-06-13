@@ -178,7 +178,6 @@ userData.forEach(user => {
                 <TableHeader>
                   <TableColumn>Sl. no.</TableColumn>
                   <TableColumn>Name</TableColumn>
-                  <TableColumn>Phone</TableColumn>
                   <TableColumn>Date</TableColumn>
                   <TableColumn>Service</TableColumn>
                   <TableColumn>Counter</TableColumn>
@@ -189,7 +188,6 @@ userData.forEach(user => {
                     <TableRow key={user.id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.phone}</TableCell>
                       <TableCell>{user.date ? user.date.toDate().toLocaleString() : ''}</TableCell>
                       <TableCell>{user.service}</TableCell>
                       <TableCell>{user.counter}</TableCell>

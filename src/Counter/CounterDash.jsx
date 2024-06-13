@@ -94,7 +94,7 @@ const CounterDash = () => {
   const isValidUserData = (user) => {
     return (
       user.name &&
-      user.phone &&
+      //user.phone &&
       user.date &&
       user.service &&
       user.token
@@ -571,7 +571,6 @@ const CounterDash = () => {
               <TableHeader >
                 <TableColumn>Sl. no.</TableColumn>
                 <TableColumn>Name</TableColumn>
-                <TableColumn>Phone</TableColumn>
                 <TableColumn>Date</TableColumn>
                 <TableColumn>Reason for Visit</TableColumn>
                 <TableColumn>Token No</TableColumn>
@@ -583,7 +582,6 @@ const CounterDash = () => {
                     <TableRow key={user.id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.phone}</TableCell>
                       <TableCell>
                         {user.date ? user.date.toDate().toLocaleString() : ""}
                       </TableCell>
