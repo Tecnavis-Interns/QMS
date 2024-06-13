@@ -46,38 +46,44 @@ const CounterDash = () => {
   const [lastTokenNumber, setLastTokenNumber] = useState(0);
 
   useEffect(() => {
-    const fetchSingleCounterData = async () => {
+    const fetchInitialData = async () => {
       try {
-        const singleCounterSnapshot = await getDocs(
-          query(collection(db, "single requests"), orderBy("token", "asc"))
-        );
-        const data = singleCounterSnapshot.docs.map(doc => ({
+        const singleRequestsQuery = query(collection(db, "single requests"), orderBy("token", "asc"));
+        const singleCounterQuery = query(collection(db, "single counter"), orderBy("token", "asc"));
+
+        // Fetch both collections simultaneously
+        const [singleRequestsSnapshot, singleCounterSnapshot] = await Promise.all([
+          getDocs(singleRequestsQuery),
+          getDocs(singleCounterQuery)
+        ]);
+
+        // Process single requests data
+        const requestsData = singleRequestsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        setSingleCounterData(data);
-        if (data.length > 0) {
-          setNowServingToken(data[0].token);
+        setSingleCounterData(requestsData);
+        if (requestsData.length > 0) {
+          setNowServingToken(requestsData[0].token);
         }
-        const singleSnapshot = await getDocs(
-          query(collection(db, "single counter"), orderBy("token", "asc"))
-        );
-        const singleData = singleSnapshot.docs.map(doc => ({
+
+        // Process single counter data
+        const counterData = singleCounterSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        if (data.length > 0) {
-          const lastToken = Math.max(...singleData.map(d => d.token));
+        if (counterData.length > 0) {
+          const lastToken = Math.max(...counterData.map(d => d.token));
           setLastTokenNumber(lastToken);
         }
-        
+
       } catch (error) {
-        console.error("Error fetching single counter data: ", error);
+        console.error("Error fetching initial data: ", error);
       }
     };
-  
-    fetchSingleCounterData();
-  }, []);
+
+    fetchInitialData();
+  }, [db]);
   
 
 
@@ -162,7 +168,7 @@ const CounterDash = () => {
       // Fetch the first data's token number from the "single requests" collection
       const singleRequestsRef = collection(db, 'single requests');
       const querySnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
-      
+  
       console.log("Query Snapshot size:", querySnapshot.size); // Log the size of the query snapshot
   
       if (!querySnapshot.empty) {
@@ -177,21 +183,20 @@ const CounterDash = () => {
         await deleteDoc(doc.ref);
         console.log(`Data with token ${token} moved to 'single pending' and deleted from 'single requests'.`);
   
-        // Update the pending counter with the size of the "single pending" collection
+        // Fetch the count of documents in the "single pending" collection
         const pendingCounterSnapshot = await getDocs(singlePendingRef);
         const pendingCounter = pendingCounterSnapshot.size;
-        const updatedDataSnapshot = await getDocs(collection(db, 'single requests'),orderBy("token", "asc"));
+  
+        // Fetch the next token data from the "single requests" collection
+        const updatedDataSnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
         const nextTokenData = updatedDataSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
         const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
   
         // Update the state variables
         setNowServingToken(nextToken);
-        setTotalCustomerCount(updatedDataSnapshot.size)
+        setTotalCustomerCount(updatedDataSnapshot.size+1);
         setNextTokenIndex(nextTokenIndex + 1);
         setPendingCount(pendingCounter);
-  
-        // setTotalCustomerCount(newSingleRequestsSnapshot.size);
-        
   
         console.log("Updated pending counter:", pendingCounter);
       } else {
@@ -214,7 +219,7 @@ const CounterDash = () => {
       const querySnapshot = await getDocs(
         query(collection(db, pendingCollectionName), orderBy("token", "asc"), limit(1))
       );
-  
+      
       console.log("Query executed.");
   
       if (!querySnapshot.empty) {
@@ -227,14 +232,25 @@ const CounterDash = () => {
         // Insert the entire document data into the "single requests" collection
         await addDoc(collection(db, "single requests"), userData);
   
-        // Assign the token to the nowServingToken variable
-        setNowServingToken(userData.token);
-  
         // Delete the first document from the "single pending" collection
         await deleteDoc(querySnapshot.docs[0].ref);
   
         // Update pending count after recalling
-        fetchPendingCount();
+        // await fetchPendingCount();
+  
+        // Update nowServingToken and singleCounterData
+        const updatedSingleRequestsSnapshot = await getDocs(collection(db, "single requests"));
+        const updatedSingleCounterData = updatedSingleRequestsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Update state variables
+        setNowServingToken(userData.token);
+        setTotalCustomerCount(updatedSingleRequestsSnapshot.size+1);
+        setPendingCount(prevCount => prevCount - 1);
+        setSingleCounterData(updatedSingleCounterData);
+        
   
         console.log("Token recalled successfully.");
       } else {
@@ -336,67 +352,48 @@ const CounterDash = () => {
     }
   };
   
-  
-
-  const handleResetButtonClick = async () => {
-    try {
-      const email = user.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-      const counterCollectionName = `Counter ${counterNumber}`;
-
-      // Reference to the counter collection
-      const counterCollectionRef = doc(db, "counter", counterCollectionName);
-
-      // Delete the entire collection
-      await deleteDoc(counterCollectionRef);
-
-      console.log(`Collection '${counterCollectionName}' deleted successfully.`);
-    } catch (error) {
-      console.error("Error deleting collection: ", error);
-    }
-  };
-
 
   const handleSaveButtonClick = async () => {
-    try {
-      if (nowServingToken && nowServingToken !== '') {
-  
-        // Delete the data from the "single requests" collection
-        const singleRequestsRef = collection(db, 'single requests');
-        const querySnapshot = await getDocs(query(singleRequestsRef,orderBy("token", "asc"), where('token', '==', nowServingToken)));
-        
-        if (!querySnapshot.empty) {
-          querySnapshot.forEach(async (doc) => {
-            await deleteDoc(doc.ref);
-            console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
-          });
-  
-          // Fetch the updated data from "single requests" collection
-        const nextTokenData = querySnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
-        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
-  
-        // Update the state variables
+  try {
+    if (nowServingToken && nowServingToken !== '') {
+      const singleRequestsRef = collection(db, 'single requests');
+      
+      // Find the document with the current token
+      const querySnapshot = await getDocs(query(singleRequestsRef, where('token', '==', nowServingToken)));
+      
+      if (!querySnapshot.empty) {
+        // Delete the current token document
+        querySnapshot.forEach(async (doc) => {
+          await deleteDoc(doc.ref);
+          console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
+        });
+
+        // Fetch the next token from "single requests" collection
+        const nextTokenSnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
+        const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {};
+        const nextToken = nextTokenData.token || '';
+
+        // Update state using functional form of setState
+        setSingleCounterData(prevData => prevData.filter(item => item.token !== nowServingToken));
         setNowServingToken(nextToken);
-        setTotalCustomerCount(updatedDataSnapshot.size)
-        setNextTokenIndex(nextTokenIndex + 1);
-          // Update the singleCounterData state with the updated data
-          
-        setSingleCounterData(updatedData);
-        } else {
-          console.warn(`No data found with token ${nowServingToken} in 'single requests'.`);
-        }
-  
-        // Fetch the next data's token number from the "single requests" collection
-        
-  
-        console.log("Now serving token:", nextToken); // Add this line to check the value of nowServingToken
+        setTotalCustomerCount(prevCount => prevCount - 1);
+        setNextTokenIndex(prevIndex => prevIndex + 1);
+
+        console.log("Next token is now serving:", nextToken);
       } else {
-        console.log("No token currently being served.");
+        console.warn(`No data found with token ${nowServingToken} in 'single requests'.`);
       }
-    } catch (error) {
-      console.error("Error handling completed: ", error);
+    } else {
+      console.log("No token currently being served.");
     }
-  };
+  } catch (error) {
+    console.error("Error handling completed: ", error);
+  }
+};
+
+  
+  
+
   const callSpecificToken = async (specialtoken) => {
     try {
       // Set the nowServingToken state to the provided token number
@@ -573,11 +570,11 @@ const CounterDash = () => {
                 Recall
               </Button>
             </div>
-            <div className="flex justify-end mb-2">
+            {/* <div className="flex justify-end mb-2">
               <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Reset Token
               </Button>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
