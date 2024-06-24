@@ -37,13 +37,14 @@ const CounterDash = () => {
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
-  const [pendingCount, setPendingCount] = useState("-");
+  const [pendingCount, setPendingCount] = useState(0);
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
   const [nowServingToken, setNowServingToken] = useState("");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [singleCounterData, setSingleCounterData] = useState([]);
   const [lastTokenNumber, setLastTokenNumber] = useState(0);
+
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -194,7 +195,7 @@ const CounterDash = () => {
   
         // Update the state variables
         setNowServingToken(nextToken);
-        setTotalCustomerCount(updatedDataSnapshot.size+1);
+        // setTotalCustomerCount(updatedDataSnapshot.size+1);
         setNextTokenIndex(nextTokenIndex + 1);
         setPendingCount(pendingCounter);
   
@@ -279,6 +280,17 @@ const CounterDash = () => {
         const message = `${nowServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
         console.log(tokenData)
         speak(message)
+        const singleRequestsRef = collection(db, 'single requests');
+        const querySnapshot = await getDocs(query(singleRequestsRef, where("token", "==", nowServingToken), limit(1)));
+
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          // Delete the document from the "single requests" collection
+          await deleteDoc(doc.ref);
+          console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
+        } else {
+          console.warn(`No document found in 'single requests' with token ${nowServingToken}.`);
+        }
         await storeNextTokenData(userData[nextTokenIndex]);
       } else {
         console.log("No more tokens in queue");
@@ -505,7 +517,7 @@ const CounterDash = () => {
                
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-                  <p className="text-6xl font-bold ml-12 mt-4">{totalCustomerCount+pendingCount}</p>
+                  <p className="text-6xl font-bold ml-12 mt-4">{totalCustomerCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -513,7 +525,7 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{lastTokenNumber-totalCustomerCount-pendingCount}</p>
+              <p className="text-6xl font-bold ml-12 mt-4">{lastTokenNumber-totalCustomerCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">

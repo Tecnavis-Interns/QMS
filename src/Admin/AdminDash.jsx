@@ -95,8 +95,6 @@ userData.forEach(user => {
       </div>
 
       <div className="flex-1 ml-64 p-6 relative">
-
-        //Rendering Active Counters
         <div className="absolute top-16 right-16 bg-gray-200 p-4 rounded shadow w-1/4">
           <h3 className="text-lg font-semibold">Active Counters</h3>
           <Table aria-label="Active counters">
