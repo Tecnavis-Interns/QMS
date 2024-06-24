@@ -9,7 +9,7 @@ import {
 import { signOutUser } from "../firebase";
 import { useNavigate } from "react-router-dom";
 export default function App() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const handleLogout = async () => {
     await signOutUser();
     navigate("/");
@@ -71,6 +71,17 @@ export default function App() {
           >
             Services
           </Button>
+          <Button
+            as={Link}
+            href=""
+            variant="flat"
+            onClick={()=>navigate("/ads")}
+            className={`w-full text-white rounded-none py-2 ${
+              location.pathname === '/ads' ? 'bg-gray-900' : ''
+            }`}
+          >
+            Advertisement
+          </Button>
           </div>
           <Button
             as={Link}
@@ -81,6 +92,7 @@ export default function App() {
           >
             Logout
           </Button>
+          
         </div>
       </aside>
     </div>

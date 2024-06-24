@@ -193,9 +193,8 @@ const CounterDash = () => {
         const nextTokenData = updatedDataSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
         const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
   
-        // Update the state variables
+        // Update the state variables after ensuring the deletion has been completed
         setNowServingToken(nextToken);
-        // setTotalCustomerCount(updatedDataSnapshot.size+1);
         setNextTokenIndex(nextTokenIndex + 1);
         setPendingCount(pendingCounter);
   
@@ -207,6 +206,7 @@ const CounterDash = () => {
       console.error("Error handling pending button click: ", error);
     }
   };
+  
   
   
 

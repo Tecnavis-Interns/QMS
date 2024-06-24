@@ -16,7 +16,7 @@ import Staff from './Admin/Staff';
 import Counter from './Admin/Counter'
 import TVView from './TVView/TVView'
 import ConfirmationPage from './User/Confirmation'
-
+import Ads from './Admin/Ads';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -53,6 +53,10 @@ const router = createBrowserRouter([
   {
     path: '/Confirmation',
     element: <ConfirmationPage />,
+  },
+  {
+    path: '/ads',
+    element: <Ads />,
   },
 ]);
 
