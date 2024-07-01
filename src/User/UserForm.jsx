@@ -63,14 +63,16 @@ export default function UserForm() {
         id: userId,
         name: name,
         service: service,
-        token: tokenNumber
+        token: tokenNumber,
+        pending: true
       });
 
       await submitDataToFirestore('single counter', {
         id: userId,
         name: name,
         service: service,
-        token: tokenNumber
+        token: tokenNumber,
+        pending: true
       });
 
       navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage

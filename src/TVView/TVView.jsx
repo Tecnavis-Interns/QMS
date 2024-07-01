@@ -3,7 +3,9 @@ import { Card, CardHeader, CardBody } from "@nextui-org/react";
 import { collection, onSnapshot,getDocs } from "firebase/firestore"; // Import onSnapshot
 import { db } from "../firebase";
 import { getAuth } from "firebase/auth";
-
+import React from "react";
+import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, Chip, Tooltip, getKeyValue} from "@nextui-org/react";
+import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
 export default function UserForm() {
   const auth = getAuth();
   const [countersData, setCountersData] = useState([]);
@@ -77,42 +79,59 @@ export default function UserForm() {
 
     fetchCurrentServingTokens();
   }, [user, countersData]);
+  const [currentDateTime, setCurrentDateTime] = useState('');
+  useEffect(() => {
+    const getCurrentDateTime = () => {
+      const dateTime = new Date();
+      const formattedDateTime = dateTime.toLocaleString(); 
+      return formattedDateTime;
+    };
 
-  
+    setCurrentDateTime(getCurrentDateTime());
+  }, []);
+  const [refresh, setRefresh] = useState(false);
+  useEffect(() => {
+    console.log("Refresh state changed:", refresh);
+  }, [refresh]);
   return (
-    <div className="flex flex-col min-h-dvh">
-      {/* <Navbar /> */}
-      <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
-        {countersData.map((counter, index) => (
-          
-          <div key={index} className="px-5 flex flex-col items-center justify-center md:p-5 gap-4">
-            <Card className="py-4">
-            <CardHeader className="pb-0 pt-2 px-4 flex-col items-between">
-            <h1 className="font-semibold md:text-4xl">{counter.counterName}</h1>
-            </CardHeader>
-            <CardBody className="overflow-visible justify-between py-2">
-                <Card className=" w-[190px]   rounded-md">
-                <Card shadow='none' className="w-full mb-5 rounded-none">
-                  <CardBody className='text-center font-semibold text-xl bg-[#6236F5] text-white'>
-                    Now Serving
-                    </CardBody>
-                  </Card>
-                  <h3 className="text-center font-semibold text-6xl">{currentServingTokens[counter.counterName] || "-"}</h3>
-                  <Card shadow='none' className="w-full mt-5 mb-5 rounded-none">
-                  <CardBody className='text-center font-semibold text-xl bg-[#6236F5] text-white'>
-                    Next Token
-                    </CardBody>
-                  </Card>
-                  <h3 className="text-center font-semibold text-5xl mb-4">{nextTokens[counter.counterName] || "-"}</h3>
-                </Card>
+    <div className="flex flex-col  min-h-dvh">
+    <div className="flex">
+    <div className="flex flex-col justify-center min-dvh w-[600px] ">
+    <Card className="py-4 h-[660px]">
+      <CardHeader className="pb-0 pt-2 px-4 flex-col items-between">
+       
+      </CardHeader>
+      <CardBody className="overflow-visible justify-center flex flex-col items-center py-2">
+      <div className="w-full h-full ">
+      <AutomaticSlideshow refresh={refresh} setRefresh={setRefresh} />
+          </div>
       </CardBody>
     </Card>
-            
-            
-          </div>
+   </div>
+   
+  <div className="flex flex-col justify-center min-h-dvh w-1/2 mx-auto ">
+  <div className="mb-4 mt-4  justify-center text-center">
+      <h4 className="font-semibold md:text-2xl">{currentDateTime}</h4>
+    </div>
+    <Table isStriped aria-label="Example static collection table">
+      <TableHeader>
+        <TableColumn><h2 className="font-semibold md:text-4xl">COUNTER</h2></TableColumn>
+        <TableColumn><h2 className="font-semibold item-center md:text-4xl">TOKEN NUMBER</h2></TableColumn>
+      </TableHeader>
+      <TableBody>
+        {countersData.map((counter, index) => (
+          <TableRow key={index}>
+            <TableCell><h2 className="font-semibold md:text-4xl">{counter.counterName}</h2></TableCell>
+            <TableCell><h3 className="text-center font-semibold text-6xl">{currentServingTokens[counter.counterName] || "-"}</h3>
+        </TableCell>
+          </TableRow>
         ))}
-      </div>
-    </div>
-  );
-}
+      </TableBody>
+    </Table>
+  </div>
+</div>
 
+</div>
+  );
+
+}

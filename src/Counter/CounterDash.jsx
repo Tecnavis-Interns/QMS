@@ -268,21 +268,31 @@ const CounterDash = () => {
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
+  
     try {
       // Check if there is a token currently being served
       if (nowServingToken && nowServingToken !== '-') {
         console.log(`Calling token ${nowServingToken}`);
+  
         // Update the currently serving token in the database
         const tokenData = {
           token: nowServingToken
         };
         await updateCurrentlyServing(tokenData);
         const message = `${nowServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
-        console.log(tokenData)
-        speak(message)
+  
+        console.log(tokenData);
+        speak(message);
+  
+        // Store the nowServingToken to a new collection named counterNumber
+        const counterCollectionRef = collection(db, `counter${counterNumber}`);
+        await addDoc(counterCollectionRef, tokenData);
+        console.log(`Data with token ${nowServingToken} stored in 'counter${counterNumber}'.`);
+  
+        // Fetch and delete the document from the "single requests" collection
         const singleRequestsRef = collection(db, 'single requests');
         const querySnapshot = await getDocs(query(singleRequestsRef, where("token", "==", nowServingToken), limit(1)));
-
+  
         if (!querySnapshot.empty) {
           const doc = querySnapshot.docs[0];
           // Delete the document from the "single requests" collection
@@ -291,6 +301,7 @@ const CounterDash = () => {
         } else {
           console.warn(`No document found in 'single requests' with token ${nowServingToken}.`);
         }
+  
         await storeNextTokenData(userData[nextTokenIndex]);
       } else {
         console.log("No more tokens in queue");
@@ -299,7 +310,7 @@ const CounterDash = () => {
       console.error("Error calling token: ", error);
     }
   };
-
+  
   const speak = (message) => {
     const speechSynthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(message);
