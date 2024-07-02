@@ -38,6 +38,9 @@ const CounterDash = () => {
   const [pendingCount, setPendingCount] = useState("-");
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
+  const [currentServingToken, setCurrentServingToken] = useState(null);
+  const [nextToken, setNextToken] = useState('-');
+
 
   useEffect(() => {
     const checkUser = async () => {
@@ -100,23 +103,23 @@ const CounterDash = () => {
     );
   };
 
-  const handleCheckboxChange = async (event, userId) => {
-    const isChecked = event.target.checked;
+  // const handleCheckboxChange = async (event, userId) => {
+  //   const isChecked = event.target.checked;
 
-    if (isChecked) {
-      setSelectedRecords((prevSelected) => [...prevSelected, userId]);
-    } else {
-      setSelectedRecords((prevSelected) =>
-        prevSelected.filter((id) => id !== userId)
-      );
-    }
-  };
+  //   if (isChecked) {
+  //     setSelectedRecords((prevSelected) => [...prevSelected, userId]);
+  //   } else {
+  //     setSelectedRecords((prevSelected) =>
+  //       prevSelected.filter((id) => id !== userId)
+  //     );
+  //   }
+  // };
 
   const handlePendingButtonClick = async () => {
-    for (const userId of selectedRecords) {
+    if (nextTokenIndex !== null && nextTokenIndex > 0) {
+      const userId = userData[nextTokenIndex - 1].id;
       await moveRecordToPending(userId);
     }
-    setSelectedRecords([]); // Clear selected records after moving to pending
   };
 
   const moveRecordToPending = async (userId) => {
@@ -140,6 +143,9 @@ const CounterDash = () => {
         await deleteDoc(querySnapshot.docs[0].ref);
 
         console.log("Record moved to 'pending' collection successfully.");
+
+        // Update the pending count
+        fetchPendingCount();
       } else {
         console.warn(
           "Document with id",
@@ -151,6 +157,7 @@ const CounterDash = () => {
       console.error("Error moving record to 'pending' collection: ", error);
     }
   };
+  
   const fetchPendingCount = async () => {
     try {
       const email = user.email;
@@ -167,7 +174,9 @@ const CounterDash = () => {
     }
   };
 
-  fetchPendingCount();
+  useEffect(() => {
+    fetchPendingCount();
+  }, [user]);
 
   const handleRecallButtonClick = async () => {
     try {
@@ -220,19 +229,23 @@ const CounterDash = () => {
   };
 
   const handleCallButtonClick = async () => {
-    // Move the next token to currently serving
-    if (userData.length > nextTokenIndex) {
-      const nextTokenUser = userData[nextTokenIndex];
-      // Implement logic to move nextTokenUser to currently serving
-      console.log(`Calling token ${nextTokenUser.token}`);
-    } else {
-      console.log("No more tokens in queue");
-    }
+    // call button function
   };
 
   const handleNextButtonClick = async () => {
-    // next button function
-  };
+    if (userData.length > nextTokenIndex) {
+        const nextTokenUser = userData[nextTokenIndex];
+        setCurrentServingToken(nextTokenUser.token); // Set current serving token
+        setNextToken(nextTokenUser.token); // Set next token
+        setNextTokenIndex(prevIndex => prevIndex + 1); // Increment next token index
+        console.log(`Calling token ${nextTokenUser.token}`);
+    } else {
+        console.log("No more tokens in queue");
+    }
+};
+
+
+
 
   const handleResetButtonClick = async () => {
     try {
@@ -254,10 +267,10 @@ const CounterDash = () => {
 
 
   const handleSaveButtonClick = async () => {
-    for (const userId of selectedRecords) {
-      await moveRecordToVisited(userId);
+    if (nextTokenIndex !== null && nextTokenIndex > 0) {
+      const userId = userData[nextTokenIndex - 1].id;
+      await moveRecordToPending(userId);
     }
-    setSelectedRecords([]); // Clear selected records after deletion
   };
 
   const moveRecordToVisited = async (userId) => {
@@ -283,12 +296,16 @@ const CounterDash = () => {
         // Delete the document from the 'Counter X' collection
         await deleteDoc(querySnapshot.docs[0].ref);
 
-        // Increment completed count
-        setCompletedCount((prevCount) => prevCount + 1);
-
         console.log("Record moved to 'visited' collection successfully.");
+
+        // Update the completed count
+        setCompletedCount((prevCount) => prevCount + 1);
       } else {
-        console.warn("Document with id", userId, "not found in 'Counter' collection.");
+        console.warn(
+          "Document with id",
+          userId,
+          "not found in current counter's collection."
+        );
       }
     } catch (error) {
       console.error("Error moving record to 'visited' collection: ", error);
@@ -342,12 +359,7 @@ const CounterDash = () => {
                 )} */}
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              {/* <p className="text-6xl font-bold ml-7 mt-4">{userData.length > 1 ? userData[1].token : '-'}</p> */}
-              {isServiceStarted ? (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > nextTokenIndex ? userData[nextTokenIndex].token : '-'}</p>
-                ) : (
-                  <p className="text-6xl font-bold ml-12 mt-4">-</p>
-                )}
+                <p className="text-6xl font-bold ml-12 mt-4">{nextToken}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -372,8 +384,8 @@ const CounterDash = () => {
             <Card className="py-4 ml-4 w-[200px]">
               <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
                 <h3 className="font-bold text-large mb-21">Now Serving</h3>
-                {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold ml-12 mt-4">{userData.length > 0 ? userData[nextTokenIndex - 1].token : "-"}</p>
+                {isServiceStarted && currentServingToken && (
+                  <p className="text-6xl font-bold ml-12 mt-4">{currentServingToken}</p>
                 )}
               </CardHeader>
               {isServiceStarted && nextTokenIndex > 0 && (
