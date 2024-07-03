@@ -84,7 +84,7 @@ const CounterDash = () => {
     };
 
     fetchInitialData();
-  }, [db]);
+  }, []);
   
 
 
@@ -138,10 +138,10 @@ const CounterDash = () => {
     };
   
     checkUser();
-  }, [user]);
+  }, []);
   useEffect(() => {
     fetchPendingCount();
-  }, []); 
+  }, [totalCustomerCount, completedCount]); 
 
 
   const isValidUserData = (user) => {
@@ -195,7 +195,7 @@ const CounterDash = () => {
   
         // Update the state variables after ensuring the deletion has been completed
         setNowServingToken(nextToken);
-        setNextTokenIndex(nextTokenIndex + 1);
+        setNextTokenIndex(prevIndex => prevIndex + 1);
         setPendingCount(pendingCounter);
   
         console.log("Updated pending counter:", pendingCounter);
@@ -493,7 +493,7 @@ const CounterDash = () => {
     };
   
     startServiceAutomatically(); // Call the function to start the service automatically
-  }, [userData, nextTokenIndex]);
+  }, [isServiceStarted]);
   
 
   useEffect(() => {
