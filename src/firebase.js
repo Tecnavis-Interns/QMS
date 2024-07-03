@@ -14,13 +14,13 @@ import { getStorage } from "firebase/storage";
 // import bcrypt from "bcrypt"
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBoer1qseG9TDol2wJod8reni9rmO5YpIc",
-  authDomain: "qms-single-queue.firebaseapp.com",
-  projectId: "qms-single-queue",
-  storageBucket: "qms-single-queue.appspot.com",
-  messagingSenderId: "481495834378",
-  appId: "1:481495834378:web:e745bd382925dc60b5e4f3",
-  measurementId: "G-HELQVX3EN7"
+  apiKey: "AIzaSyAwYQ9ulSdOAsrzTiPKY5AFgchq8zcXDXc",
+  authDomain: "qms-single.firebaseapp.com",
+  projectId: "qms-single",
+  storageBucket: "qms-single.appspot.com",
+  messagingSenderId: "777295272594",
+  appId: "1:777295272594:web:fedd23ee8a069310f8e44b",
+  measurementId: "G-G2Q8CR4PST"
 };
 
 
