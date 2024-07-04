@@ -56,7 +56,7 @@ const Services = () => {
     }
 
     const existingService = services.find(
-      (service) => service.name.toLowerCase() === newService.trim().toLowerCase()
+      (service) => service.name.trim().toLowerCase() === newService.trim().toLowerCase()
     );
     if (existingService) {
       setAlertMessage('This service already exists.');
@@ -64,7 +64,7 @@ const Services = () => {
     }
 
     try {
-      await addDoc(collection(db, 'services'), { name: newService });
+      await addDoc(collection(db, 'services'), { name: newService.trim() });
       setNewService('');
       const querySnapshot = await getDocs(collection(db, 'services'));
       const data = querySnapshot.docs.map((doc) => ({
