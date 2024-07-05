@@ -10,11 +10,11 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
-import { collection, addDoc, updateDoc, doc, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, setDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
 
-const ModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
+const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
   const [staffName, setStaffName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,22 +23,13 @@ const ModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
 
   useEffect(() => {
     if (isOpen) {
-      if (staff) {
-        // Editing existing staff member
-        setStaffName(staff.staffName);
-        setEmail(staff.email);
-        setSelectedService(staff.service);
-        setNewStaffID(staff.id); // Ensure staff ID is not changed during edit
-      } else {
-        // Adding new staff member
-        generateNewStaffID();
-        setStaffName("");
-        setEmail("");
-        setPassword("");
-        setSelectedService("");
-      }
+      generateNewStaffID();
+      setStaffName("");
+      setEmail("");
+      setPassword("");
+      setSelectedService("");
     }
-  }, [isOpen, staff]);
+  }, [isOpen]);
 
   const generateNewStaffID = async () => {
     const currentYear = new Date().getFullYear();
@@ -64,35 +55,25 @@ const ModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
   const handleSubmit = async () => {
     try {
       // Hash the password
-      const hashedPassword = password ? await hash(password, 10) : null;
+      const hashedPassword = await hash(password, 10);
 
       // Check if the service is already assigned
-      const serviceQuery = query(collection(db, "staff"), where("service", "==", selectedService));
-      const serviceSnapshot = await getDocs(serviceQuery);
-      if (!staff && !serviceSnapshot.empty) {
-        alert("Service already taken.");
-        return;
-      }
+    //   const serviceQuery = query(collection(db, "staff"), where("service", "==", selectedService));
+    //   const serviceSnapshot = await getDocs(serviceQuery);
+    //   if (!serviceSnapshot.empty) {
+    //     alert("Service already taken.");
+    //     return;
+    //   }
 
-      if (staff) {
-        // Update existing staff member
-        await updateDoc(doc(db, "staff", staff.id), {
-          staffName,
-          email,
-          service: selectedService,
-          password: hashedPassword, // Only update password if it's changed
-        });
-      } else {
-        // Add new staff member
-        await addDoc(collection(db, "staff"), {
-          id: newStaffID,
-          staffName,
-          email,
-          password: hashedPassword,
-          service: selectedService,
-          active: true,
-        });
-      }
+      // Add new staff member
+      await setDoc(doc(db, "staff" , newStaffID), {
+        id: newStaffID,
+        staffName,
+        email,
+        password: hashedPassword,
+        service: selectedService,
+        active: true,
+      });
 
       // Clear form fields after submission
       setStaffName("");
@@ -106,25 +87,22 @@ const ModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
       // Notify parent component of successful submission
       onSubmit();
     } catch (error) {
-      console.error("Error adding/updating document: ", error);
+      console.error("Error adding document: ", error);
     }
-  };
-
-  const handleServiceChange = (event) => {
-    setSelectedService(event.target.value);
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">{staff ? "Edit Staff" : "Add Staff"}</ModalHeader>
+        <ModalHeader className="flex flex-col gap-1">Add Staff</ModalHeader>
         <ModalBody>
           <Input
             type="text"
-            label="Staff Name"
+            label="Staff Name" 
             value={staffName}
             onChange={(e) => setStaffName(e.target.value)}
             variant="bordered"
+            required
           />
           <Input
             type="email"
@@ -133,19 +111,18 @@ const ModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
             onChange={(e) => setEmail(e.target.value)}
             variant="bordered"
           />
-          {!staff && (
-            <Input
-              type="password"
-              label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              variant="bordered"
-            />
-          )}
+          <Input
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            variant="bordered"
+      
+          />
           <Select
             label="Select Service"
             value={selectedService}
-            onChange={handleServiceChange}
+            onChange={(e) => setSelectedService(e.target.value)}
             required
             variant="bordered"
           >
@@ -168,7 +145,7 @@ const ModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
             Close
           </Button>
           <Button color="primary" onPress={handleSubmit} className="w-full">
-            {staff ? "Update" : "Submit"}
+            Submit
           </Button>
         </ModalFooter>
       </ModalContent>

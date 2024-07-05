@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -10,9 +10,20 @@ import {
   Button,
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
-import { collection, getDocs, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  deleteDoc,
+  addDoc,
+  getDoc,
+  query,
+  where,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import ModalStaff from "./ModalStaff";
+import EditModalStaff from "./EditModalStaff";
 import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { FaSearch } from "react-icons/fa";
@@ -22,11 +33,46 @@ const Staff = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const [user, setUser] = useState(auth.currentUser);
-  const [userData, setUserData] = useState([]);
+  const [staffData, setStaffData] = useState([]);
   const [services, setServices] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
 
+  // Fetch staff data from Firestore
+  const fetchStaffData = useCallback(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "staff"));
+      const data = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setStaffData(data);
+    } catch (error) {
+      console.error("Error fetching staff data:", error);
+      toast.error("Failed to fetch staff data");
+    }
+  }, []);
+
+  // Fetch services from Firestore
+  const fetchServices = useCallback(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "services"));
+      const data = querySnapshot.docs.map((doc) => doc.data());
+      setServices(data);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      toast.error("Failed to fetch services");
+    }
+  }, []);
+
+  // Effect to fetch initial data on component mount
+  useEffect(() => {
+    fetchStaffData();
+    fetchServices();
+  }, [fetchStaffData, fetchServices]);
+
+  // Effect to handle user authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -39,43 +85,17 @@ const Staff = () => {
     return () => unsubscribe();
   }, [auth, navigate]);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "staff"));
-        const data = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setUserData(data);
-      } catch (error) {
-        console.error("Error fetching staff data:", error);
-      }
-    };
-
-    const fetchServices = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "services"));
-        const data = querySnapshot.docs.map((doc) => doc.data());
-        setServices(data);
-      } catch (error) {
-        console.error("Error fetching services:", error);
-      }
-    };
-
-    fetchUserData();
-    fetchServices();
-  }, []);
-
+  // Open edit modal for selected staff member
   const handleEdit = (id) => {
-    const staff = userData.find((staff) => staff.id === id);
+    const staff = staffData.find((staff) => staff.id === id);
     setSelectedStaff(staff);
-    setIsModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
+  // Submit edited staff member details
   const handleEditSubmit = async () => {
     try {
-      fetchUserData();
+      await fetchStaffData();
       toast.success("Staff member updated successfully");
     } catch (error) {
       console.error("Error updating document: ", error);
@@ -83,47 +103,42 @@ const Staff = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      const staffRef = doc(db, "staff", id);
-      const delStaffRef = doc(db, "DeletedStaff", id);
-      const staffSnap = await getDoc(staffRef);
-      if (!staffSnap.exists()) {
-        toast.error("No such document!");
-        return;
-      }
-      const staffData = staffSnap.data();
-
-      const confirmDelete = async () => {
-        await setDoc(delStaffRef, staffData);
-        await deleteDoc(staffRef);
-        setUserData(userData.filter((staff) => staff.id !== id));
-        toast.success("Staff member deleted successfully");
-      };
-
-      toast((t) => (
-        <span>
-          Are you sure you want to delete this staff member?
-          <Button
-            onClick={() => {
-              toast.dismiss(t.id);
-              confirmDelete();
-            }}
-          >
-            Yes
-          </Button>
-          <Button onClick={() => toast.dismiss(t.id)}>No</Button>
-        </span>
-      ));
-    } catch (error) {
-      console.error("Error deleting document: ", error);
-      toast.error("Failed to delete staff member");
+  // Delete staff member
+const handleDelete = async (docId) => {
+  try {
+    const confirmed = window.confirm("Are you sure you want to delete this staff member?");
+    if (!confirmed) {
+      return;
     }
+
+    // Construct the document reference using the Firestore document ID
+    const staffDocRef = doc(db, "staff", docId);
+   
+    // Delete the document from 'staff'
+    await updateDoc(staffDocRef,{active : false});
+
+    // Update local state after deletion
+    setStaffData((prevData) => prevData.filter((staff) => staff.id !== docId));
+
+    toast.success("Staff member deleted successfully");
+  } catch (error) {
+    console.error("Error deleting document: ", error);
+    toast.error("Failed to delete staff member");
+  }
+};
+
+
+  // Open add staff modal
+  const handleAddStaff = () => {
+    setSelectedStaff(null);
+    setIsAddModalOpen(true);
   };
 
-  const handleAddStaff = async () => {
-    setSelectedStaff(null);
-    setIsModalOpen(true);
+  // Close modals and refresh staff data
+  const handleCloseModal = () => {
+    setIsAddModalOpen(false);
+    setIsEditModalOpen(false);
+    fetchStaffData(); // Refresh user data after closing modal
   };
 
   return (
@@ -166,8 +181,14 @@ const Staff = () => {
         <div className="lg:mx-24 flex justify-start flex-wrap gap-1">
           <div className="flex items-center justify-start gap-1 w-full py-6">
             <ModalStaff
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
+              isOpen={isAddModalOpen}
+              onClose={handleCloseModal}
+              services={services.map((service) => service.name)}
+              onSubmit={fetchStaffData} // Pass fetchStaffData directly for refresh
+            />
+            <EditModalStaff
+              isOpen={isEditModalOpen}
+              onClose={handleCloseModal}
               services={services.map((service) => service.name)}
               staff={selectedStaff}
               onSubmit={handleEditSubmit}
@@ -188,7 +209,7 @@ const Staff = () => {
                 </Button>
               </div>
             </div>
-            {userData.length === 0 ? (
+            {staffData.length === 0 ? (
               <p>No valid data available</p>
             ) : (
               <Table aria-label="Staff table" removeWrapper>
@@ -201,7 +222,7 @@ const Staff = () => {
                   <TableColumn>Actions</TableColumn>
                 </TableHeader>
                 <TableBody>
-                  {userData.map((user, index) => (
+                  {staffData.filter(i => i.active).map((user, index) => (
                     <TableRow key={index}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{user.id}</TableCell>
@@ -219,8 +240,9 @@ const Staff = () => {
                         </Button>
                         <Button
                           color="error"
-                          size="mini"
+                          size="small"
                           onClick={() => handleDelete(user.id)}
+                          className="text-red-500 hover:text-red-700"
                         >
                           Delete
                         </Button>
