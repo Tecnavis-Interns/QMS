@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import {
   Modal,
   ModalContent,
@@ -15,30 +16,30 @@ import { db } from "../firebase";
 import { hash } from "bcryptjs";
 
 const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
-  const [staffName, setStaffName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [selectedService, setSelectedService] = useState("");
+  const { control, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      staffName: "",
+      email: "",
+      password: "",
+      selectedService: "",
+    }
+  });
 
   useEffect(() => {
     if (isOpen && staff) {
-      // Populate form fields with existing data
-      setStaffName(staff.staffName || "");
-      setEmail(staff.email || "");
-      setSelectedService(staff.service || "");
+      reset({
+        staffName: staff.staffName || "",
+        email: staff.email || "",
+        password: "",
+        selectedService: staff.service || "",
+      });
     }
-  }, [isOpen, staff]);
+  }, [isOpen, staff, reset]);
 
-  const handleSubmit = async () => {
+  const onSubmitForm = async (data) => {
     try {
-      // Validate required fields
-      if (!staffName || !email || !selectedService) {
-        alert("Please fill out all required fields.");
-        return;
-      }
-
       // Hash the password if it was changed
-      const hashedPassword = password ? await hash(password, 10) : null;
+      const hashedPassword = data.password ? await hash(data.password, 10) : null;
 
       // Fetch the staff document reference
       const staffDocRef = doc(db, "staff", staff.id);
@@ -48,17 +49,12 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
       if (staffDocSnapshot.exists()) {
         // Update staff member in Firestore
         const updateData = {
-          staffName,
-          email,
-          service: selectedService,
+          staffName: data.staffName,
+          email: data.email,
+          service: data.selectedService,
         };
         if (hashedPassword) updateData.password = hashedPassword;
         await updateDoc(staffDocRef, updateData);
-        // Clear form fields after submission
-        setStaffName("");
-        setEmail("");
-        setPassword("");
-        setSelectedService("");
 
         // Close the modal
         onClose();
@@ -78,54 +74,96 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">Edit Staff</ModalHeader>
-        <ModalBody>
-          <Input
-            type="text"
-            label="Staff Name"
-            value={staffName}
-            onChange={(e) => setStaffName(e.target.value)}
-            variant="bordered"
-            required
-          />
-          <Input
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            variant="bordered"
-            required
-          />
-          <Input
-            type="password"
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            variant="bordered"
-            placeholder="Leave empty to keep current password"
-          />
-          <Select
-            label="Select Service"
-            selectedKeys={[selectedService]}
-            onChange={(e) => setSelectedService(e.target.value)}
-            required
-            variant="bordered"
-          >
-            {services.map((item) => (
-              <SelectItem className="font-[Outfit]" value={item} key={item}>
-                {item}
-              </SelectItem>
-            ))}
-          </Select>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="danger" onPress={onClose} className="w-full">
-            Close
-          </Button>
-          <Button color="primary" onPress={handleSubmit} className="w-full">
-            Update
-          </Button>
-        </ModalFooter>
+        <form onSubmit={handleSubmit(onSubmitForm)}>
+          <ModalHeader className="flex flex-col gap-1">Edit Staff</ModalHeader>
+          <ModalBody>
+            <Controller
+              name="staffName"
+              control={control}
+              rules={{ required: "Staff Name is required" }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="text"
+                  label="Staff Name"
+                  variant="bordered"
+                  isInvalid={!!errors.staffName}
+                  errorMessage={errors.staffName?.message}
+                />
+              )}
+            />
+            <Controller
+              name="email"
+              control={control}
+              rules={{ 
+                required: "Email is required",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Invalid email address"
+                }
+              }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="email"
+                  label="Email"
+                  variant="bordered"
+                  isInvalid={!!errors.email}
+                  errorMessage={errors.email?.message}
+                />
+              )}
+            />
+            <Controller
+              name="password"
+              control={control}
+              rules={{ 
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters"
+                }
+              }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="password"
+                  label="Password"
+                  variant="bordered"
+                  placeholder="Leave empty to keep current password"
+                  isInvalid={!!errors.password}
+                  errorMessage={errors.password?.message}
+                />
+              )}
+            />
+            <Controller
+              name="selectedService"
+              control={control}
+              rules={{ required: "Service is required" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  label="Select Service"
+                  variant="bordered"
+                  isInvalid={!!errors.selectedService}
+                  errorMessage={errors.selectedService?.message}
+                >
+                  {services.map((item) => (
+                    <SelectItem className="font-[Outfit]" value={item} key={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </Select>
+              )}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" onPress={onClose} className="w-full">
+              Close
+            </Button>
+            <Button color="primary" type="submit" className="w-full">
+              Update
+            </Button>
+          </ModalFooter>
+        </form>
       </ModalContent>
     </Modal>
   );

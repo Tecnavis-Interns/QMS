@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import {
   Modal,
   ModalContent,
@@ -10,26 +11,27 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
-import { collection, addDoc, query, where, getDocs, setDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, setDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
 
 const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
-  const [staffName, setStaffName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [selectedService, setSelectedService] = useState("");
-  const [newStaffID, setNewStaffID] = useState("");
+  const { control, handleSubmit, setValue, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      staffName: "",
+      email: "",
+      password: "",
+      selectedService: "",
+      newStaffID: "",
+    }
+  });
 
   useEffect(() => {
     if (isOpen) {
       generateNewStaffID();
-      setStaffName("");
-      setEmail("");
-      setPassword("");
-      setSelectedService("");
+      reset();
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
   const generateNewStaffID = async () => {
     const currentYear = new Date().getFullYear();
@@ -49,37 +51,23 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
 
     const newIDNumber = String(maxID + 1).padStart(3, '0');
     const newID = `S${currentYear}${newIDNumber}`;
-    setNewStaffID(newID);
+    setValue("newStaffID", newID);
   };
 
-  const handleSubmit = async () => {
+  const onSubmitForm = async (data) => {
     try {
       // Hash the password
-      const hashedPassword = await hash(password, 10);
-
-      // Check if the service is already assigned
-    //   const serviceQuery = query(collection(db, "staff"), where("service", "==", selectedService));
-    //   const serviceSnapshot = await getDocs(serviceQuery);
-    //   if (!serviceSnapshot.empty) {
-    //     alert("Service already taken.");
-    //     return;
-    //   }
+      const hashedPassword = await hash(data.password, 10);
 
       // Add new staff member
-      await setDoc(doc(db, "staff" , newStaffID), {
-        id: newStaffID,
-        staffName,
-        email,
+      await setDoc(doc(db, "staff", data.newStaffID), {
+        id: data.newStaffID,
+        staffName: data.staffName,
+        email: data.email,
         password: hashedPassword,
-        service: selectedService,
+        service: data.selectedService,
         active: true,
       });
-
-      // Clear form fields after submission
-      setStaffName("");
-      setEmail("");
-      setPassword("");
-      setSelectedService("");
 
       // Close the modal
       onClose();
@@ -95,59 +83,108 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
     <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">Add Staff</ModalHeader>
-        <ModalBody>
-          <Input
-            type="text"
-            label="Staff Name" 
-            value={staffName}
-            onChange={(e) => setStaffName(e.target.value)}
-            variant="bordered"
-            required
-          />
-          <Input
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            variant="bordered"
-          />
-          <Input
-            type="password"
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            variant="bordered"
-      
-          />
-          <Select
-            label="Select Service"
-            value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            required
-            variant="bordered"
-          >
-            {services.map((item) => (
-              <SelectItem className="font-[Outfit]" value={item} key={item}>
-                {item}
-              </SelectItem>
-            ))}
-          </Select>
-          <Input
-            type="text"
-            label="Staff ID"
-            value={newStaffID}
-            readOnly
-            variant="bordered"
-          />
-        </ModalBody>
-        <ModalFooter>
-          <Button color="danger" onPress={onClose} className="w-full">
-            Close
-          </Button>
-          <Button color="primary" onPress={handleSubmit} className="w-full">
-            Submit
-          </Button>
-        </ModalFooter>
+        <form onSubmit={handleSubmit(onSubmitForm)}>
+          <ModalBody>
+            <Controller
+              name="staffName"
+              control={control}
+              rules={{ required: "Staff Name is required" }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="text"
+                  label="Staff Name"
+                  variant="bordered"
+                  isInvalid={!!errors.staffName}
+                  errorMessage={errors.staffName?.message}
+                />
+              )}
+            />
+            <Controller
+              name="email"
+              control={control}
+              rules={{ 
+                required: "Email is required",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Invalid email address"
+                }
+              }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="email"
+                  label="Email"
+                  variant="bordered"
+                  isInvalid={!!errors.email}
+                  errorMessage={errors.email?.message}
+                />
+              )}
+            />
+            <Controller
+              name="password"
+              control={control}
+              rules={{ 
+                required: "Password is required",
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters"
+                }
+              }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="password"
+                  label="Password"
+                  variant="bordered"
+                  isInvalid={!!errors.password}
+                  errorMessage={errors.password?.message}
+                />
+              )}
+            />
+            <Controller
+              name="selectedService"
+              control={control}
+              rules={{ required: "Service is required" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  label="Select Service"
+                  variant="bordered"
+                  isInvalid={!!errors.selectedService}
+                  errorMessage={errors.selectedService?.message}
+                >
+                  {services.map((item) => (
+                    <SelectItem className="font-[Outfit]" value={item} key={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </Select>
+              )}
+            />
+            <Controller
+              name="newStaffID"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="text"
+                  label="Staff ID"
+                  readOnly
+                  variant="bordered"
+                />
+              )}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" onPress={onClose} className="w-full">
+              Close
+            </Button>
+            <Button color="primary" type="submit" className="w-full">
+              Submit
+            </Button>
+          </ModalFooter>
+        </form>
       </ModalContent>
     </Modal>
   );
