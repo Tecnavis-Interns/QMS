@@ -183,13 +183,13 @@ const handleDelete = async (docId) => {
             <ModalStaff
               isOpen={isAddModalOpen}
               onClose={handleCloseModal}
-              services={services.map((service) => service.name)}
+              // services={services.map((service) => service.name)}
               onSubmit={fetchStaffData} // Pass fetchStaffData directly for refresh
             />
             <EditModalStaff
               isOpen={isEditModalOpen}
               onClose={handleCloseModal}
-              services={services.map((service) => service.name)}
+              // services={services.map((service) => service.name)}
               staff={selectedStaff}
               onSubmit={handleEditSubmit}
             />
@@ -218,7 +218,7 @@ const handleDelete = async (docId) => {
                   <TableColumn>Staff ID</TableColumn>
                   <TableColumn>Name</TableColumn>
                   <TableColumn>Email</TableColumn>
-                  <TableColumn>Service</TableColumn>
+                  {/* <TableColumn>Service</TableColumn> */}
                   <TableColumn>Actions</TableColumn>
                 </TableHeader>
                 <TableBody>
@@ -228,7 +228,7 @@ const handleDelete = async (docId) => {
                       <TableCell>{user.id}</TableCell>
                       <TableCell>{user.staffName}</TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.service}</TableCell>
+                      {/* <TableCell>{user.service}</TableCell> */}
                       <TableCell>
                         <Button
                           color="primary"

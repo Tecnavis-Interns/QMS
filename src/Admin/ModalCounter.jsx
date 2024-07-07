@@ -10,10 +10,10 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
-import { useState, useEffect } from "react"; // Import useEffect here
+import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore"; // Import getDocs and serverTimestamp
-import { db } from "../firebase"; // Make sure to import your Firebase configuration
+import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 import { hash } from "bcryptjs";
 
 export default function App() {
@@ -24,9 +24,9 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
   const [services, setServices] = useState([]);
-  const [staff, setStaff] = useState([]);
-  const [staffId, setStaffId] = useState("");
-  const [filteredStaff, setFilteredStaff] = useState([]);
+  // const [staff, setStaff] = useState([]);
+  // const [staffId, setStaffId] = useState("");
+  // const [filteredStaff, setFilteredStaff] = useState([]);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -45,30 +45,28 @@ export default function App() {
     fetchServices();
   }, []);
 
-  useEffect(() => {
-    const fetchStaff = async () => {
-      const staffCollection = collection(db, "staff");
-      const staffSnapshot = await getDocs(staffCollection);
-      const staffList = staffSnapshot.docs.map(doc => doc.data());
+  // useEffect(() => {
+  //   const fetchStaff = async () => {
+  //     const staffCollection = collection(db, "staff");
+  //     const staffSnapshot = await getDocs(staffCollection);
+  //     const staffList = staffSnapshot.docs.map(doc => doc.data());
 
-      const mappedStaff = staffList.map((staffMember, index) => ({
-        id: `staff${index + 1}`,
-        name: staffMember.name,
-        service: staffMember.service
-      }));
+  //     const mappedStaff = staffList.map((staffMember, index) => ({
+  //       id: `staff${index + 1}`,
+  //       name: staffMember.name,
+  //       service: staffMember.service
+  //     }));
 
-      setStaff(mappedStaff);
-    };
+  //     setStaff(mappedStaff);
+  //   };
 
-    fetchStaff();
-  }, []);
+  //   fetchStaff();
+  // }, []);
 
   const handleSubmit = async () => {
     try {
       const id = uuidv4();
-      // Hash the password
       const hashedPassword = await hash(password, 10);
-      const timestamp = new Date().toISOString();
       const type = selectedServices.length > 1 ? "multipleQueueService" : "singleQueueService";
 
       await addDoc(collection(db, "counters"), {
@@ -77,9 +75,10 @@ export default function App() {
         email,
         password: hashedPassword,
         serviceIds: selectedServices,
-        staffId,
+        // staffId,
         type,
-        createdAt: timestamp,
+        status: "active",
+        createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
       });
 
@@ -88,8 +87,8 @@ export default function App() {
       setEmail("");
       setPassword("");
       setSelectedServices([]);
-      setStaffId("");
-      setFilteredStaff([]);
+      // setStaffId("");
+      // setFilteredStaff([]);
 
       // Close the modal
       onClose();
@@ -101,21 +100,22 @@ export default function App() {
   const handleServiceChange = (event) => {
     const selectedServiceId = event.target.value;
     setSelectedServices([selectedServiceId]);
-    const selectedServiceName = services.find(
-      (service) => service.id === selectedServiceId
-    ).name;
+    // const selectedServiceName = services.find(
+    //   (service) => service.id === selectedServiceId
+    // ).name;
 
-    const filtered = staff.filter((s) => s.service === selectedServiceName);
+    // const filtered = staff.filter((s) => s.service === selectedServiceName);
 
     console.log("Selected Service ID:", selectedServiceId);
-    console.log("Selected Service Name:", selectedServiceName);
-    console.log("Filtered Staff:", filtered);
+    // console.log("Selected Service Name:", selectedServiceName);
+    // console.log("Filtered Staff:", filtered);
 
-    setFilteredStaff(filtered);
+    // setFilteredStaff(filtered);
   };
-  const handleStaffChange = (event) => {
-    setStaffId(event.target.value);
-  };
+
+  // const handleStaffChange = (event) => {
+  //   setStaffId(event.target.value);
+  // };
 
   return (
     <>
@@ -133,20 +133,33 @@ export default function App() {
               onChange={(e) => setCounterName(e.target.value)}
               variant="bordered"
             />
-            
+            <Input
+              type="email"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              variant="bordered"
+            />
+            <Input
+              type="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              variant="bordered"
+            />
             <Select
               label="Select your Reason to be here"
-              onChange={handleServiceChange}
+              onChange={(value) => handleServiceChange(value)}
               required
               variant="bordered"
             >
               {services.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item.id} key={item.id}>
+                <SelectItem className="font-[Outfit]" value={item.name} key={item.name}>
                   {item.name}
                 </SelectItem>
               ))}
             </Select>
-            <Select
+            {/* <Select
               label="Select staff"
               onChange={handleStaffChange}
               required
@@ -158,7 +171,7 @@ export default function App() {
                   {item.name}
                 </SelectItem>
               ))}
-            </Select>
+            </Select> */}
           </ModalBody>
           <ModalFooter>
             <Button color="danger" onPress={onClose} className="w-full">
