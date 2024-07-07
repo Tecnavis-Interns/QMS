@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
   Table,
   TableHeader,
@@ -10,22 +10,28 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Button
 } from '@nextui-org/react';
 import Navbar from './Navbar';
 
 const AdminDash = () => {
   const navigate = useNavigate();
   const auth = getAuth();
-  const user = auth.currentUser;
-
-  useEffect(() => {
-    if (!user || user.email !== 'admin@tecnavis.com') {
-      navigate('/login');
-    }
-  }, [user, navigate]);
-
+  const [user, setUser] = useState(null);
   const [userData, setUserData] = useState([]);
   const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser && currentUser.email === 'admin@tecnavis.com') {
+        setUser(currentUser);
+      } else {
+        navigate('/login');
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, [auth, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,20 +69,19 @@ const AdminDash = () => {
     setShowAll(!showAll);
   };
 
-  const visibleQueueRows = showAll ? userData : userData.slice(0, 3); // Only slice here
-
- // Calculate the total number of customers for each active counter
-const activeCounters = {};
-userData.forEach(user => {
-  const { counter, service } = user;
-  if (!activeCounters[counter]) {
-    activeCounters[counter] = { service, totalCustomers: 0 };
-  }
-  activeCounters[counter].totalCustomers++;
-});
 
 
-  // Calculate service summary
+  const visibleQueueRows = showAll ? userData : userData.slice(0, 3);
+
+  const activeCounters = userData.reduce((counters, user) => {
+    const { counter, service } = user;
+    if (!counters[counter]) {
+      counters[counter] = { service, totalCustomers: 0 };
+    }
+    counters[counter].totalCustomers++;
+    return counters;
+  }, {});
+
   const serviceSummary = userData.reduce((summary, user) => {
     const { service, status } = user;
     summary[service] = summary[service] || { total: 0, completed: 0, pending: 0 };
@@ -115,7 +120,6 @@ userData.forEach(user => {
           </Table>
         </div>
 
-        {/* Queue Status */}
         <div className="flex flex-col gap-10">
           <h2 className="text-xl font-semibold">Current Queue Status</h2>
 
@@ -134,16 +138,12 @@ userData.forEach(user => {
             </div>
           </div>
 
-          {/* Services */}
           <h2 className="font-semibold md:text-xl">Services</h2>
 
           <div className="flex flex-col gap-6">
             <div className="flex justify-start items-center gap-6">
               {serviceNames.slice(0, 3).map((serviceName, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-200 p-4 rounded shadow w-1/6"
-                >
+                <div key={index} className="bg-gray-200 p-4 rounded shadow w-1/6">
                   <h3 className="text-lg font-semibold">{serviceName}</h3>
                   <p>Total: {serviceSummary[serviceName]?.total}</p>
                   <p>Completed: {serviceSummary[serviceName]?.completed}</p>
@@ -153,10 +153,7 @@ userData.forEach(user => {
             </div>
             <div className="flex justify-start items-center gap-6">
               {serviceNames.slice(3, 6).map((serviceName, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-200 p-4 rounded shadow w-1/6"
-                >
+                <div key={index} className="bg-gray-200 p-4 rounded shadow w-1/6">
                   <h3 className="text-lg font-semibold">{serviceName}</h3>
                   <p>Total: {serviceSummary[serviceName]?.total}</p>
                   <p>Completed: {serviceSummary[serviceName]?.completed}</p>
@@ -166,7 +163,6 @@ userData.forEach(user => {
             </div>
           </div>
 
-          {/* Queue Details */}
           <div className="flex flex-col justify-center items-center py-5 gap-4 w-full">
             <h2 className="font-semibold md:text-xl">Queue Details</h2>
             {userData.length === 0 ? (

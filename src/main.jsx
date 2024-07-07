@@ -17,6 +17,7 @@ import Counter from './Admin/Counter'
 import TVView from './TVView/TVView'
 import ConfirmationPage from './User/Confirmation'
 import Ads from './Admin/Ads';
+import Services from './Admin/Services';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -58,6 +59,10 @@ const router = createBrowserRouter([
     path: '/ads',
     element: <Ads />,
   },
+  {
+    path:'/Services',
+    element:<Services/>,
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
