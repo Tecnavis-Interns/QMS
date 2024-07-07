@@ -89,7 +89,7 @@ const AdminDash = () => {
                 <TableRow key={counter.id}>
                   <TableCell>{counter.counterName}</TableCell>
                   <TableCell>{counter.email}</TableCell>
-                  <TableCell>{counter.serviceIds.join(", ")}</TableCell>
+                  <TableCell>{counter.service}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
@@ -117,6 +117,7 @@ const AdminDash = () => {
       
       {selectedCounter && (
         <EditCounterModal
+          key={selectedCounter.id}  // Add key here to ensure proper re-rendering
           isOpen={isOpen}
           onClose={() => {
             onClose();

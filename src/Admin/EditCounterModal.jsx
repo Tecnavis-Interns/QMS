@@ -1,6 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
+import bcrypt from "bcryptjs";
 import { db } from "../firebase";
 
 const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
@@ -41,8 +42,9 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
       };
       
       if (newPassword) {
-        // In a real application, you would hash the password here or send it to a secure backend for hashing
-        updateData.password = newPassword; // This is a placeholder. Don't store plain text passwords!
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(newPassword, salt);
+        updateData.password = hashedPassword;
       }
 
       await updateDoc(counterRef, updateData);
