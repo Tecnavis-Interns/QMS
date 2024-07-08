@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { Input, Button, Select, SelectItem } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
-import { collection, getDocs, doc as firestoreDoc, setDoc, getDoc } from "firebase/firestore";
+import { collection, doc as firestoreDoc, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp, getDocs } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
 import { v4 as uuidv4 } from 'uuid';
-import { PDFDocument, rgb } from 'pdf-lib';
 import { useNavigate } from "react-router-dom";
 
 export default function UserForm() {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [service, setService] = useState("");
+  const [services, setServices] = useState([]); // State for services
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const navigate = useNavigate();
@@ -26,16 +25,28 @@ export default function UserForm() {
     }
   }, [showToken]);
 
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const servicesCollection = collection(db, "services");
+        const servicesSnapshot = await getDocs(servicesCollection);
+        const servicesList = servicesSnapshot.docs.map(doc => doc.data().name); // Assuming each document has a 'name' field
+        setServices(servicesList);
+      } catch (error) {
+        console.error("Error fetching services: ", error);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
   const handleNameChange = (event) => {
     setName(event.target.value);
   };
 
-
   const handleServiceChange = (event) => {
     setService(event.target.value);
   };
-
-  const services = ['Personal Service (Income, Community, Nativity, etc)', 'Home related Service', 'Land Related Service', 'Education Related Service', 'Other Services'];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -51,28 +62,28 @@ export default function UserForm() {
     }
 
     try {
-      // const counterSnapshot = await getDocs(collection(db, "single counter"));
-
       const tokenNumber = await generateTokenNumber();
       setToken(tokenNumber);
       setShowToken(true); // Set to true to show the token
       setLastGeneratedToken(tokenNumber);
 
       const userId = uuidv4();
-      await submitDataToFirestore('single requests', {
-        id: userId,
+      const currentDate = new Date().toISOString();
+
+      // Submit data to 'requests' collection
+      await submitDataToFirestore('requests', {
+        userId: userId,
         name: name,
         service: service,
-        token: tokenNumber,
-        pending: true
+        tokenNumber: tokenNumber,
+        createdAt: serverTimestamp(),
+        status: true
       });
 
-      await submitDataToFirestore('single counter', {
-        id: userId,
-        name: name,
-        service: service,
-        token: tokenNumber,
-        pending: true
+      // Update 'queue' document with the new tokenNumber in the token array
+      const queueDocRef = firestoreDoc(db, "queue/queueDoc");
+      await updateDoc(queueDocRef, {
+        token: arrayUnion(tokenNumber)
       });
 
       navigate(`/confirmation`, { state: { tokenNumber } }); // Pass tokenNumber to ConfirmationPage
@@ -87,15 +98,14 @@ export default function UserForm() {
 
   const generateTokenNumber = async () => {
     try {
-      const counterDocRef = firestoreDoc(db, "single counter/counterDoc");
-      const counterDocSnap = await getDoc(counterDocRef);
-      let lastTokenNumber = counterDocSnap.exists() ? counterDocSnap.data().lastTokenNumber || 0 : 0;
-  
-      let newTokenNumber=(lastTokenNumber + 1);
-      
-  
-      await setDoc(counterDocRef, { lastTokenNumber: lastTokenNumber + 1 }, { merge: true });
-  
+      const queueDocRef = firestoreDoc(db, "queue/queueDoc");
+      const queueDocSnap = await getDoc(queueDocRef);
+
+      let lastTokenNumber = queueDocSnap.exists() ? queueDocSnap.data().lastTokenNumber || 0 : 0;
+      let newTokenNumber = lastTokenNumber + 1;
+
+      await setDoc(queueDocRef, { lastTokenNumber: newTokenNumber }, { merge: true });
+
       return newTokenNumber;
     } catch (error) {
       console.error("Error generating token number: ", error);
@@ -104,7 +114,7 @@ export default function UserForm() {
   };
 
   return (
-    <div className="flex flex-col min-h-dvh">
+    <div className="flex flex-col min-h-screen">
       <Navbar />
       <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
         <div className="md:min-w-[50%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
