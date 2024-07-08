@@ -21,7 +21,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
       staffName: "",
       email: "",
       password: "",
-      selectedService: "",
+    //   selectedService: "",
       newStaffID: "",
     }
   });
@@ -65,7 +65,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
         staffName: data.staffName,
         email: data.email,
         password: hashedPassword,
-        service: data.selectedService,
+        // service: data.selectedService,
         active: true,
       });
 
@@ -142,7 +142,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                 />
               )}
             />
-            <Controller
+            {/* <Controller
               name="selectedService"
               control={control}
               rules={{ required: "Service is required" }}
@@ -161,7 +161,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                   ))}
                 </Select>
               )}
-            />
+            /> */}
             <Controller
               name="newStaffID"
               control={control}

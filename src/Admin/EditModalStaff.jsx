@@ -16,12 +16,12 @@ import { db } from "../firebase";
 import { hash } from "bcryptjs";
 
 const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
-  const { control, handleSubmit, reset, formState: { errors } } = useForm({
+  const { control, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     defaultValues: {
       staffName: "",
       email: "",
       password: "",
-      selectedService: "",
+    //   selectedService: "",
     }
   });
 
@@ -31,7 +31,7 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
         staffName: staff.staffName || "",
         email: staff.email || "",
         password: "",
-        selectedService: staff.service || "",
+        // selectedService: staff.service || "",
       });
     }
   }, [isOpen, staff, reset]);
@@ -51,7 +51,7 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
         const updateData = {
           staffName: data.staffName,
           email: data.email,
-          service: data.selectedService,
+        //   service: data.selectedService,
         };
         if (hashedPassword) updateData.password = hashedPassword;
         await updateDoc(staffDocRef, updateData);
@@ -134,7 +134,7 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
                 />
               )}
             />
-            <Controller
+            {/* <Controller
               name="selectedService"
               control={control}
               rules={{ required: "Service is required" }}
@@ -143,17 +143,22 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
                   {...field}
                   label="Select Service"
                   variant="bordered"
+                  selectedKeys={field.value ? [field.value] : []}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0];
+                    setValue("selectedService", selected);
+                  }}
                   isInvalid={!!errors.selectedService}
                   errorMessage={errors.selectedService?.message}
                 >
                   {services.map((item) => (
-                    <SelectItem className="font-[Outfit]" value={item} key={item}>
+                    <SelectItem key={item} value={item}>
                       {item}
                     </SelectItem>
                   ))}
                 </Select>
               )}
-            />
+            /> */}
           </ModalBody>
           <ModalFooter>
             <Button color="danger" onPress={onClose} className="w-full">
