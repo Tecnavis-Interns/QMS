@@ -22,6 +22,9 @@ import {
   limit,
   doc,
   addDoc,
+  getDoc,
+  updateDoc,
+  arrayUnion
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { getAuth } from "firebase/auth";
@@ -44,50 +47,106 @@ const CounterDash = () => {
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [singleCounterData, setSingleCounterData] = useState([]);
   const [lastTokenNumber, setLastTokenNumber] = useState(0);
+  const [requestsData, setRequestsData] = useState([]);
+  const [remainingCount, setRemainingCount] = useState(0);
+  const [receivedTokenCount, setReceivedTokenCount] = useState(0);
+  const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
 
+
+
+  useEffect(() => {
+    const fetchRequestsData = async () => {
+      try {
+        const requestsRef = collection(db, "requests");
+        const q = query(requestsRef, where("status", "==", true), orderBy("tokenNumber", "asc"));
+        const querySnapshot = await getDocs(q);
+        
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          date: doc.data().date ? doc.data().date.toDate() : null
+        }));
+        
+        setRequestsData(data);
+        setRemainingCount(data.length);
+      } catch (error) {
+        console.error("Error fetching requests data:", error);
+      }
+    };
+  
+    fetchRequestsData();
+  }, []);  
+
+  const fetchRemainingCount = async () => {
+    try {
+      const requestsQuery = query(
+        collection(db, "requests"),
+        where("status", "==", true)
+      );
+      const requestsSnapshot = await getDocs(requestsQuery);
+      console.log("Remaining count:", requestsSnapshot.size);
+      setRemainingCount(requestsSnapshot.size);
+    } catch (error) {
+      console.error("Error fetching remaining count:", error);
+    }
+  };
+  
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const singleRequestsQuery = query(collection(db, "single requests"), orderBy("token", "asc"));
-        const singleCounterQuery = query(collection(db, "single counter"), orderBy("token", "asc"));
-
-        // Fetch both collections simultaneously
-        const [singleRequestsSnapshot, singleCounterSnapshot] = await Promise.all([
-          getDocs(singleRequestsQuery),
-          getDocs(singleCounterQuery)
-        ]);
-
-        // Process single requests data
-        const requestsData = singleRequestsSnapshot.docs.map(doc => ({
+        console.log("Fetching initial data...");
+        await fetchRemainingCount();
+        
+        // Fetch data from the requests collection where status is true
+        const allRequestsQuery = query(collection(db, "requests"), orderBy("tokenNumber", "asc"));
+        const allRequestsSnapshot = await getDocs(allRequestsQuery);
+        
+        const requestsData = allRequestsSnapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          date: doc.data().date ? doc.data().date.toDate() : null
         }));
-        setSingleCounterData(requestsData);
-        if (requestsData.length > 0) {
-          setNowServingToken(requestsData[0].token);
+        
+        console.log("All Requests Data: ", JSON.stringify(requestsData, null, 2));
+      
+        setRequestsData(requestsData);
+        
+        // Set the remaining count (documents with status true)
+        setRemainingCount(requestsSnapshot.size);
+  
+        setTotalCustomerCount(requestsSnapshot.size);
+  
+        // Fetch the queue data for nowServingToken
+        const queueDocRef = doc(db, 'queue', 'queueDoc');
+        const queueDocSnap = await getDoc(queueDocRef);
+  
+        if (queueDocSnap.exists()) {
+          const queueData = queueDocSnap.data();
+          const tokenArray = queueData.token || [];
+  
+          if (tokenArray.length > 0) {
+            setNowServingToken(tokenArray[0]);
+            console.log("Initial now serving token:", tokenArray[0]);
+          } else {
+            setNowServingToken("");
+            console.log("No tokens in queue");
+          }
+        } else {
+          console.log("Queue document does not exist");
         }
-
-        // Process single counter data
-        const counterData = singleCounterSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        if (counterData.length > 0) {
-          const lastToken = Math.max(...counterData.map(d => d.token));
-          setLastTokenNumber(lastToken);
-        }
-
+  
       } catch (error) {
         console.error("Error fetching initial data: ", error);
       }
     };
-
+  
     fetchInitialData();
   }, []);
   
 
-
+  
+  
   useEffect(() => {
     const checkUser = async () => {
       if (!user) {
@@ -107,7 +166,7 @@ const CounterDash = () => {
       const fetchData = async () => {
         try {
           // Fetch data from 'single counter' collection
-          const singleCounterSnapshot = await getDocs(collection(db, 'single requests'));
+          const singleCounterSnapshot = await getDocs(collection(db, 'requests'));
           const data = singleCounterSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -141,7 +200,8 @@ const CounterDash = () => {
   }, []);
   useEffect(() => {
     fetchPendingCount();
-  }, [totalCustomerCount, completedCount]); 
+  }, [totalCustomerCount, completedCount]);
+   
 
 
   const isValidUserData = (user) => {
@@ -156,112 +216,150 @@ const CounterDash = () => {
   
   const fetchPendingCount = async () => {
     try {
-      const pendingSnapshot = await getDocs(collection(db, "single pending"));
-      setPendingCount(pendingSnapshot.size);
+      const queueDocRef = doc(db, "queue", "queueDoc");
+      const queueDocSnapshot = await getDoc(queueDocRef);
+      
+      if (queueDocSnapshot.exists()) {
+        const queueData = queueDocSnapshot.data();
+        const pendingArray = queueData.pending || [];
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist");
+        setPendingCount(0);
+      }
     } catch (error) {
       console.error("Error fetching pending count: ", error);
+      setPendingCount(0);
     }
-  }; 
+  };
   
 
   const handlePendingButtonClick = async () => {
     try {
-      // Fetch the first data's token number from the "single requests" collection
-      const singleRequestsRef = collection(db, 'single requests');
-      const querySnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
-  
-      console.log("Query Snapshot size:", querySnapshot.size); // Log the size of the query snapshot
+      // Fetch the currently serving token from the "requests" collection
+      const requestsRef = collection(db, 'requests');
+      const querySnapshot = await getDocs(query(requestsRef, where("tokenNumber", "==", nowServingToken)));
   
       if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const token = doc.data().token;
+        const document = querySnapshot.docs[0];
+        const tokenNumber = document.data().tokenNumber;
   
-        console.log("Document found with token:", token); // Log the token of the found document
+        console.log("Document found with token:", tokenNumber);
   
-        // Move the data to the "single pending" collection
-        const singlePendingRef = collection(db, 'single pending');
-        await addDoc(singlePendingRef, doc.data());
-        await deleteDoc(doc.ref);
-        console.log(`Data with token ${token} moved to 'single pending' and deleted from 'single requests'.`);
+        // Update the pending field to true in the requests collection
+        await updateDoc(doc(db, 'requests', document.id), { pending: true });
   
-        // Fetch the count of documents in the "single pending" collection
-        const pendingCounterSnapshot = await getDocs(singlePendingRef);
-        const pendingCounter = pendingCounterSnapshot.size;
+        // Get a reference to the queueDoc
+        const queueDocRef = doc(db, 'queue', 'queueDoc');
+        
+        // Get the current data of queueDoc
+        const queueDocSnap = await getDoc(queueDocRef);
+        const queueDocData = queueDocSnap.exists() ? queueDocSnap.data() : {};
+        
+        // Create or update the pending array
+        const currentPending = queueDocData.pending || [];
+        const updatedPending = [...currentPending, tokenNumber];
+        
+        // Update the queueDoc with the new pending array
+        await updateDoc(queueDocRef, {
+          pending: updatedPending
+        });
   
-        // Fetch the next token data from the "single requests" collection
-        const updatedDataSnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
-        const nextTokenData = updatedDataSnapshot.docs[0]?.data() || {}; // Get the data of the next token or an empty object if undefined
-        const nextToken = nextTokenData.token || ''; // Get the token from the data or set to empty string if undefined
+        console.log(`Token ${tokenNumber} marked as pending in 'requests' and added to pending array in queueDoc. Updated array:`, updatedPending);
   
-        // Update the state variables after ensuring the deletion has been completed
-        setNowServingToken(nextToken);
-        setNextTokenIndex(prevIndex => prevIndex + 1);
-        setPendingCount(pendingCounter);
+        // Update the state variables
+        setNowServingToken("---");
+        setPendingCount(updatedPending.length);
   
-        console.log("Updated pending counter:", pendingCounter);
+        // Fetch the next token data from the "requests" collection
+        const nextTokenSnapshot = await getDocs(query(requestsRef, where("pending", "==", false), orderBy("tokenNumber", "asc"), limit(1)));
+        if (!nextTokenSnapshot.empty) {
+          const nextTokenData = nextTokenSnapshot.docs[0].data();
+          setNowServingToken(nextTokenData.tokenNumber);
+        } else {
+          console.log("No more tokens to serve.");
+          setNowServingToken("---");
+        }
+  
       } else {
-        console.warn("No data found in 'single requests'.");
+        console.warn("No data found for the current serving token in 'requests'.");
+        setNowServingToken("---");
       }
     } catch (error) {
       console.error("Error handling pending button click: ", error);
+      setNowServingToken("---");
     }
   };
   
-  
+
+
   
 
 
   const handleRecallButtonClick = async () => {
     try {
       console.log('Starting recall process...');
-      const pendingCollectionName = `single pending`;
   
-      // Query the "single pending" collection, order by token number in ascending order, and limit to 1 document
-      const querySnapshot = await getDocs(
-        query(collection(db, pendingCollectionName), orderBy("token", "asc"), limit(1))
-      );
+      // Get a reference to the queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
       
-      console.log("Query executed.");
+      // Fetch the current queueDoc data
+      const queueDocSnap = await getDoc(queueDocRef);
+      
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        const pendingArray = queueData.pending || [];
   
-      if (!querySnapshot.empty) {
-        // Get the data of the first document
-        const userData = querySnapshot.docs[0].data();
+        if (pendingArray.length > 0) {
+          // Get the first token from the pending array
+          const recalledToken = pendingArray[0];
   
-        // Convert the timestamp to a Date object
-        userData.date = userData.date.toDate();
+          // Remove the first token from the pending array
+          const updatedPendingArray = pendingArray.slice(1);
   
-        // Insert the entire document data into the "single requests" collection
-        await addDoc(collection(db, "single requests"), userData);
+          // Update the queueDoc with the modified pending array
+          await updateDoc(queueDocRef, {
+            pending: updatedPendingArray
+          });
   
-        // Delete the first document from the "single pending" collection
-        await deleteDoc(querySnapshot.docs[0].ref);
+          // Update the nowServingToken state
+          setNowServingToken(recalledToken);
   
-        // Update pending count after recalling
-        // await fetchPendingCount();
+          // Update the pendingCount state
+          setPendingCount(updatedPendingArray.length);
   
-        // Update nowServingToken and singleCounterData
-        const updatedSingleRequestsSnapshot = await getDocs(collection(db, "single requests"));
-        const updatedSingleCounterData = updatedSingleRequestsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        // Update state variables
-        setNowServingToken(userData.token);
-        setTotalCustomerCount(updatedSingleRequestsSnapshot.size+1);
-        setPendingCount(prevCount => prevCount - 1);
-        setSingleCounterData(updatedSingleCounterData);
-        
+          console.log(`Token ${recalledToken} recalled successfully.`);
   
-        console.log("Token recalled successfully.");
+          // Update the status in the requests collection
+          const requestsRef = collection(db, 'requests');
+          const requestQuery = query(requestsRef, where('tokenNumber', '==', recalledToken));
+          const requestSnapshot = await getDocs(requestQuery);
+  
+          if (!requestSnapshot.empty) {
+            const requestDoc = requestSnapshot.docs[0];
+            await updateDoc(doc(requestsRef, requestDoc.id), { pending: false });
+            console.log(`Request with token ${recalledToken} pending status updated to false`);
+            const email = user.email;
+          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+
+          // Prepare and speak the voice message for recall
+          const message = `Recalling token number ${recalledToken}, please proceed to counter ${counterNumber}`;
+          console.log("Speaking recall message:", message);
+          speak(message);
+          } else {
+            console.log(`Request with token ${recalledToken} not found in requests collection`);
+          }
+  
+        } else {
+          console.log("No pending tokens to recall.");
+        }
       } else {
-        console.warn("No pending records found to recall.");
+        console.log("Queue document does not exist");
       }
     } catch (error) {
       console.error("Error recalling token: ", error);
     }
   };
-  
 
   const handleCallButtonClick = async () => {
     const email = user.email;
@@ -270,41 +368,67 @@ const CounterDash = () => {
     );
   
     try {
-      // Check if there is a token currently being served
-      if (nowServingToken && nowServingToken !== '-') {
-        console.log(`Calling token ${nowServingToken}`);
+      // Fetch the queue document
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
   
-        // Update the currently serving token in the database
-        const tokenData = {
-          token: nowServingToken
-        };
-        await updateCurrentlyServing(tokenData);
-        const message = `${nowServingToken} PLEASE PROCEED TO COUNTER${counterNumber}`;
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
   
-        console.log(tokenData);
-        speak(message);
+        if (tokenArray.length > 0) {
+          // Pop the first token from the array
+          const nextToken = tokenArray.shift();
+          setNowServingToken(nextToken);
   
-        // Store the nowServingToken to a new collection named counterNumber
-        const counterCollectionRef = collection(db, `counter${counterNumber}`);
-        await addDoc(counterCollectionRef, tokenData);
-        console.log(`Data with token ${nowServingToken} stored in 'counter${counterNumber}'.`);
+          // Update the queue document with the modified array
+          await updateDoc(queueDocRef, { token: tokenArray });
   
-        // Fetch and delete the document from the "single requests" collection
-        const singleRequestsRef = collection(db, 'single requests');
-        const querySnapshot = await getDocs(query(singleRequestsRef, where("token", "==", nowServingToken), limit(1)));
+          // Update the currently serving token in the database
+          const tokenData = { token: nextToken };
+          await updateCurrentlyServing(tokenData);
   
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          // Delete the document from the "single requests" collection
-          await deleteDoc(doc.ref);
-          console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
+          // Update the status in the requests collection
+          const requestsRef = collection(db, 'requests');
+          const requestQuery = query(requestsRef, where('tokenNumber', '==', nextToken));
+          const requestSnapshot = await getDocs(requestQuery);
+  
+          if (!requestSnapshot.empty) {
+            const requestDoc = requestSnapshot.docs[0];
+            await updateDoc(doc(requestsRef, requestDoc.id), { status: false });
+            console.log(`Request with token ${nextToken} status updated to false`);
+          } else {
+            console.log(`Request with token ${nextToken} not found in requests collection`);
+          }
+  
+          const message = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
+          console.log("Speaking message:", message);
+          speak(message);
+  
+          // Store the nowServingToken to a new collection named counterNumber
+          const counterCollectionRef = collection(db, `counter${counterNumber}`);
+          await addDoc(counterCollectionRef, tokenData);
+          console.log(`Data with token ${nextToken} stored in 'counter${counterNumber}'.`);
+  
+          // Update the status in the counters collection
+          const countersRef = collection(db, 'counters');
+          const counterQuery = query(countersRef, where('counterNumber', '==', counterNumber.toString()));
+          const counterSnapshot = await getDocs(counterQuery);
+  
+          if (!counterSnapshot.empty) {
+            const counterDoc = counterSnapshot.docs[0];
+            await updateDoc(doc(countersRef, counterDoc.id), { status: 'available' });
+            console.log(`Counter ${counterNumber} status updated to available`);
+          } else {
+            console.log(`Counter ${counterNumber} not found in counters collection`);
+          }
+  
+          console.log(`Now serving token ${nextToken}`);
         } else {
-          console.warn(`No document found in 'single requests' with token ${nowServingToken}.`);
+          console.log("No tokens in the queue");
         }
-  
-        await storeNextTokenData(userData[nextTokenIndex]);
       } else {
-        console.log("No more tokens in queue");
+        console.log("Queue document does not exist");
       }
     } catch (error) {
       console.error("Error calling token: ", error);
@@ -377,42 +501,48 @@ const CounterDash = () => {
   
 
   const handleSaveButtonClick = async () => {
-  try {
-    if (nowServingToken && nowServingToken !== '') {
-      const singleRequestsRef = collection(db, 'single requests');
-      
-      // Find the document with the current token
-      const querySnapshot = await getDocs(query(singleRequestsRef, where('token', '==', nowServingToken)));
-      
-      if (!querySnapshot.empty) {
-        // Delete the current token document
-        querySnapshot.forEach(async (doc) => {
-          await deleteDoc(doc.ref);
-          console.log(`Data with token ${nowServingToken} deleted from 'single requests'.`);
-        });
-
-        // Fetch the next token from "single requests" collection
-        const nextTokenSnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
-        const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {};
-        const nextToken = nextTokenData.token || '';
-
-        // Update state using functional form of setState
-        setSingleCounterData(prevData => prevData.filter(item => item.token !== nowServingToken));
-        setNowServingToken(nextToken);
-        setTotalCustomerCount(prevCount => prevCount - 1);
-        setNextTokenIndex(prevIndex => prevIndex + 1);
-
-        console.log("Next token is now serving:", nextToken);
+    try {
+      if (nowServingToken && nowServingToken !== '') {
+        // Get a reference to the queue document
+        const queueDocRef = doc(db, 'queue', 'queueDoc');
+        const queueDocSnap = await getDoc(queueDocRef);
+  
+        if (queueDocSnap.exists()) {
+          // Get the current receivedToken array
+          const queueData = queueDocSnap.data();
+          const receivedTokenArray = queueData.receivedToken || [];
+  
+          // Push the nowServingToken into the receivedToken array
+          receivedTokenArray.push(nowServingToken);
+  
+          // Update the queue document with the new receivedToken array
+          await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
+  
+          // Update the state with the new completedCount
+          setCompletedCount(receivedTokenArray.length);
+  
+          // Reset the nowServingToken and fetch the next token from "requests" collection
+          const singleRequestsRef = collection(db, 'requests');
+          const nextTokenSnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
+          const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {};
+          const nextToken = nextTokenData.token || '';
+  
+          // Update state
+          setSingleCounterData(prevData => prevData.filter(item => item.token !== nowServingToken));
+          setNowServingToken(nextToken);
+          // setTotalCustomerCount(prevCount => prevCount - 1);
+          setNextTokenIndex(prevIndex => prevIndex + 1);
+        } else {
+          console.warn("Queue document does not exist.");
+        }
       } else {
-        console.warn(`No data found with token ${nowServingToken} in 'single requests'.`);
+        console.log("No token currently being served.");
       }
-    } else {
-      console.log("No token currently being served.");
+    } catch (error) {
+      console.error("Error handling completed: ", error);
     }
-  } catch (error) {
-    console.error("Error handling completed: ", error);
-  }
-};
+  };
+  
 
   
   
@@ -422,23 +552,55 @@ const CounterDash = () => {
       // Set the nowServingToken state to the provided token number
       setNowServingToken(specialtoken);
   
-      
-        const updatedDataSnapshot = await getDocs(collection(db, 'single requests'));
-          const updatedData = updatedDataSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
-          // setTotalCustomerCount((updatedDataSnapshot.size)+1)
-          // Update the singleCounterData state with the updated data
-          setSingleCounterData(updatedData);
-        console.log(`Document with token ${specialtoken} served and deleted from 'single requests'.`);
-      // }
+      // Get a reference to the queue document
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
+  
+        // Remove the special token from the token array
+        tokenArray = tokenArray.filter(token => token !== specialtoken);
+  
+        // Update the queue document with the modified token array
+        await updateDoc(queueDocRef, { token: tokenArray });
+  
+        console.log(`Token ${specialtoken} removed from the queue.`);
+      }
+  
+      // Update the status of the called token in the requests collection
+      const requestsRef = collection(db, 'requests');
+      const q = query(requestsRef, where('tokenNumber', '==', specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docRef = doc(requestsRef, querySnapshot.docs[0].id);
+        await updateDoc(docRef, { status: false });
+        
+        // Remove the called token from the requestsData state
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
+        
+        // Update the remaining count
+        setRemainingCount(prevCount => prevCount - 1);
+  
+        console.log(`Token ${specialtoken} status updated to false and removed from table.`);
+  
+        // Get the counter number from the user's email
+        const email = user.email;
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+        // Prepare and speak the voice message
+        const message = `Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
+        console.log("Speaking message:", message);
+        speak(message);
+      } else {
+        console.log(`Document with token ${specialtoken} not found in 'requests'.`);
+      }
     } catch (error) {
       console.log('Error in calling specific token:', error);
     }
   };
-  
 
   const getCurrentDate = () => {
     const dateObj = new Date();
@@ -452,9 +614,9 @@ const CounterDash = () => {
     const startServiceAutomatically = async () => {
       setIsServiceStarted(true); // Start the service automatically
       try {
-        // Fetch and sort the "single requests" collection by token number in ascending order
+        // Fetch and sort the "requests" collection by token number in ascending order
         const querySnapshot = await getDocs(
-          query(collection(db, "single requests"), orderBy("token", "asc"))
+          query(collection(db, "requests"), orderBy("token", "asc"))
         );
   
         // Extract the sorted user data
@@ -464,7 +626,7 @@ const CounterDash = () => {
           const nowServingToken = sortedUserData[0].token;
           console.log(`Now serving token is ${nowServingToken}`);
         } else {
-          console.log("No tokens found in single requests collection.");
+          console.log("No tokens found in requests collection.");
           return;
         }
   
@@ -519,7 +681,7 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large">Total Customer</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{lastTokenNumber}</p>
+              <p className="text-6xl font-bold ml-12 mt-4">{totalCustomerCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -528,7 +690,7 @@ const CounterDash = () => {
                
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-                  <p className="text-6xl font-bold ml-12 mt-4">{totalCustomerCount}</p>
+                  <p className="text-6xl font-bold ml-12 mt-4">{remainingCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -536,7 +698,7 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{lastTokenNumber-totalCustomerCount}</p>
+                <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
@@ -550,37 +712,34 @@ const CounterDash = () => {
           </div>
           </div>
           <div className="grid grid-cols-1 mb-4 mt-16">
-            <Card className="py-4 ml-4 w-[200px]">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large mb-21">Now Serving</h3>
-                {isServiceStarted && nextTokenIndex > 0 && (
-                  <p className="text-6xl font-bold  mt-4">{nowServingToken}</p>
-                )}
-              </CardHeader>
-              {isServiceStarted && nextTokenIndex > 0 && (
-                <CardBody className="overflow-visible py-2">
-                  <div className="flex flex-col items-center justify-end h-full">
-                    <div className="flex justify-end mb-4">
-                      <Button
-                        onClick={handleSaveButtonClick}
-                        className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
-                      >
-                        Completed
-                      </Button>
-                    </div>
-                    <div className="flex justify-end mb-0">
-                      <Button
-                        onClick={handlePendingButtonClick}
-                        className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
-                      >
-                        Pending
-                      </Button>
-                    </div>
-                  </div>
-                </CardBody>
-              )}
-            </Card>
-
+          <Card className="py-4 ml-4 w-[200px]">
+            <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
+              <h3 className="font-bold text-large mb-2">Now Serving</h3>
+              <p className="text-6xl font-bold mt-4">{nowServingToken === "---" ? "---" : nowServingToken || "---"}</p>
+            </CardHeader>
+            <CardBody className="overflow-visible py-2">
+              <div className="flex flex-col items-center justify-end h-full">
+                <div className="flex justify-end mb-4">
+                  <Button
+                    onClick={handleSaveButtonClick}
+                    disabled={!nowServingToken}
+                    className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                  >
+                    Completed
+                  </Button>
+                </div>
+                <div className="flex justify-end mb-0">
+                  <Button
+                    onClick={handlePendingButtonClick}
+                    disabled={!nowServingToken}
+                    className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                  >
+                    Pending
+                  </Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
           </div>
           <div className="mb-2 mt-12 ml-14">
             <div className="flex justify-end mb-2">
@@ -601,35 +760,37 @@ const CounterDash = () => {
           </div>
 
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
-            <Table aria-label="Example static collection table" removeWrapper>
-              <TableHeader >
-                <TableColumn>Sl. no.</TableColumn>
-                <TableColumn>Name</TableColumn>
-                <TableColumn>Date</TableColumn>
-                <TableColumn>Reason for Visit</TableColumn>
-                <TableColumn>Token No</TableColumn>
-                <TableColumn></TableColumn>
-              </TableHeader>
-              <TableBody>
-              {singleCounterData.sort((a, b) => (a.token > b.token) ? 1 : -1).map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.date ? user.date.toDate().toLocaleString() : ""}</TableCell>
-                  <TableCell>{user.service}</TableCell>
-                  <TableCell>{user.token}</TableCell>
-                  <TableCell>
-                    <Button
-                      onClick={() => callSpecificToken(user.token)}
-                      className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-                    >
-                      Call Now
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            </Table>
+          <Table aria-label="Example static collection table" removeWrapper>
+  <TableHeader>
+    <TableColumn>Token</TableColumn>
+    <TableColumn>Name</TableColumn>
+    <TableColumn>Date</TableColumn>
+    <TableColumn>Service</TableColumn>
+    <TableColumn></TableColumn>
+  </TableHeader>
+  <TableBody>
+    {requestsData.map(request => (
+      <TableRow key={request.id}>
+        <TableCell>{request.tokenNumber}</TableCell>
+        <TableCell>{request.name}</TableCell>
+        <TableCell>
+          {request.date instanceof Date ? 
+            request.date.toLocaleString() : 
+            (request.date ? new Date(request.date).toLocaleString() : "")}
+        </TableCell>
+        <TableCell>{request.service}</TableCell>
+        <TableCell>
+          <Button
+            onClick={() => callSpecificToken(request.tokenNumber)}
+            className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+          >
+            Call Now
+          </Button>
+        </TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
           </div>
         </div>
       </div>
