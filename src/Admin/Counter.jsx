@@ -63,6 +63,10 @@ const AdminDash = () => {
     }
   };
 
+  const handleCounterAdded = (newCounter) => {
+    setCounters([...counters, newCounter]);
+  };
+
   return (
     <div className="flex min-h-screen">
       <div className="fixed h-full">
@@ -74,7 +78,7 @@ const AdminDash = () => {
             <div className="font-semibold md:text-xl">
               <h2>Active Counters</h2>
             </div>
-            <ModalCounter />
+            <ModalCounter onCounterAdded={handleCounterAdded} />
           </div>
           
           <Table aria-label="Example static collection table">
@@ -117,7 +121,7 @@ const AdminDash = () => {
       
       {selectedCounter && (
         <EditCounterModal
-          key={selectedCounter.id}  // Add key here to ensure proper re-rendering
+          key={selectedCounter.id}
           isOpen={isOpen}
           onClose={() => {
             onClose();

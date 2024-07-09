@@ -11,111 +11,65 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
 
-export default function App() {
+export default function ModalCounter({ onCounterAdded }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { control, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      counterName: "",
+      email: "",
+      password: "",
+      service: "",
+    },
+  });
 
-  const [counterName, setCounterName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [selectedServices, setSelectedServices] = useState([]);
   const [services, setServices] = useState([]);
-  // const [staff, setStaff] = useState([]);
-  // const [staffId, setStaffId] = useState("");
-  // const [filteredStaff, setFilteredStaff] = useState([]);
 
   useEffect(() => {
     const fetchServices = async () => {
       const servicesCollection = collection(db, "services");
       const servicesSnapshot = await getDocs(servicesCollection);
-      const servicesList = servicesSnapshot.docs.map(doc => doc.data());
+      const servicesList = servicesSnapshot.docs.map((doc) => doc.data());
 
-      const mappedServices = servicesList.map((service, index) => ({
-        id: `service${index + 1}`,
-        name: service.name
-      }));
-
-      setServices(mappedServices);
+      setServices(servicesList);
     };
 
     fetchServices();
   }, []);
 
-  // useEffect(() => {
-  //   const fetchStaff = async () => {
-  //     const staffCollection = collection(db, "staff");
-  //     const staffSnapshot = await getDocs(staffCollection);
-  //     const staffList = staffSnapshot.docs.map(doc => doc.data());
+  const onSubmit = async (data) => {
+    if (!data.counterName || !data.email || !data.password || !data.service) {
+      return;
+    }
 
-  //     const mappedStaff = staffList.map((staffMember, index) => ({
-  //       id: `staff${index + 1}`,
-  //       name: staffMember.name,
-  //       service: staffMember.service
-  //     }));
-
-  //     setStaff(mappedStaff);
-  //   };
-
-  //   fetchStaff();
-  // }, []);
-
-  const handleSubmit = async () => {
     try {
       const id = uuidv4();
-      const hashedPassword = await hash(password, 10);
-      const type = selectedServices.length > 1 ? "multipleQueueService" : "singleQueueService";
+      const hashedPassword = await hash(data.password, 10);
 
-      await addDoc(collection(db, "counters"), {
+      const newCounter = {
         counterId: id,
-        counterName,
-        email,
+        counterName: data.counterName,
+        email: data.email,
         password: hashedPassword,
-        serviceIds: selectedServices,
-        // staffId,
-        type,
-        status: "active",
+        service: data.service,
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
-      });
+      };
 
-      // Clear form fields after submission
-      setCounterName("");
-      setEmail("");
-      setPassword("");
-      setSelectedServices([]);
-      // setStaffId("");
-      // setFilteredStaff([]);
+      await addDoc(collection(db, "counters"), newCounter);
 
-      // Close the modal
+      reset();
       onClose();
+      onCounterAdded(newCounter);
     } catch (error) {
       console.error("Error adding document: ", error);
     }
   };
-
-  const handleServiceChange = (event) => {
-    const selectedServiceId = event.target.value;
-    setSelectedServices([selectedServiceId]);
-    // const selectedServiceName = services.find(
-    //   (service) => service.id === selectedServiceId
-    // ).name;
-
-    // const filtered = staff.filter((s) => s.service === selectedServiceName);
-
-    console.log("Selected Service ID:", selectedServiceId);
-    // console.log("Selected Service Name:", selectedServiceName);
-    // console.log("Filtered Staff:", filtered);
-
-    // setFilteredStaff(filtered);
-  };
-
-  // const handleStaffChange = (event) => {
-  //   setStaffId(event.target.value);
-  // };
 
   return (
     <>
@@ -124,63 +78,93 @@ export default function App() {
       </Button>
       <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
         <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">Add Counter</ModalHeader>
-          <ModalBody>
-            <Input
-              type="text"
-              label="Counter Name"
-              value={counterName}
-              onChange={(e) => setCounterName(e.target.value)}
-              variant="bordered"
-            />
-            <Input
-              type="email"
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              variant="bordered"
-            />
-            <Input
-              type="password"
-              label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              variant="bordered"
-            />
-            <Select
-              label="Select your Reason to be here"
-              onChange={(value) => handleServiceChange(value)}
-              required
-              variant="bordered"
-            >
-              {services.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item.name} key={item.name}>
-                  {item.name}
-                </SelectItem>
-              ))}
-            </Select>
-            {/* <Select
-              label="Select staff"
-              onChange={handleStaffChange}
-              required
-              variant="bordered"
-              isDisabled={!selectedServices.length}
-            >
-              {filteredStaff.map((item) => (
-                <SelectItem className="font-[Outfit]" value={item.id} key={item.id}>
-                  {item.name}
-                </SelectItem>
-              ))}
-            </Select> */}
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" onPress={onClose} className="w-full">
-              Close
-            </Button>
-            <Button color="primary" onPress={handleSubmit} className="w-full">
-              Submit
-            </Button>
-          </ModalFooter>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <ModalHeader className="flex flex-col gap-1">Add Counter</ModalHeader>
+            <ModalBody>
+              <Controller
+                name="counterName"
+                control={control}
+                rules={{ required: "Counter Name is required" }}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="text"
+                    label="Counter Name"
+                    variant="bordered"
+                    isInvalid={!!errors.counterName}
+                    errorMessage={errors.counterName?.message}
+                  />
+                )}
+              />
+              <Controller
+                name="email"
+                control={control}
+                rules={{
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                }}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="email"
+                    label="Email"
+                    variant="bordered"
+                    isInvalid={!!errors.email}
+                    errorMessage={errors.email?.message}
+                  />
+                )}
+              />
+              <Controller
+                name="password"
+                control={control}
+                rules={{
+                  required: "Password is required",
+                  minLength: { value: 6, message: "Password must be at least 6 characters" },
+                }}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="password"
+                    label="Password"
+                    variant="bordered"
+                    isInvalid={!!errors.password}
+                    errorMessage={errors.password?.message}
+                  />
+                )}
+              />
+              <Controller
+                name="service"
+                control={control}
+                rules={{ required: "Service is required" }}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    label="Select Service"
+                    variant="bordered"
+                    isInvalid={!!errors.service}
+                    errorMessage={errors.service?.message}
+                  >
+                    {services.map((service) => (
+                      <SelectItem key={service.name} value={service.name}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                )}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" onPress={onClose} className="w-full">
+                Close
+              </Button>
+              <Button type="submit" color="primary" className="w-full">
+                Submit
+              </Button>
+            </ModalFooter>
+          </form>
         </ModalContent>
       </Modal>
     </>
