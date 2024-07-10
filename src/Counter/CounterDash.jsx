@@ -43,7 +43,7 @@ const CounterDash = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
-  const [nowServingToken, setNowServingToken] = useState("");
+  const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [singleCounterData, setSingleCounterData] = useState([]);
   const [lastTokenNumber, setLastTokenNumber] = useState(0);
@@ -58,17 +58,22 @@ const CounterDash = () => {
     const fetchRequestsData = async () => {
       try {
         const requestsRef = collection(db, "requests");
-        const q = query(requestsRef, where("status", "==", true), orderBy("tokenNumber", "asc"));
-        const querySnapshot = await getDocs(q);
+        const q = query(
+          requestsRef, 
+          where("status", "==", true), 
+          orderBy("tokenNumber", "asc"));
         
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().date ? doc.data().date.toDate() : null
-        }));
-        
-        setRequestsData(data);
-        setRemainingCount(data.length);
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const data = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: doc.data().date ? doc.data().date.toDate() : null
+          }));
+          
+          setRequestsData(data);
+          setRemainingCount(data.length);
+        });
+        return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching requests data:", error);
       }
@@ -76,6 +81,7 @@ const CounterDash = () => {
   
     fetchRequestsData();
   }, []);  // Empty dependency array means this effect runs once on mount
+
   const fetchRemainingCount = async () => {
     try {
       const requestsQuery = query(
@@ -89,6 +95,23 @@ const CounterDash = () => {
       console.error("Error fetching remaining count:", error);
     }
   };
+  useEffect(() => {
+    const queueDocRef = doc(db, "queue", "queueDoc");
+    
+    const unsubscribe = onSnapshot(queueDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const queueData = docSnapshot.data();
+        const pendingArray = queueData.pending || [];
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist");
+        setPendingCount(0);
+      }
+    });
+  
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
   useEffect(() => {
     const fetchCompletedCount = async () => {
       try {
@@ -111,7 +134,19 @@ const CounterDash = () => {
   
     fetchCompletedCount();
   }, []);
+  useEffect(() => {
+    const fetchTotalCustomerCount = async () => {
+      try {
+        const requestsRef = collection(db, "requests");
+        const querySnapshot = await getDocs(requestsRef);
+        setTotalCustomerCount(querySnapshot.size);
+      } catch (error) {
+        console.error("Error fetching total customer count:", error);
+      }
+    };
   
+    fetchTotalCustomerCount();
+  }, []);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -120,10 +155,14 @@ const CounterDash = () => {
         await fetchRemainingCount();
         
         // Fetch data from the requests collection where status is true
-        const allRequestsQuery = query(collection(db, "requests"), orderBy("tokenNumber", "asc"));
-        const allRequestsSnapshot = await getDocs(allRequestsQuery);
+        const requestsQuery = query(
+          collection(db, "requests"), 
+          where("status", "==", true),
+          orderBy("tokenNumber", "asc")
+        );
+        const requestsSnapshot = await getDocs(requestsQuery);
         
-        const requestsData = allRequestsSnapshot.docs.map(doc => ({
+        const requestsData = requestsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           date: doc.data().date ? doc.data().date.toDate() : null
@@ -134,9 +173,10 @@ const CounterDash = () => {
         setRequestsData(requestsData);
         
         // Set the remaining count (documents with status true)
+        // setRemainingCount(requestsSnapshot.size);
         setRemainingCount(requestsSnapshot.size);
-  
-        setTotalCustomerCount(requestsSnapshot.size);
+        // setTotalCustomerCount(requestsSnapshot.size);
+        setNowServingToken("---");
   
         // Fetch the queue data for nowServingToken
         const queueDocRef = doc(db, 'queue', 'queueDoc');
@@ -147,7 +187,7 @@ const CounterDash = () => {
           const tokenArray = queueData.token || [];
   
           if (tokenArray.length > 0) {
-            setNowServingToken(tokenArray[0]);
+            setNowServingToken('---');
             console.log("Initial now serving token:", tokenArray[0]);
           } else {
             setNowServingToken("");
@@ -257,6 +297,10 @@ const CounterDash = () => {
 
   const handlePendingButtonClick = async () => {
     try {
+      if (nowServingToken === "---") {
+      console.log("No token currently being served.");
+      return;
+    }
       // Fetch the currently serving token from the "requests" collection
       const requestsRef = collection(db, 'requests');
       const querySnapshot = await getDocs(query(requestsRef, where("tokenNumber", "==", nowServingToken)));
@@ -404,6 +448,10 @@ const CounterDash = () => {
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
+    if (nowServingToken !== "---") {
+      console.log("A token is already being served.");
+      return;
+    }
   
     try {
       // Fetch the queue document
@@ -434,11 +482,10 @@ const CounterDash = () => {
           if (!requestSnapshot.empty) {
             const requestDoc = requestSnapshot.docs[0];
             await updateDoc(doc(requestsRef, requestDoc.id), { status: false });
-            setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
-    
-            // Update the remaining count
-            setRemainingCount(prevCount => prevCount - 1);
+            
             console.log(`Request with token ${nextToken} status updated to false`);
+
+            setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
           } else {
             console.log(`Request with token ${nextToken} not found in requests collection`);
           }
@@ -468,6 +515,7 @@ const CounterDash = () => {
           console.log(`Now serving token ${nextToken}`);
         } else {
           console.log("No tokens in the queue");
+          setNowServingToken("---");
         }
       } else {
         console.log("Queue document does not exist");
@@ -559,7 +607,11 @@ const CounterDash = () => {
           // Update the state with the new completedCount immediately
           setCompletedCount(receivedTokenArray.length);
   
-          // ... rest of the function
+          // Set nowServingToken to "---" to indicate no token is being served
+          setNowServingToken("---");
+  
+          // Call the next token
+          await handleCallButtonClick();
         } else {
           console.warn("Queue document does not exist.");
         }
@@ -570,7 +622,6 @@ const CounterDash = () => {
       console.error("Error handling completed: ", error);
     }
   };
-  
 
   
   
@@ -610,7 +661,7 @@ const CounterDash = () => {
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
         
         // Update the remaining count
-        setRemainingCount(prevCount => prevCount - 1);
+        // setRemainingCount(prevCount => prevCount - 1);
   
         console.log(`Token ${specialtoken} status updated to false and removed from table.`);
   
@@ -771,12 +822,16 @@ const CounterDash = () => {
           </div>
           <div className="mb-2 mt-12 ml-14">
             <div className="flex justify-end mb-2">
-              <Button onClick={handleCallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
+              <Button onClick={handleCallButtonClick}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Call
               </Button>
             </div>
             <div className="flex justify-end mb-2">
-              <Button onClick={handleRecallButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
+              <Button onClick={handleRecallButtonClick}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Recall
               </Button>
             </div>
@@ -810,6 +865,7 @@ const CounterDash = () => {
         <TableCell>
           <Button
             onClick={() => callSpecificToken(request.tokenNumber)}
+            disabled={nowServingToken !== "---"}
             className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
           >
             Call Now

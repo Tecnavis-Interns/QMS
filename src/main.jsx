@@ -12,7 +12,7 @@ import {
 import UserForm from './User/UserForm'
 import Login from './login/Login'
 import CounterDash from './Counter/CounterDash';
-import AdminDash from './Admin/AdminDash'
+import AdminDashPage from './Admin/AdminDashPage'
 import Staff from './Admin/Staff';
 import Counter from './Admin/Counter'
 import TVView from './TVView/TVView'
@@ -38,7 +38,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/adminDash',
-    element: <AdminDash />,
+    element: <AdminDashPage />,
   },
   {
     path: '/counter',
