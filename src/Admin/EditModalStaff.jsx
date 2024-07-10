@@ -164,7 +164,7 @@ const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
             <Button onPress={onClose} className="w-full bg-slate-300">
               Close
             </Button>
-            <Button type="submit" className="w-full bg-red-300">
+            <Button type="submit" className="w-full bg-[#908fe2]">
               Update
             </Button>
           </ModalFooter>

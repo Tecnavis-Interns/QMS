@@ -802,7 +802,7 @@ const CounterDash = () => {
                   <Button
                     onClick={handleSaveButtonClick}
                     disabled={!nowServingToken}
-                    className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                    className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
                   >
                     Completed
                   </Button>
@@ -811,7 +811,7 @@ const CounterDash = () => {
                   <Button
                     onClick={handlePendingButtonClick}
                     disabled={!nowServingToken}
-                    className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                    className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
                   >
                     Pending
                   </Button>
@@ -824,19 +824,19 @@ const CounterDash = () => {
             <div className="flex justify-end mb-2">
               <Button onClick={handleCallButtonClick}
                 disabled={nowServingToken !== "---"}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
+                className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Call
               </Button>
             </div>
             <div className="flex justify-end mb-2">
               <Button onClick={handleRecallButtonClick}
                 disabled={nowServingToken !== "---"}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
+                className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Recall
               </Button>
             </div>
             {/* <div className="flex justify-end mb-2">
-              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
+              <Button onClick={handleResetButtonClick} className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Reset Token
               </Button>
             </div> */}
@@ -866,7 +866,7 @@ const CounterDash = () => {
           <Button
             onClick={() => callSpecificToken(request.tokenNumber)}
             disabled={nowServingToken !== "---"}
-            className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+            className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3"
           >
             Call Now
           </Button>

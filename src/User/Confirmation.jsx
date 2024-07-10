@@ -59,10 +59,10 @@ export default function ConfirmationPage() {
           <p className="mb-8 text-lg font-semibold">Your token number is: {tokenNumber}</p>
           </div>
           <div className="flex flex-col justify-center items-center space-y-4">
-            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={handleDownloadPDF}>
+            <Button className="bg-[#6e71d6] text-white w-64 py-3 text-lg" onClick={handleDownloadPDF}>
               Download Token
             </Button>
-            <Button className="bg-[#6236F5] text-white w-64 py-3 text-lg" onClick={() => navigate("/userForm")}>
+            <Button className="bg-[#6e71d6] text-white w-64 py-3 text-lg" onClick={() => navigate("/userForm")}>
               Go Back Home
             </Button>
           </div>

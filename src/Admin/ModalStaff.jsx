@@ -180,7 +180,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
             <Button onPress={onClose} className="w-full bg-slate-300">
               Close
             </Button>
-            <Button type="submit" className="w-full bg-red-400">
+            <Button type="submit" className="w-full bg-[#b9b0eb]">
               Submit
             </Button>
           </ModalFooter>

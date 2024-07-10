@@ -19,26 +19,30 @@ export default function App() {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#6236F5]">
+      <aside className="w-64 bg-[#6e71d6] flex flex-col">
         <div className="flex items-center justify-center h-16">
           <p className="font-bold text-white hidden sm:block">
             Queue Management System
           </p>
           <p className="font-bold text-white sm:hidden">QMS</p>
         </div>
-        <div className="flex flex-col items-center justify-between flex-1 p-4">
-          <p className="text-white">Counter Dashboard</p>
-          <Button
-            as={Link}
-            className="w-full mt-4 bg-gray-900 text-white mt-[470px]"
-            href="#"
-            variant="flat"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+        <div className="flex flex-col flex-grow">
+          <div className="flex-grow p-4 ml-8">
+            <p className="text-white">Counter Dashboard</p>
+            {/* Add other sidebar items here */}
+          </div>
+          <div className="p-4">
+            <Button
+              as={Link}
+              className="w-full bg-white text-black hover:bg-[#d4ccf4] transition-colors duration-200 rounded-md"
+              variant="flat"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </div>
         </div>
       </aside>
-    </div>
-  );
+    </div>
+  );
 }

@@ -22,7 +22,7 @@ export default function App() {
         <NavbarItem>
           <Button
             as={Link}
-            className="bg-[#6236F5] text-white"
+            className="bg-[#6e71d6] text-white"
             href="/userForm"
             variant="flat"
           >
@@ -32,7 +32,7 @@ export default function App() {
         <NavbarItem>
         <Button
           as={Link}
-          className="bg-[#6236F5] text-white"
+          className="bg-[#6e71d6] text-white"
           href="/login"
           variant="flat">
             Login

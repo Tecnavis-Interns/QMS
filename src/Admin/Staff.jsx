@@ -202,7 +202,7 @@ const handleDelete = async (docId) => {
               <div className="justify-end">
                 <Button
                   color="primary"
-                  className="w-[120px] bg-red-400"
+                  className="w-[120px] bg-[#908fe2]"
                   onClick={handleAddStaff}
                 >
                   + Add Staff
@@ -232,7 +232,7 @@ const handleDelete = async (docId) => {
                       <TableCell>
                         <Button
                           size="mini"
-                          className="ml-2 bg-red-100"
+                          className="ml-2 bg-[#b9b0eb]"
                           onClick={() => handleEdit(user.id)}
                         >
                           Edit

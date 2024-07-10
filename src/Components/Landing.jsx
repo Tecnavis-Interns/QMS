@@ -15,13 +15,13 @@ const LandingContent = () => {
         </p>
         <div className="flex gap-10">
         <Button
-          className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+          className="bg-[#6e71d6] p-2 px-5 rounded-md text-white w-fit mt-3"
           onClick={() => navigate("/userForm")}
         >
           Book your slot
         </Button>
         <Button
-          className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+          className="bg-[#6e71d6] p-2 px-5 rounded-md text-white w-fit mt-3"
           onClick={() => navigate("/login")}>
             Login
           </Button>

@@ -128,7 +128,7 @@ const AdminDash = () => {
                       <Button
                         size="sm"
                         onClick={() => handleEditCounter(counter)}
-                        className="bg-red-100 text-black"
+                        className="bg-[#b9b0eb] text-black"
                       >
                         Edit
                       </Button>
