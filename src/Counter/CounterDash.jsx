@@ -75,8 +75,7 @@ const CounterDash = () => {
     };
   
     fetchRequestsData();
-  }, []);  
-
+  }, []);  // Empty dependency array means this effect runs once on mount
   const fetchRemainingCount = async () => {
     try {
       const requestsQuery = query(
@@ -90,6 +89,28 @@ const CounterDash = () => {
       console.error("Error fetching remaining count:", error);
     }
   };
+  useEffect(() => {
+    const fetchCompletedCount = async () => {
+      try {
+        const queueDocRef = doc(db, 'queue', 'queueDoc');
+        const queueDocSnap = await getDoc(queueDocRef);
+        
+        if (queueDocSnap.exists()) {
+          const queueData = queueDocSnap.data();
+          const receivedTokenArray = queueData.receivedToken || [];
+          setCompletedCount(receivedTokenArray.length);
+        } else {
+          console.log("Queue document does not exist");
+          setCompletedCount(0);
+        }
+      } catch (error) {
+        console.error("Error fetching completed count: ", error);
+        setCompletedCount(0);
+      }
+    };
+  
+    fetchCompletedCount();
+  }, []);
   
 
   useEffect(() => {
@@ -272,7 +293,7 @@ const CounterDash = () => {
         setPendingCount(updatedPending.length);
   
         // Fetch the next token data from the "requests" collection
-        const nextTokenSnapshot = await getDocs(query(requestsRef, where("pending", "==", false), orderBy("tokenNumber", "asc"), limit(1)));
+        const nextTokenSnapshot = await getDocs(query(requestsRef, where("pending", "==", false), where("status", "==", true), orderBy("tokenNumber", "asc"), limit(1)));
         if (!nextTokenSnapshot.empty) {
           const nextTokenData = nextTokenSnapshot.docs[0].data();
           setNowServingToken(nextTokenData.tokenNumber);
@@ -290,7 +311,24 @@ const CounterDash = () => {
       setNowServingToken("---");
     }
   };
+
+  useEffect(() => {
+    const queueDocRef = doc(db, 'queue', 'queueDoc');
+    
+    const unsubscribe = onSnapshot(queueDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const queueData = docSnapshot.data();
+        const receivedTokenArray = queueData.receivedToken || [];
+        setCompletedCount(receivedTokenArray.length);
+      } else {
+        console.log("Queue document does not exist");
+        setCompletedCount(0);
+      }
+    });
   
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
 
 
   
@@ -396,6 +434,10 @@ const CounterDash = () => {
           if (!requestSnapshot.empty) {
             const requestDoc = requestSnapshot.docs[0];
             await updateDoc(doc(requestsRef, requestDoc.id), { status: false });
+            setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
+    
+            // Update the remaining count
+            setRemainingCount(prevCount => prevCount - 1);
             console.log(`Request with token ${nextToken} status updated to false`);
           } else {
             console.log(`Request with token ${nextToken} not found in requests collection`);
@@ -503,35 +545,21 @@ const CounterDash = () => {
   const handleSaveButtonClick = async () => {
     try {
       if (nowServingToken && nowServingToken !== '') {
-        // Get a reference to the queue document
         const queueDocRef = doc(db, 'queue', 'queueDoc');
         const queueDocSnap = await getDoc(queueDocRef);
   
         if (queueDocSnap.exists()) {
-          // Get the current receivedToken array
           const queueData = queueDocSnap.data();
           const receivedTokenArray = queueData.receivedToken || [];
   
-          // Push the nowServingToken into the receivedToken array
           receivedTokenArray.push(nowServingToken);
   
-          // Update the queue document with the new receivedToken array
           await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
   
-          // Update the state with the new completedCount
+          // Update the state with the new completedCount immediately
           setCompletedCount(receivedTokenArray.length);
   
-          // Reset the nowServingToken and fetch the next token from "requests" collection
-          const singleRequestsRef = collection(db, 'requests');
-          const nextTokenSnapshot = await getDocs(query(singleRequestsRef, orderBy("token", "asc"), limit(1)));
-          const nextTokenData = nextTokenSnapshot.docs[0]?.data() || {};
-          const nextToken = nextTokenData.token || '';
-  
-          // Update state
-          setSingleCounterData(prevData => prevData.filter(item => item.token !== nowServingToken));
-          setNowServingToken(nextToken);
-          // setTotalCustomerCount(prevCount => prevCount - 1);
-          setNextTokenIndex(prevIndex => prevIndex + 1);
+          // ... rest of the function
         } else {
           console.warn("Queue document does not exist.");
         }
