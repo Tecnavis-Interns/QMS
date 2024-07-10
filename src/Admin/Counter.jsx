@@ -127,15 +127,15 @@ const AdminDash = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        color="primary"
                         onClick={() => handleEditCounter(counter)}
+                        className="bg-red-100 text-black"
                       >
                         Edit
                       </Button>
                       <Button
                         size="sm"
-                        color="danger"
                         onClick={() => handleDeleteCounter(counter.id)}
+                        className="text-red-400 bg-white"
                       >
                         Delete
                       </Button>

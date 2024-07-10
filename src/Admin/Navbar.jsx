@@ -18,13 +18,13 @@ export default function App() {
     <div className="flex h-full">
       {/* Sidebar */}
       <aside className="w-64 bg-red-300 flex flex-col">
-        <div className="flex items-center justify-center h-16 bg-red-400">
+        <div className="flex items-center justify-center h-16">
           <p className="font-bold text-white hidden sm:block">
             Queue Management System
           </p>
           <p className="font-bold text-white sm:hidden">QMS</p>
         </div>
-        <div className="flex flex-col items-center justify-between flex-grow p-4">
+        <div className="flex flex-col items-center justify-between flex-grow p-6">
           <div className="mt-20 w-64 space-y-2">
             {[
               { path: "/adminDash", label: "Dashboard" },
@@ -50,7 +50,7 @@ export default function App() {
           </div>
           <Button
             as={Link}
-            className="w-full mt-4 bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 rounded-md"
+            className="w-full mt-4 bg-white text-black hover:bg-red-500 transition-colors duration-200 rounded-md"
             variant="flat"
             onClick={handleLogout}
           >

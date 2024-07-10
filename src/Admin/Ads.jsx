@@ -36,7 +36,7 @@ const Slideshow = ({ mediaList, currentMediaIndex, nextMedia, prevMedia, onDelet
         flat
         color="error"
         onClick={() => onDeleteMedia(currentMedia.ref)}
-        className="absolute bottom-2 right-2 bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8"
+        className="absolute bottom-2 right-2 bg-red-600 p-2 px-5 rounded-md text-white w-32 mt-8"
       >
         Delete
       </Button>
@@ -144,12 +144,12 @@ const Ads = () => {
                       file:me-4 file:py-2 file:px-4
                       file:rounded-lg file:border-0
                       file:text-sm file:font-semibold
-                      file:bg-[#6236F5] file:text-white
-                      hover:file:bg-blue-700
+                      file:bg-red-500 file:text-white
+                      hover:file:bg-red-700
                       file:disabled:opacity-50 file:disabled:pointer-events-none
                       dark:text-neutral-500
-                      dark:file:bg-blue-500
-                      dark:hover:file:bg-blue-400"
+                      dark:file:bg-red-500
+                      dark:hover:file:bg-red-400"
                   />
                 </label>
               </form>
