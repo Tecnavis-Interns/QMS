@@ -62,16 +62,18 @@ const CounterDash = () => {
           requestsRef, 
           where("status", "==", true), 
           orderBy("tokenNumber", "asc"));
-        const querySnapshot = await getDocs(q);
         
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().date ? doc.data().date.toDate() : null
-        }));
-        
-        setRequestsData(data);
-        setRemainingCount(data.length);
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const data = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            date: doc.data().date ? doc.data().date.toDate() : null
+          }));
+          
+          setRequestsData(data);
+          setRemainingCount(data.length);
+        });
+        return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching requests data:", error);
       }
@@ -94,6 +96,23 @@ const CounterDash = () => {
     }
   };
   useEffect(() => {
+    const queueDocRef = doc(db, "queue", "queueDoc");
+    
+    const unsubscribe = onSnapshot(queueDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const queueData = docSnapshot.data();
+        const pendingArray = queueData.pending || [];
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist");
+        setPendingCount(0);
+      }
+    });
+  
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
+  useEffect(() => {
     const fetchCompletedCount = async () => {
       try {
         const queueDocRef = doc(db, 'queue', 'queueDoc');
@@ -115,7 +134,19 @@ const CounterDash = () => {
   
     fetchCompletedCount();
   }, []);
+  useEffect(() => {
+    const fetchTotalCustomerCount = async () => {
+      try {
+        const requestsRef = collection(db, "requests");
+        const querySnapshot = await getDocs(requestsRef);
+        setTotalCustomerCount(querySnapshot.size);
+      } catch (error) {
+        console.error("Error fetching total customer count:", error);
+      }
+    };
   
+    fetchTotalCustomerCount();
+  }, []);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -144,7 +175,7 @@ const CounterDash = () => {
         // Set the remaining count (documents with status true)
         // setRemainingCount(requestsSnapshot.size);
         setRemainingCount(requestsSnapshot.size);
-        setTotalCustomerCount(requestsSnapshot.size);
+        // setTotalCustomerCount(requestsSnapshot.size);
         setNowServingToken("---");
   
         // Fetch the queue data for nowServingToken
@@ -266,6 +297,10 @@ const CounterDash = () => {
 
   const handlePendingButtonClick = async () => {
     try {
+      if (nowServingToken === "---") {
+      console.log("No token currently being served.");
+      return;
+    }
       // Fetch the currently serving token from the "requests" collection
       const requestsRef = collection(db, 'requests');
       const querySnapshot = await getDocs(query(requestsRef, where("tokenNumber", "==", nowServingToken)));
