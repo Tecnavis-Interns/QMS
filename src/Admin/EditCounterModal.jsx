@@ -2,7 +2,8 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input
 import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
 import bcrypt from "bcryptjs";
-import { db } from "../firebase";
+import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { db, auth } from "../firebase";
 
 const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
   const [editedCounterData, setEditedCounterData] = useState({ ...counter });
@@ -34,6 +35,17 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
     }
 
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        setError("User not authenticated. Please log in again.");
+        return;
+      }
+      if (user.email !== editedCounterData.email) {
+        await updateEmail(user, editedCounterData.email);
+      }
+      if (newPassword) {
+        await updatePassword(user, newPassword);
+      }
       const counterRef = doc(db, "counters", counter.id);
       const updateData = { 
         counterName: editedCounterData.counterName,
@@ -42,8 +54,7 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
       };
       
       if (newPassword) {
-        const salt = bcrypt.genSaltSync(10);
-        const hashedPassword = bcrypt.hashSync(newPassword, salt);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
         updateData.password = hashedPassword;
       }
 
@@ -54,9 +65,15 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
       onClose();
     } catch (error) {
       console.error("Error editing counter: ", error);
+    if (error.code === 'auth/requires-recent-login') {
+      setError("This operation is sensitive and requires recent authentication. Please log in again before retrying this request.");
+    } else {
       setError("Failed to update counter. Please try again.");
     }
-  };
+  }
+};
+
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

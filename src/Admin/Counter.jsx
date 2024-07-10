@@ -18,11 +18,12 @@ import {
   onSnapshot,
   query,
 } from "firebase/firestore";
-import { db } from "../firebase";
 import ModalCounter from "./ModalCounter";
 import EditCounterModal from "./EditCounterModal";
 import { useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
+import { deleteUser, signInWithEmailAndPassword, getAuth } from "firebase/auth";
+import { db, auth } from "../firebase";
+
 
 const AdminDash = () => {
   const navigate = useNavigate();
@@ -55,10 +56,38 @@ const AdminDash = () => {
   const handleDeleteCounter = async (counterId) => {
     if (window.confirm("Are you sure you want to delete this counter?")) {
       try {
+        const counterToDelete = counters.find(counter => counter.id === counterId);
+        if (!counterToDelete) {
+          console.error("Counter not found");
+          return;
+        }
+  
+        // Delete the counter document from Firestore
         await deleteDoc(doc(db, "counters", counterId));
+  
+        // Attempt to delete the user from Firebase Authentication
+        try {
+          // Sign in as the user to be deleted
+          // Note: This requires knowing the user's password, which is not ideal
+          // You might need to implement a different approach in a production environment
+          const userCredential = await signInWithEmailAndPassword(auth, counterToDelete.email, counterToDelete.password);
+          const user = userCredential.user;
+  
+          // Delete the user
+          await deleteUser(user);
+          console.log("User deleted successfully");
+        } catch (authError) {
+          console.error("Error deleting user from Authentication:", authError);
+          // The counter was deleted from Firestore, but not from Authentication
+          alert("The counter was removed, but there was an issue deleting the associated user account. An administrator may need to remove it manually.");
+        }
+  
+        // Update the local state
         setCounters(counters.filter(counter => counter.id !== counterId));
+        console.log("Counter deleted successfully");
       } catch (error) {
-        console.error("Error deleting counter: ", error);
+        console.error("Error deleting counter:", error);
+        alert("An error occurred while deleting the counter. Please try again.");
       }
     }
   };
