@@ -7,8 +7,17 @@ export default {
     "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        customPurple: '#805DF6',
+      },
+      zIndex: {
+        '-1': '-1',
+      }
+    },
   },
   darkMode: "class",
-  plugins: [nextui(),]
+  plugins: [nextui(),
+    require('tailwind-scrollbar-hide'),
+  ]
 }

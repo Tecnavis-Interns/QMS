@@ -1,0 +1,13 @@
+.warapper{
+    display: flex;
+    overflow-y: scroll;
+    margin-top: 70px;
+    margin-left: 30px;
+  }
+  .items{
+    /* min-width: 290px; */
+    /* height: 300px; */
+    margin-left: 60px;
+   position: relative;
+    margin-right: 4px ;
+  }
