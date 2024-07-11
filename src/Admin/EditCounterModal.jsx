@@ -1,9 +1,8 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
-import bcrypt from "bcryptjs";
 import { updateEmail, updatePassword, getAuth, onAuthStateChanged} from "firebase/auth";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
 
 const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
   const [editedCounterData, setEditedCounterData] = useState({ ...counter });

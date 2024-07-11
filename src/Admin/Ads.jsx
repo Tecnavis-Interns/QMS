@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import { Button } from '@nextui-org/react';
 import { storage } from "../firebase";

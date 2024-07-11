@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableHeader,
@@ -6,7 +6,6 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Button,
 } from "@nextui-org/react";
 import moment from "moment";
 import "./Dashboard.css";
@@ -21,8 +20,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const auth = getAuth();
   const [user, setUser] = useState(null);
-  const [userData, setUserData] = useState([]);
-  const [showAll, setShowAll] = useState(false);
   const [requests, setRequests] = useState([]);
   const [staffMembers, setStaffMembers] = useState([]);
   const [completedCount, setCompletedCount] = useState(0);
