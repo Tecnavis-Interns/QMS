@@ -4,6 +4,7 @@ import { Button } from '@nextui-org/react';
 import { storage } from "../firebase";
 import { ref, uploadBytes, listAll, getDownloadURL, deleteObject } from 'firebase/storage';
 import { v4 } from 'uuid';
+import toast, { Toaster } from 'react-hot-toast';
 
 const Slideshow = ({ mediaList, currentMediaIndex, nextMedia, prevMedia, onDeleteMedia }) => {
   if (!mediaList || mediaList.length === 0) return null;
@@ -48,8 +49,8 @@ const Ads = () => {
   const [mediaUpload, setMediaUpload] = useState(null);
   const [imageList, setImageList] = useState([]);
   const [videoList, setVideoList] = useState([]);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0); // State to track current media index
-  const [refresh, setRefresh] = useState(false); // State to trigger refresh
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0); 
+  const [refresh, setRefresh] = useState(false); 
   const imageListRef = ref(storage, "images/");
   const videoListRef = ref(storage, "videos/");
 
@@ -58,10 +59,17 @@ const Ads = () => {
 
     const isVideo = mediaUpload.type.startsWith('video/');
     const mediaRef = ref(storage, `${isVideo ? 'videos' : 'images'}/${mediaUpload.name + v4()}`);
-    uploadBytes(mediaRef, mediaUpload).then(() => {
-      alert(`${isVideo ? 'Video' : 'Image'} uploaded`);
-      setRefresh(prev => !prev); // Toggle refresh state
-    });
+    toast.promise(
+      uploadBytes(mediaRef, mediaUpload),
+      {
+        loading: 'Uploading...',
+        success: () => {
+          setRefresh(prev => !prev);
+          return `${isVideo ? 'Video' : 'Image'} uploaded successfully!`;
+        },
+        error: 'Upload failed',
+      }
+    );
   };
 
   const fetchMedia = () => {
@@ -92,14 +100,63 @@ const Ads = () => {
   };
 
   const deleteMedia = (mediaRef) => {
-    deleteObject(mediaRef).then(() => {
-      alert("Media deleted");
-      setRefresh(prev => !prev); // Toggle refresh state
-    }).catch((error) => {
-      console.error("Error deleting media: ", error);
+    toast((t) => (
+      <div>
+        <p>Are you sure you want to delete this media?</p>
+        &nbsp;&nbsp;&nbsp;
+        <div>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              confirmDelete(mediaRef);
+            }}
+            style={{
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Delete
+          </button>
+          &nbsp;&nbsp;&nbsp;
+          <button onClick={() => toast.dismiss(t.id)}
+                        style={{
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          padding: '5px 10px',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+            >Cancel</button>
+        </div>
+      </div>
+    ), {
+      duration:5000,
+      style: {
+        background: '#FFF3CD',
+        color: '#856404',
+        border: '1px solid #FFEEBA',
+      },
     });
   };
-
+  
+  const confirmDelete = (mediaRef) => {
+    toast.promise(
+      deleteObject(mediaRef),
+      {
+        loading: 'Deleting...',
+        success: () => {
+          setRefresh(prev => !prev);
+          return 'Media deleted successfully';
+        },
+        error: 'Failed to delete media',
+      }
+    );
+  };
   const nextMedia = () => {
     setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % (imageList.length + videoList.length));
   };
@@ -169,6 +226,7 @@ const Ads = () => {
           </div>
         )}
       </div>
+      <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
     </div>
   );
 };

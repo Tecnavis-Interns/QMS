@@ -2,7 +2,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input
 import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
 import bcrypt from "bcryptjs";
-import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { updateEmail, updatePassword, getAuth, onAuthStateChanged} from "firebase/auth";
 import { db, auth } from "../firebase";
 
 const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
@@ -33,48 +33,68 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
       setError("All fields are required.");
       return;
     }
-
+  
     try {
+      const auth = getAuth();
+      
+      // Ensure user is logged in and token is fresh
+      await new Promise((resolve, reject) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          unsubscribe();
+          if (user) {
+            user.getIdToken(true).then(resolve).catch(reject);
+          } else {
+            reject(new Error("User is not authenticated"));
+          }
+        });
+      });
+  
       const user = auth.currentUser;
       if (!user) {
         setError("User not authenticated. Please log in again.");
         return;
       }
+  
+      // Update email if changed
       if (user.email !== editedCounterData.email) {
         await updateEmail(user, editedCounterData.email);
       }
+  
+      // Update password if provided
       if (newPassword) {
         await updatePassword(user, newPassword);
       }
+  
+      // Update Firestore document
       const counterRef = doc(db, "counters", counter.id);
       const updateData = { 
         counterName: editedCounterData.counterName,
         email: editedCounterData.email,
         service: editedCounterData.service
       };
-      
-      if (newPassword) {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        updateData.password = hashedPassword;
-      }
-
+  
       await updateDoc(counterRef, updateData);
+  
+      // Update local state
       setCounters((prevCounters) =>
         prevCounters.map((c) => (c.id === counter.id ? { ...c, ...updateData } : c))
       );
+  
       onClose();
+      setError("Counter updated successfully.");
     } catch (error) {
       console.error("Error editing counter: ", error);
-    if (error.code === 'auth/requires-recent-login') {
-      setError("This operation is sensitive and requires recent authentication. Please log in again before retrying this request.");
-    } else {
-      setError("Failed to update counter. Please try again.");
+      if (error.code === 'auth/requires-recent-login') {
+        setError("This operation requires recent authentication. Please log out and log in again before retrying.");
+      } else if (error.code === 'auth/invalid-email') {
+        setError("The email address is invalid.");
+      } else if (error.code === 'auth/email-already-in-use') {
+        setError("The email address is already in use by another account.");
+      } else {
+        setError(`Failed to update counter: ${error.message}`);
+      }
     }
-  }
-};
-
-
-
+  };
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedCounterData({ ...editedCounterData, [name]: value });
