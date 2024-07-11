@@ -26,7 +26,7 @@ import {
   updateDoc,
   arrayUnion
 } from "firebase/firestore";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
@@ -53,66 +53,7 @@ const CounterDash = () => {
   const [receivedTokenCount, setReceivedTokenCount] = useState(0);
   const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in, you can update your state here
-        checkUser(user);
-      } else {
-        // User is signed out, navigate to login
-        navigate("/login");
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [navigate]);
 
-  const checkUser = async (user) => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-
-    const email = user.email;
-    const counterName = email.split("@")[0];
-    const counterNumber = parseInt(counterName.replace("counter", ""));
-
-    if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
-      navigate("/login");
-      return;
-    }
-
-    fetchData(counterNumber);
-  };
-  const fetchData = async (counterNumber) => {
-    try {
-      // Fetch data from 'single counter' collection
-      const singleCounterSnapshot = await getDocs(collection(db, 'requests'));
-      const data = singleCounterSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setUserData(data.filter(isValidUserData));
-
-      // Fetch total number of customers in "single counter" collection
-      setTotalCustomerCount(singleCounterSnapshot.size);
-
-      // Set up real-time listener
-      const unsubscribe = onSnapshot(
-        collection(db, `Counter ${counterNumber}`),
-        snapshot => {
-          const updatedData = snapshot.docs.map(doc => doc.data());
-          const orderedData = updatedData.sort((a, b) => b.date - a.date);
-          const reversedData = orderedData.reverse();
-          setUserData(reversedData.filter(isValidUserData));
-        }
-      );
-
-      return unsubscribe;
-    } catch (error) {
-      console.error("Error fetching data: ", error);
-    }
-  };
 
   useEffect(() => {
     const fetchRequestsData = async () => {
@@ -268,6 +209,110 @@ const CounterDash = () => {
 
   
   
+  // useEffect(() => {
+  //   const checkUser = async () => {
+  //     if (!user) {
+  //       navigate("/login");
+  //       return;
+  //     }
+  
+  //     const email = user.email;
+  //     const counterName = email.split("@")[0];
+  //     const counterNumber = parseInt(counterName.replace("counter", ""));
+  
+  //     if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
+  //       navigate("/login");
+  //       return;
+  //     }
+  
+  //     const fetchData = async () => {
+  //       try {
+  //         // Fetch data from 'single counter' collection
+  //         const singleCounterSnapshot = await getDocs(collection(db, 'requests'));
+  //         const data = singleCounterSnapshot.docs.map(doc => ({
+  //           id: doc.id,
+  //           ...doc.data()
+  //         }));
+  //         setUserData(data.filter(isValidUserData)); // Filter out invalid data
+  
+  //         // Fetch total number of customers in "single counter" collection
+  //         setTotalCustomerCount(singleCounterSnapshot.size);
+  //       } catch (error) {
+  //         console.error("Error fetching data: ", error);
+  //       }
+  //     };
+  
+  //     fetchData();
+  
+  //     const unsubscribe = onSnapshot(
+  //       collection(db, `Counter ${counterNumber}`),
+  //       snapshot => {
+  //         const updatedData = snapshot.docs.map(doc => doc.data());
+  //         const orderedData = updatedData.sort((a, b) => b.date - a.date);
+  //         const reversedData = orderedData.reverse();
+  //         setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
+  //       }
+  //     );
+  
+  
+  //     return () => unsubscribe(); // Unsubscribe when component unmounts
+  //   };
+  
+  //   checkUser();
+  // }, []);
+   
+  //new useffect for refreshIssue
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const email = auth.currentUser.email;
+        const counterName = email.split("@")[0];
+        const counterNumber = parseInt(counterName.replace("counter", ""));
+  
+        if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
+          navigate("/login");
+          return;
+        }
+  
+        const fetchData = async () => {
+          try {
+            // Fetch data from 'single counter' collection
+            const singleCounterSnapshot = await getDocs(collection(db, 'requests'));
+            const data = singleCounterSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            setUserData(data.filter(isValidUserData)); // Filter out invalid data
+  
+            // Fetch total number of customers in "single counter" collection
+            setTotalCustomerCount(singleCounterSnapshot.size);
+          } catch (error) {
+            console.error("Error fetching data: ", error);
+          }
+        };
+  
+        fetchData();
+  
+        const unsubscribeSnapshot = onSnapshot(
+          collection(db, `Counter ${counterNumber}`),
+          snapshot => {
+            const updatedData = snapshot.docs.map(doc => doc.data());
+            const orderedData = updatedData.sort((a, b) => b.date - a.date);
+            const reversedData = orderedData.reverse();
+            setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
+          }
+        );
+  
+        return () => unsubscribeSnapshot();
+      } else {
+        navigate("/login");
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [navigate]);
+
   useEffect(() => {
     fetchPendingCount();
   }, [totalCustomerCount, completedCount]);
@@ -354,6 +399,15 @@ const CounterDash = () => {
           console.log("No more tokens to serve.");
           setNowServingToken("---");
         }
+        const email = auth.currentUser.email;
+          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+          
+          await updateDoc(counterDocRef, {
+            nowServingToken: "-"
+          });
+  
+          console.log(`NowServingToken cleared from counter${counterNumber}'s counterDoc`);
   
       } else {
         console.warn("No data found for the current serving token in 'requests'.");
@@ -384,8 +438,72 @@ const CounterDash = () => {
   }, []);
 
 
+  // const handleRecallButtonClick = async () => {
+  //   try {
+  //     console.log('Starting recall process...');
   
+  //     // Get a reference to the queueDoc
+  //     const queueDocRef = doc(db, 'queue', 'queueDoc');
+      
+  //     // Fetch the current queueDoc data
+  //     const queueDocSnap = await getDoc(queueDocRef);
+      
+  //     if (queueDocSnap.exists()) {
+  //       const queueData = queueDocSnap.data();
+  //       const pendingArray = queueData.pending || [];
+  
+  //       if (pendingArray.length > 0) {
+  //         // Get the first token from the pending array
+  //         const recalledToken = pendingArray[0];
+  
+  //         // Remove the first token from the pending array
+  //         const updatedPendingArray = pendingArray.slice(1);
+  
+  //         // Update the queueDoc with the modified pending array
+  //         await updateDoc(queueDocRef, {
+  //           pending: updatedPendingArray
+  //         });
+  
+  //         // Update the nowServingToken state
+  //         setNowServingToken(recalledToken);
+  
+  //         // Update the pendingCount state
+  //         setPendingCount(updatedPendingArray.length);
+  
+  //         console.log(`Token ${recalledToken} recalled successfully.`);
+  
+  //         // Update the status in the requests collection
+  //         const requestsRef = collection(db, 'requests');
+  //         const requestQuery = query(requestsRef, where('tokenNumber', '==', recalledToken));
+  //         const requestSnapshot = await getDocs(requestQuery);
+  
+  //         if (!requestSnapshot.empty) {
+  //           const requestDoc = requestSnapshot.docs[0];
+  //           await updateDoc(doc(requestsRef, requestDoc.id), { pending: false });
+  //           console.log(`Request with token ${recalledToken} pending status updated to false`);
+  //           const email = auth.currentUser.email;
+  //         const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
 
+  //         // Prepare and speak the voice message for recall
+  //         const message = `Recalling token number ${recalledToken}, please proceed to counter ${counterNumber}`;
+  //         console.log("Speaking recall message:", message);
+  //         speak(message);
+  //         } else {
+  //           console.log(`Request with token ${recalledToken} not found in requests collection`);
+  //         }
+  
+  //       } else {
+  //         console.log("No pending tokens to recall.");
+  //       }
+  //     } else {
+  //       console.log("Queue document does not exist");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error recalling token: ", error);
+  //   }
+  // };
+
+  //new handleRecallBUttonClick for nowserving token field
 
   const handleRecallButtonClick = async () => {
     try {
@@ -421,6 +539,18 @@ const CounterDash = () => {
   
           console.log(`Token ${recalledToken} recalled successfully.`);
   
+          // Get the counter number from the user's email
+          const email = auth.currentUser.email;
+          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+          // Update the counterDoc with the recalled token
+          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+          await setDoc(counterDocRef, {
+            nowServingToken: recalledToken,
+          }, { merge: true });
+  
+          console.log(`Now serving token ${recalledToken} added to counter${counterNumber}'s counterDoc`);
+  
           // Update the status in the requests collection
           const requestsRef = collection(db, 'requests');
           const requestQuery = query(requestsRef, where('tokenNumber', '==', recalledToken));
@@ -430,13 +560,11 @@ const CounterDash = () => {
             const requestDoc = requestSnapshot.docs[0];
             await updateDoc(doc(requestsRef, requestDoc.id), { pending: false });
             console.log(`Request with token ${recalledToken} pending status updated to false`);
-            const email = user.email;
-          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-
-          // Prepare and speak the voice message for recall
-          const message = `Recalling token number ${recalledToken}, please proceed to counter ${counterNumber}`;
-          console.log("Speaking recall message:", message);
-          speak(message);
+  
+            // Prepare and speak the voice message for recall
+            const message = `Recalling token number ${recalledToken}, please proceed to counter ${counterNumber}`;
+            console.log("Speaking recall message:", message);
+            speak(message);
           } else {
             console.log(`Request with token ${recalledToken} not found in requests collection`);
           }
@@ -452,8 +580,10 @@ const CounterDash = () => {
     }
   };
 
+
+
   const handleCallButtonClick = async () => {
-    const email = user.email;
+    const email = auth.currentUser.email;
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
@@ -520,9 +650,16 @@ const CounterDash = () => {
           } else {
             console.log(`Counter ${counterNumber} not found in counters collection`);
           }
-  
-          console.log(`Now serving token ${nextToken}`);
-        } else {
+
+             // Add the now serving token to the counterDoc subcollection
+             const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+
+             // Use setDoc with merge option
+             await setDoc(counterDocRef, {
+               nowServingToken: nextToken,  // or use an empty string '' if you prefer
+             }, { merge: true });
+
+          console.log(`Now serving token ${nextToken} added to counter${counterNumber}'s counterDoc`);  } else {
           console.log("No tokens in the queue");
           setNowServingToken("---");
         }
@@ -534,6 +671,34 @@ const CounterDash = () => {
     }
   };
   
+  //use new useeffiect
+  useEffect(() => {
+    const fetchNowServingToken = async () => {
+      try {
+        const email = auth.currentUser.email;
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      
+        const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      
+        const docSnap = await getDoc(counterDocRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setNowServingToken(data.nowServingToken);
+        } else {
+          console.log("No serving token found");
+          setNowServingToken("---");
+        }
+      } catch (error) {
+        console.error("Error fetching now serving token: ", error);
+      }
+    };
+  
+    fetchNowServingToken();
+  }, [user]);
+
+  // end of new useffect
+
   const speak = (message) => {
     const speechSynthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(message);
@@ -543,7 +708,7 @@ const CounterDash = () => {
 
   const updateCurrentlyServing = async (tokenData) => {
     try {
-      const email = user.email;
+      const email = auth.currentUser.email;
       const counterNumber = parseInt(
         email.split("@")[0].replace("counter", "")
       );
@@ -599,6 +764,58 @@ const CounterDash = () => {
   };
   
 
+  // const handleSaveButtonClick = async () => {
+  //   try {
+  //     if (nowServingToken && nowServingToken !== '') {
+  //       const queueDocRef = doc(db, 'queue', 'queueDoc');
+  //       const queueDocSnap = await getDoc(queueDocRef);
+  
+  //       if (queueDocSnap.exists()) {
+  //         const queueData = queueDocSnap.data();
+  //         const receivedTokenArray = queueData.receivedToken || [];
+  
+  //         receivedTokenArray.push(nowServingToken);
+  
+  //         await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
+  
+  //         // Update the state with the new completedCount immediately
+  //         setCompletedCount(receivedTokenArray.length);
+  
+  //         // Set nowServingToken to "---" to indicate no token is being served
+  //         setNowServingToken("---");
+  
+  //         // Call the next token
+  //         await handleCallButtonClick();
+
+  //         const email = user.email;
+  //         const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  //         const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+          
+  //           // Check if the document exists
+  //           const docSnap = await getDoc(counterDocRef);
+  //         // Use setDoc with merge option
+  //         if (docSnap.exists()) {
+  //           // If the document exists, delete it
+  //           await deleteDoc(counterDocRef);
+          
+  //           console.log(`CounterDoc for counter${counterNumber} has been deleted`);
+  //         } else {
+  //           console.log(`No document found for counter${counterNumber}'s counterDoc`);
+  //         }
+    
+  //       } 
+        
+        
+  //       else {
+  //         console.warn("Queue document does not exist.");
+  //       }
+  //     } else {
+  //       console.log("No token currently being served.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error handling completed: ", error);
+  //   }
+  // };
   const handleSaveButtonClick = async () => {
     try {
       if (nowServingToken && nowServingToken !== '---') {
@@ -618,6 +835,17 @@ const CounterDash = () => {
   
           // Set nowServingToken to "---" to indicate no token is being served
           setNowServingToken("---");
+          const email = auth.currentUser.email;
+          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+          
+          const docSnap = await getDoc(counterDocRef);
+          if (docSnap.exists()) {
+            await deleteDoc(counterDocRef);
+            console.log(`CounterDoc for counter${counterNumber} has been deleted`);
+          } else {
+            console.log(`No document found for counter${counterNumber}'s counterDoc`);
+          }
   
           // Call the next token
           await handleCallButtonClick();
@@ -634,27 +862,79 @@ const CounterDash = () => {
   
   
 
+  // const callSpecificToken = async (specialtoken) => {
+  //   try {
+  //     // Set the nowServingToken state to the provided token number
+  //     setNowServingToken(specialtoken);
+  
+  //     // Get a reference to the queue document
+  //     const queueDocRef = doc(db, 'queue', 'queueDoc');
+  //     const queueDocSnap = await getDoc(queueDocRef);
+  
+  //     if (queueDocSnap.exists()) {
+  //       const queueData = queueDocSnap.data();
+  //       let tokenArray = queueData.token || [];
+  
+  //       // Remove the special token from the token array
+  //       tokenArray = tokenArray.filter(token => token !== specialtoken);
+  
+  //       // Update the queue document with the modified token array
+  //       await updateDoc(queueDocRef, { token: tokenArray });
+  
+  //       console.log(`Token ${specialtoken} removed from the queue.`);
+  //     }
+  
+  //     // Update the status of the called token in the requests collection
+  //     const requestsRef = collection(db, 'requests');
+  //     const q = query(requestsRef, where('tokenNumber', '==', specialtoken));
+  //     const querySnapshot = await getDocs(q);
+  
+  //     if (!querySnapshot.empty) {
+  //       const docRef = doc(requestsRef, querySnapshot.docs[0].id);
+  //       await updateDoc(docRef, { status: false });
+        
+  //       // Remove the called token from the requestsData state
+  //       setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
+        
+  //       // Update the remaining count
+  //       // setRemainingCount(prevCount => prevCount - 1);
+  
+  //       console.log(`Token ${specialtoken} status updated to false and removed from table.`);
+  
+  //       // Get the counter number from the user's email
+  //       const email = auth.currentUser.email;
+  //       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+  //       // Prepare and speak the voice message
+  //       const message = `Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
+  //       console.log("Speaking message:", message);
+  //       speak(message);
+  //     } else {
+  //       console.log(`Document with token ${specialtoken} not found in 'requests'.`);
+  //     }
+  //   } catch (error) {
+  //     console.log('Error in calling specific token:', error);
+  //   }
+  // };
+
   const callSpecificToken = async (specialtoken) => {
     try {
       // Set the nowServingToken state to the provided token number
       setNowServingToken(specialtoken);
   
-      // Get a reference to the queue document
-      const queueDocRef = doc(db, 'queue', 'queueDoc');
-      const queueDocSnap = await getDoc(queueDocRef);
+      // Get the counter number from the user's email
+      const email = auth.currentUser.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
-      if (queueDocSnap.exists()) {
-        const queueData = queueDocSnap.data();
-        let tokenArray = queueData.token || [];
+      // Add the now serving token to the counterDoc
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
   
-        // Remove the special token from the token array
-        tokenArray = tokenArray.filter(token => token !== specialtoken);
+      // Use setDoc with merge option to update or create the document
+      await setDoc(counterDocRef, {
+        nowServingToken: specialtoken,
+      }, { merge: true });
   
-        // Update the queue document with the modified token array
-        await updateDoc(queueDocRef, { token: tokenArray });
-  
-        console.log(`Token ${specialtoken} removed from the queue.`);
-      }
+      console.log(`Now serving token ${specialtoken} added to counter${counterNumber}'s counterDoc`);
   
       // Update the status of the called token in the requests collection
       const requestsRef = collection(db, 'requests');
@@ -668,14 +948,7 @@ const CounterDash = () => {
         // Remove the called token from the requestsData state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
         
-        // Update the remaining count
-        // setRemainingCount(prevCount => prevCount - 1);
-  
         console.log(`Token ${specialtoken} status updated to false and removed from table.`);
-  
-        // Get the counter number from the user's email
-        const email = user.email;
-        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
         // Prepare and speak the voice message
         const message = `Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
@@ -684,10 +957,31 @@ const CounterDash = () => {
       } else {
         console.log(`Document with token ${specialtoken} not found in 'requests'.`);
       }
+  
+      // Optional: Remove the token from the queue if needed
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
+  
+        // Remove the special token from the token array
+        tokenArray = tokenArray.filter(token => token !== specialtoken);
+  
+        // Update the queue document with the modified array
+        await updateDoc(queueDocRef, { 
+          token: tokenArray
+        });
+  
+        console.log(`Token ${specialtoken} removed from the queue.`);
+      }
+  
     } catch (error) {
       console.log('Error in calling specific token:', error);
     }
   };
+
 
   const getCurrentDate = () => {
     const dateObj = new Date();
@@ -807,19 +1101,19 @@ const CounterDash = () => {
             <CardBody className="overflow-visible py-2">
               <div className="flex flex-col items-center justify-end h-full">
                 <div className="flex justify-end mb-4">
-                <Button
-                  onClick={handleSaveButtonClick}
-                  disabled={nowServingToken === '---'}
-                  className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
-                >
-                  Completed
-                </Button>
+                  <Button
+                    onClick={handleSaveButtonClick}
+                    disabled={!nowServingToken}
+                    className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                  >
+                    Completed
+                  </Button>
                 </div>
                 <div className="flex justify-end mb-0">
                   <Button
                     onClick={handlePendingButtonClick}
                     disabled={!nowServingToken}
-                    className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                    className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
                   >
                     Pending
                   </Button>
@@ -832,19 +1126,19 @@ const CounterDash = () => {
             <div className="flex justify-end mb-2">
               <Button onClick={handleCallButtonClick}
                 disabled={nowServingToken !== "---"}
-                className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-32 mt-8">
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Call
               </Button>
             </div>
             <div className="flex justify-end mb-2">
               <Button onClick={handleRecallButtonClick}
                 disabled={nowServingToken !== "---"}
-                className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-32 mt-8">
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Recall
               </Button>
             </div>
             {/* <div className="flex justify-end mb-2">
-              <Button onClick={handleResetButtonClick} className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-32 mt-8">
+              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Reset Token
               </Button>
             </div> */}
@@ -852,37 +1146,37 @@ const CounterDash = () => {
 
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
           <Table aria-label="Example static collection table" removeWrapper>
-  <TableHeader>
-    <TableColumn>Token</TableColumn>
-    <TableColumn>Name</TableColumn>
-    <TableColumn>Date</TableColumn>
-    <TableColumn>Service</TableColumn>
-    <TableColumn></TableColumn>
-  </TableHeader>
-  <TableBody>
-    {requestsData.map(request => (
-      <TableRow key={request.id}>
-        <TableCell>{request.tokenNumber}</TableCell>
-        <TableCell>{request.name}</TableCell>
-        <TableCell>
-          {request.date instanceof Date ? 
-            request.date.toLocaleString() : 
-            (request.date ? new Date(request.date).toLocaleString() : "")}
-        </TableCell>
-        <TableCell>{request.service}</TableCell>
-        <TableCell>
-          <Button
-            onClick={() => callSpecificToken(request.tokenNumber)}
-            disabled={nowServingToken !== "---"}
-            className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3"
-          >
-            Call Now
-          </Button>
-        </TableCell>
-      </TableRow>
-    ))}
-  </TableBody>
-</Table>
+    <TableHeader>
+      <TableColumn>Token</TableColumn>
+      <TableColumn>Name</TableColumn>
+      <TableColumn>Date</TableColumn>
+      <TableColumn>Service</TableColumn>
+      <TableColumn></TableColumn>
+    </TableHeader>
+    <TableBody>
+      {requestsData.map(request => (
+        <TableRow key={request.id}>
+          <TableCell>{request.tokenNumber}</TableCell>
+          <TableCell>{request.name}</TableCell>
+          <TableCell>
+            {request.date instanceof Date ? 
+              request.date.toLocaleString() : 
+              (request.date ? new Date(request.date).toLocaleString() : "")}
+          </TableCell>
+          <TableCell>{request.service}</TableCell>
+          <TableCell>
+            <Button
+              onClick={() => callSpecificToken(request.tokenNumber)}
+              disabled={nowServingToken !== "---"}
+              className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+            >
+              Call Now
+            </Button>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
           </div>
         </div>
       </div>
