@@ -27,7 +27,7 @@ export default function ConfirmationPage() {
       const { width, height } = page.getSize();
       
       console.log("Drawing text on PDF");
-      page.drawText("Queue Management System by Tecnavis", {
+      page.drawText("Queue Management System", {
         x: width / 2 - 200,
         y: height - 100,
         size: 24,

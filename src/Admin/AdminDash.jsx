@@ -30,7 +30,7 @@ const Dashboard = () => {
   );
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.email === "admin@tecnavis.com") {
+      if (currentUser && currentUser.email === "admin@qms.com") {
         setUser(currentUser);
       } else {
         navigate("/login");
