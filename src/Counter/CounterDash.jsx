@@ -592,7 +592,7 @@ const CounterDash = () => {
 
   const handleSaveButtonClick = async () => {
     try {
-      if (nowServingToken && nowServingToken !== '') {
+      if (nowServingToken && nowServingToken !== '---') {
         const queueDocRef = doc(db, 'queue', 'queueDoc');
         const queueDocSnap = await getDoc(queueDocRef);
   
@@ -622,7 +622,6 @@ const CounterDash = () => {
       console.error("Error handling completed: ", error);
     }
   };
-
   
   
 
@@ -799,13 +798,13 @@ const CounterDash = () => {
             <CardBody className="overflow-visible py-2">
               <div className="flex flex-col items-center justify-end h-full">
                 <div className="flex justify-end mb-4">
-                  <Button
-                    onClick={handleSaveButtonClick}
-                    disabled={!nowServingToken}
-                    className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
-                  >
-                    Completed
-                  </Button>
+                <Button
+                  onClick={handleSaveButtonClick}
+                  disabled={nowServingToken === '---'}
+                  className="bg-[#6E71D6] p-2 px-5 rounded-md text-white w-fit mt-3 w-32"
+                >
+                  Completed
+                </Button>
                 </div>
                 <div className="flex justify-end mb-0">
                   <Button
