@@ -126,7 +126,7 @@ export default function UserForm() {
                 <SelectItem className="font-[Outfit]" value={item} key={item}>{item}</SelectItem>
               ))}
             </Select>
-            <Button className="bg-[#6236F5] text-white w-full" type="submit">Submit</Button>
+            <Button className="bg-[#6e71d6] text-white w-full" type="submit">Submit</Button>
           </form>
         </div>
       </div>

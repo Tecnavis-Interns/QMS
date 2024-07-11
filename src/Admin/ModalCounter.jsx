@@ -78,7 +78,7 @@ export default function ModalCounter({ onCounterAdded }) {
 
   return (
     <>
-      <Button onPress={onOpen} className="bg-[#6236F5] text-white">
+      <Button onPress={onOpen} className="bg-[#908fe2] text-white">
         + Add Counter
       </Button>
       <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
@@ -162,10 +162,10 @@ export default function ModalCounter({ onCounterAdded }) {
               />
             </ModalBody>
             <ModalFooter>
-              <Button color="danger" onPress={onClose} className="w-full">
+              <Button onPress={onClose} className="w-full bg-slate-400">
                 Close
               </Button>
-              <Button type="submit" color="primary" className="w-full">
+              <Button type="submit" className="w-full bg-[#6e71d6]">
                 Submit
               </Button>
             </ModalFooter>

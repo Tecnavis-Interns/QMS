@@ -17,14 +17,14 @@ export default function App() {
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <aside className="w-64 bg-red-300 flex flex-col">
-        <div className="flex items-center justify-center h-16 bg-red-400">
+    <aside className="w-64 bg-[#908fe2] flex flex-col">
+        <div className="flex items-center justify-center h-16">
           <p className="font-bold text-white hidden sm:block">
             Queue Management System
           </p>
           <p className="font-bold text-white sm:hidden">QMS</p>
         </div>
-        <div className="flex flex-col items-center justify-between flex-grow p-4">
+        <div className="flex flex-col items-center justify-between flex-grow p-6">
           <div className="mt-20 w-64 space-y-2">
             {[
               { path: "/adminDash", label: "Dashboard" },
@@ -38,10 +38,10 @@ export default function App() {
                 as={Link}
                 variant="flat"
                 onClick={() => navigate(item.path)}
-                className={`w-full text-red-800 rounded-md py-2 transition-colors duration-200 ${
+                className={`w-full  text-white rounded-md py-2 transition-colors duration-200 ${
                   location.pathname === item.path 
-                    ? "bg-red-100 font-semibold" 
-                    : "bg-red-200 hover:bg-red-100"
+                    ? "bg-[#6e71d6] font-semibold" 
+                    : "bg-[#b9b0eb] hover:bg-[#d4ccf4]"
                 }`}
               >
                 {item.label}
@@ -50,7 +50,7 @@ export default function App() {
           </div>
           <Button
             as={Link}
-            className="w-full mt-4 bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 rounded-md"
+            className="w-full mt-4 bg-white text-black hover:bg-[#d4ccf4] transition-colors duration-200 rounded-md"
             variant="flat"
             onClick={handleLogout}
           >

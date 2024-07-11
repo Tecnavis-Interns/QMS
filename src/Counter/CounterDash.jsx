@@ -351,36 +351,55 @@ const CounterDash = () => {
 
   const handlePendingButtonClick = async () => {
     try {
-      if (nowServingToken && nowServingToken !== "---") {
+      if (nowServingToken === "---") {
+      console.log("No token currently being served.");
+      return;
+    }
+      // Fetch the currently serving token from the "requests" collection
+      const requestsRef = collection(db, 'requests');
+      const querySnapshot = await getDocs(query(requestsRef, where("tokenNumber", "==", nowServingToken)));
+  
+      if (!querySnapshot.empty) {
+        const document = querySnapshot.docs[0];
+        const tokenNumber = document.data().tokenNumber;
+  
+        console.log("Document found with token:", tokenNumber);
+  
+        // Update the pending field to true in the requests collection
+        await updateDoc(doc(db, 'requests', document.id), { pending: true });
+  
+        // Get a reference to the queueDoc
         const queueDocRef = doc(db, 'queue', 'queueDoc');
+        
+        // Get the current data of queueDoc
         const queueDocSnap = await getDoc(queueDocRef);
+        const queueDocData = queueDocSnap.exists() ? queueDocSnap.data() : {};
+        
+        // Create or update the pending array
+        const currentPending = queueDocData.pending || [];
+        const updatedPending = [...currentPending, tokenNumber];
+        
+        // Update the queueDoc with the new pending array
+        await updateDoc(queueDocRef, {
+          pending: updatedPending
+        });
   
-        if (queueDocSnap.exists()) {
-          const queueData = queueDocSnap.data();
-          const pendingTokenArray = queueData.pending || [];
+        console.log(`Token ${tokenNumber} marked as pending in 'requests' and added to pending array in queueDoc. Updated array:`, updatedPending);
   
-          // Add the current token to the pendingTokenArray
-          pendingTokenArray.push(nowServingToken);
+        // Update the state variables
+        setNowServingToken("---");
+        setPendingCount(updatedPending.length);
   
-          // Update the queue document
-          await updateDoc(queueDocRef, { pending: pendingTokenArray });
-  
-          // Update the pendingCount state
-          setPendingCount(prevCount => prevCount + 1);
-  
-          // Clear the nowServingToken state
+        // Fetch the next token data from the "requests" collection
+        const nextTokenSnapshot = await getDocs(query(requestsRef, where("pending", "==", false), where("status", "==", true), orderBy("tokenNumber", "asc"), limit(1)));
+        if (!nextTokenSnapshot.empty) {
+          const nextTokenData = nextTokenSnapshot.docs[0].data();
+          setNowServingToken(nextTokenData.tokenNumber);
+        } else {
+          console.log("No more tokens to serve.");
           setNowServingToken("---");
-  
-          // Update the pending field to true in the requests collection
-          const requestsRef = collection(db, 'requests');
-          const querySnapshot = await getDocs(query(requestsRef, where("tokenNumber", "==", nowServingToken)));
-          if (!querySnapshot.empty) {
-            const document = querySnapshot.docs[0];
-            await updateDoc(doc(db, 'requests', document.id), { pending: true });
-          }
-  
-          // Clear the nowServingToken from the counterDoc
-          const email = auth.currentUser.email;
+        }
+        const email = auth.currentUser.email;
           const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
           const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
           
@@ -390,16 +409,13 @@ const CounterDash = () => {
   
           console.log(`NowServingToken cleared from counter${counterNumber}'s counterDoc`);
   
-          // Don't call the next token automatically
-          // await handleCallButtonClick();
-        } else {
-          console.warn("Queue document does not exist.");
-        }
       } else {
-        console.log("No token currently being served.");
+        console.warn("No data found for the current serving token in 'requests'.");
+        setNowServingToken("---");
       }
     } catch (error) {
-      console.error("Error handling pending: ", error);
+      console.error("Error handling pending button click: ", error);
+      setNowServingToken("---");
     }
   };
 
@@ -802,7 +818,7 @@ const CounterDash = () => {
   // };
   const handleSaveButtonClick = async () => {
     try {
-      if (nowServingToken && nowServingToken !== '' && nowServingToken !== '---') {
+      if (nowServingToken && nowServingToken !== '---') {
         const queueDocRef = doc(db, 'queue', 'queueDoc');
         const queueDocSnap = await getDoc(queueDocRef);
   
@@ -810,19 +826,15 @@ const CounterDash = () => {
           const queueData = queueDocSnap.data();
           const receivedTokenArray = queueData.receivedToken || [];
   
-          // Add the current token to the receivedTokenArray
           receivedTokenArray.push(nowServingToken);
   
-          // Update the queue document
           await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
   
-          // Update the completedCount state
-          setCompletedCount(prevCount => prevCount + 1);
+          // Update the state with the new completedCount immediately
+          setCompletedCount(receivedTokenArray.length);
   
-          // Clear the nowServingToken
+          // Set nowServingToken to "---" to indicate no token is being served
           setNowServingToken("---");
-  
-          // Delete the counterDoc
           const email = auth.currentUser.email;
           const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
           const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');

@@ -177,10 +177,10 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
             />
           </ModalBody>
           <ModalFooter>
-            <Button color="danger" onPress={onClose} className="w-full">
+            <Button onPress={onClose} className="w-full bg-slate-300">
               Close
             </Button>
-            <Button color="primary" type="submit" className="w-full">
+            <Button type="submit" className="w-full bg-[#b9b0eb]">
               Submit
             </Button>
           </ModalFooter>

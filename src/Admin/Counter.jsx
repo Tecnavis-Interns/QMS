@@ -64,22 +64,17 @@ const AdminDash = () => {
   
         // Delete the counter document from Firestore
         await deleteDoc(doc(db, "counters", counterId));
+        console.log("qdpqr");
   
-        // Attempt to delete the user from Firebase Authentication
-        try {
-          // Sign in as the user to be deleted
-          // Note: This requires knowing the user's password, which is not ideal
-          // You might need to implement a different approach in a production environment
-          const userCredential = await signInWithEmailAndPassword(auth, counterToDelete.email, counterToDelete.password);
-          const user = userCredential.user;
-  
-          // Delete the user
-          await deleteUser(user);
-          console.log("User deleted successfully");
-        } catch (authError) {
-          console.error("Error deleting user from Authentication:", authError);
-          // The counter was deleted from Firestore, but not from Authentication
-          alert("The counter was removed, but there was an issue deleting the associated user account. An administrator may need to remove it manually.");
+        // Delete the user from Firebase Authentication
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            await user.delete();
+            console.log("User deleted successfully");
+          } catch (error) {
+            console.error("Error deleting user:", error);
+          }
         }
   
         // Update the local state
@@ -127,15 +122,15 @@ const AdminDash = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        color="primary"
                         onClick={() => handleEditCounter(counter)}
+                        className="bg-[#b9b0eb] text-black"
                       >
                         Edit
                       </Button>
                       <Button
                         size="sm"
-                        color="danger"
                         onClick={() => handleDeleteCounter(counter.id)}
+                        className="text-red-400 bg-white"
                       >
                         Delete
                       </Button>

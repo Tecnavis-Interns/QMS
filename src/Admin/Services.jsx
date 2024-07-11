@@ -138,7 +138,7 @@ const Services = () => {
               onChange={(e) => setNewService(e.target.value)}
               className="border p-2 rounded"
             />
-            <Button onClick={handleAddService} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <Button onClick={handleAddService} className="bg-[#908fe2] text-white px-4 py-2 rounded hover:bg-[#6e71d6">
               Add Service
             </Button>
           </div>
@@ -155,7 +155,7 @@ const Services = () => {
                   <TableCell>{service.id}</TableCell>
                   <TableCell>{service.name}</TableCell>
                   <TableCell>
-                    <Button size="small" onClick={() => handleEditService(service)} className="text-blue-500 hover:text-blue-700 mr-2">
+                    <Button size="small" onClick={() => handleEditService(service)} className="bg-[#b9b0eb] text-black hover:text-black-200 mr-2">
                       Edit
                     </Button>
                     <Button size="small" color="error" onClick={() => handleDeleteService(service.id)} className="text-red-500 hover:text-red-700">
@@ -178,10 +178,10 @@ const Services = () => {
                 className="border p-2 rounded mb-4 w-full"
               />
               <div className="flex justify-end">
-                <Button onClick={handleUpdateService} className="bg-blue-500 text-white px-4 py-2 rounded mr-2 hover:bg-blue-700">
+                <Button onClick={handleUpdateService} className="bg-[#b9b0eb] text-black px-4 py-2 rounded mr-2 hover:bg-red-[#908fe2]">
                   Update
                 </Button>
-                <Button onClick={() => setIsModalOpen(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700">
+                <Button onClick={() => setIsModalOpen(false)} className="bg-gray-400 text-black px-4 py-2 rounded hover:bg-gray-500">
                   Cancel
                 </Button>
               </div>

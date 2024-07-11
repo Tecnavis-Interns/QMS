@@ -58,7 +58,7 @@ const Login = () => {
                 variant='bordered'
               />
               {error && <p className="text-red-500 text-xs italic">{error}</p>}
-              <Button className="bg-[#6236F5] text-white" type="submit">Submit</Button>
+              <Button className="bg-[#6e71d6] text-white" type="submit">Submit</Button>
             </CardBody>
           </form>
         </Card>
