@@ -12,7 +12,6 @@ import {
 import Navbar from "./Navbar";
 import {
   collection,
-  getDocs,
   deleteDoc,
   doc,
   onSnapshot,
@@ -20,15 +19,12 @@ import {
 } from "firebase/firestore";
 import ModalCounter from "./ModalCounter";
 import EditCounterModal from "./EditCounterModal";
-import { useNavigate } from "react-router-dom";
-import { deleteUser, signInWithEmailAndPassword, getAuth } from "firebase/auth";
-import { db, auth } from "../firebase";
+import { getAuth } from "firebase/auth";
+import { db } from "../firebase";
 
 
 const AdminDash = () => {
-  const navigate = useNavigate();
   const auth = getAuth();
-  const user = auth.currentUser;
 
   const [counters, setCounters] = useState([]);
   const [selectedCounter, setSelectedCounter] = useState(null);
