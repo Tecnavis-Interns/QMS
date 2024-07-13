@@ -16,6 +16,7 @@ import {
   doc,
   onSnapshot,
   query,
+  getDocs
 } from "firebase/firestore";
 import ModalCounter from "./ModalCounter";
 import EditCounterModal from "./EditCounterModal";
@@ -47,6 +48,28 @@ const AdminDash = () => {
   const handleEditCounter = (counter) => {
     setSelectedCounter(counter);
     onOpen();
+  };
+  
+  const handleReset = async () => {
+    if (window.confirm("Are you sure you want to reset?")) {
+      try {
+        // Delete all documents in the "queue" collection
+        const queueSnapshot = await getDocs(collection(db, "queue"));
+        const queueDeletePromises = queueSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(queueDeletePromises);
+  
+        // Delete all documents in the "requests" collection
+        const requestsSnapshot = await getDocs(collection(db, "requests"));
+        const requestsDeletePromises = requestsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(requestsDeletePromises);
+  
+        console.log("All queues and requests have been deleted.");
+        alert("Reset successful. All queues and requests have been deleted.");
+      } catch (error) {
+        console.error("Error resetting collections:", error);
+        alert("An error occurred while resetting. Please try again.");
+      }
+    }
   };
 
   const handleDeleteCounter = async (counterId) => {
@@ -98,7 +121,12 @@ const AdminDash = () => {
             <div className="font-semibold md:text-xl">
               <h2>Active Counters</h2>
             </div>
+            <div className="flex items-center gap-2">
             <ModalCounter onCounterAdded={handleCounterAdded} />
+            <Button onClick={handleReset} className="bg-[#908fe2] text-white">
+              Reset
+            </Button>
+          </div>
           </div>
           
           <Table aria-label="Example static collection table">

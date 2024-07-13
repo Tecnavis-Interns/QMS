@@ -38,7 +38,7 @@ const CounterDash = () => {
   const user = auth.currentUser;
 
   const [userData, setUserData] = useState([]);
-  const [selectedRecords, setSelectedRecords] = useState([]);
+  // const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
@@ -46,12 +46,12 @@ const CounterDash = () => {
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
   const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
-  const [singleCounterData, setSingleCounterData] = useState([]);
-  const [lastTokenNumber, setLastTokenNumber] = useState(0);
+  // const [singleCounterData, setSingleCounterData] = useState([]);
+  // const [lastTokenNumber, setLastTokenNumber] = useState(0);
   const [requestsData, setRequestsData] = useState([]);
   const [remainingCount, setRemainingCount] = useState(0);
-  const [receivedTokenCount, setReceivedTokenCount] = useState(0);
-  const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
+  // const [receivedTokenCount, setReceivedTokenCount] = useState(0);
+  // const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
 
 
 
@@ -207,61 +207,7 @@ const CounterDash = () => {
   }, []);
   
 
-  
-  
-  // useEffect(() => {
-  //   const checkUser = async () => {
-  //     if (!user) {
-  //       navigate("/login");
-  //       return;
-  //     }
-  
-  //     const email = user.email;
-  //     const counterName = email.split("@")[0];
-  //     const counterNumber = parseInt(counterName.replace("counter", ""));
-  
-  //     if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
-  //       navigate("/login");
-  //       return;
-  //     }
-  
-  //     const fetchData = async () => {
-  //       try {
-  //         // Fetch data from 'single counter' collection
-  //         const singleCounterSnapshot = await getDocs(collection(db, 'requests'));
-  //         const data = singleCounterSnapshot.docs.map(doc => ({
-  //           id: doc.id,
-  //           ...doc.data()
-  //         }));
-  //         setUserData(data.filter(isValidUserData)); // Filter out invalid data
-  
-  //         // Fetch total number of customers in "single counter" collection
-  //         setTotalCustomerCount(singleCounterSnapshot.size);
-  //       } catch (error) {
-  //         console.error("Error fetching data: ", error);
-  //       }
-  //     };
-  
-  //     fetchData();
-  
-  //     const unsubscribe = onSnapshot(
-  //       collection(db, `Counter ${counterNumber}`),
-  //       snapshot => {
-  //         const updatedData = snapshot.docs.map(doc => doc.data());
-  //         const orderedData = updatedData.sort((a, b) => b.date - a.date);
-  //         const reversedData = orderedData.reverse();
-  //         setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
-  //       }
-  //     );
-  
-  
-  //     return () => unsubscribe(); // Unsubscribe when component unmounts
-  //   };
-  
-  //   checkUser();
-  // }, []);
-   
-  //new useffect for refreshIssue
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
