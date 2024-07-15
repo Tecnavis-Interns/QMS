@@ -660,7 +660,7 @@ const CounterDash = () => {
   
       if (!querySnapshot.empty) {
         const docRef = doc(requestsRef, querySnapshot.docs[0].id);
-        await updateDoc(docRef, { status: true, pending: false });
+        await updateDoc(docRef, { status: false , pending: false });
         
         // Update the requestsData state
         setRequestsData(prevData => prevData.map(item => 

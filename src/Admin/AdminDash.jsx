@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [completedCount, setCompletedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [remainingCount, setRemainingCount] = useState(0);
+  const [counters, setCounters] = useState([]);
   const [currentTime, setCurrentTime] = useState(
     moment().format("MMMM Do YYYY, h:mm:ss a")
   );
@@ -39,6 +40,18 @@ const Dashboard = () => {
 
     return () => unsubscribeAuth();
   }, [auth, navigate]);
+
+  const fetchCounters = async () => {
+    try {
+      const countersQuery = query(collection(db, "counters"));
+      const countersSnapshot = await getDocs(countersQuery);
+      const countersData = countersSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      console.log("Fetched counters:", countersData);
+      setCounters(countersData);
+    } catch (error) {
+      console.error("Error fetching counters:", error);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -87,10 +100,11 @@ const Dashboard = () => {
   };
   
   useEffect(() => {
-  fetchRequests();
-  fetchStaffMembers();
-  fetchQueueCounts();
-}, []);
+    fetchRequests();
+    fetchStaffMembers();
+    fetchQueueCounts();
+    fetchCounters();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -114,20 +128,7 @@ const Dashboard = () => {
         <div className="items cursor-pointer relative  z-20 w-[270px] ml-8 bg-red-300 pt-20  h-24 rounded-xl ">
           <div className="absolute bg-slate-200 -ml-6  mt w-80 h-64  rounded-xl">
             <div className="py-6 px-3">
-              <div className="flex">
-                <div className="ml-2">
-                  <img
-                    className="w-10 h-10 rounded-full"
-                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"
-                    alt="image"
-                  />
-                </div>
-
-                <div className=" ml-3 ">
-                  <h1 className=" font-bold">ABDCED</h1>
-                  <h1 className="text-sm font-sans">Home Related Service</h1>
-                </div>
-              </div>
+              
 
               <div className="bg-black/25 mt-6 h-[1px]"></div>
 
