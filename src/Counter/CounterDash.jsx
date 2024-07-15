@@ -592,6 +592,10 @@ const CounterDash = () => {
   const handleSaveButtonClick = async () => {
     try {
       if (nowServingToken && nowServingToken !== '---') {
+        const email = auth.currentUser.email;
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+        // Reference to the queue document
         const queueDocRef = doc(db, 'queue', 'queueDoc');
         const queueDocSnap = await getDoc(queueDocRef);
   
@@ -601,15 +605,36 @@ const CounterDash = () => {
   
           receivedTokenArray.push(nowServingToken);
   
+          // Update the queue document
           await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
   
           // Update the state with the new completedCount immediately
           setCompletedCount(receivedTokenArray.length);
   
+          // Reference to the CompletedTokens document for this counter
+          const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
+  
+          // Get the current CompletedTokens document or create it if it doesn't exist
+          const completedTokensSnap = await getDoc(completedTokensRef);
+          
+          if (completedTokensSnap.exists()) {
+            // If the document exists, update it with the new token
+            await updateDoc(completedTokensRef, {
+              tokens: arrayUnion(nowServingToken)
+            });
+          } else {
+            // If the document doesn't exist, create it with the new token
+            await setDoc(completedTokensRef, {
+              tokens: [nowServingToken]
+            });
+          }
+  
+          console.log(`Token ${nowServingToken} added to CompletedTokens for counter${counterNumber}`);
+  
           // Set nowServingToken to "---" to indicate no token is being served
           setNowServingToken("---");
-          const email = auth.currentUser.email;
-          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+          // Delete the counterDoc for this counter
           const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
           
           const docSnap = await getDoc(counterDocRef);

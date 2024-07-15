@@ -78,6 +78,12 @@ export default function ConfirmationPage() {
     }
   };
 
+  const handleReturn = () => {
+    navigate("/userForm");
+  };
+
+
+
   return (
     <div className="flex flex-col min-h-dvh justify-center items-center">
       <Card className="py-8 px-6 w-full max-w-lg mx-auto">
@@ -92,6 +98,9 @@ export default function ConfirmationPage() {
           <div className="flex flex-col justify-center items-center space-y-4">
             <Button className="bg-[#6e71d6] text-white w-64 py-3 text-lg" onClick={generateAndDownloadPDF}>
               Download Token Again
+            </Button>
+            <Button className="bg-[#6e71d6] text-white w-48 py-3 text-lg" onClick={handleReturn}>
+              Return
             </Button>
           </div>
         </CardBody>
