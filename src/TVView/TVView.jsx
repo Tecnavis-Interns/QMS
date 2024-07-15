@@ -37,7 +37,7 @@ const LiveClock = () => {
   };
 
   return (
-    <div className="mb-4 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg">
+    <div className="mb-6 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg">
       <h4 className="font-bold text-3xl md:text-4xl text-white mb-2">
         {formatTime(currentDateTime)}
       </h4>
@@ -105,7 +105,7 @@ export default function UserForm() {
   }, [refresh]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-gray-100 justify-center">
       <div className="flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4">
         <div className="md:w-1/2">
           <Card className="h-full">

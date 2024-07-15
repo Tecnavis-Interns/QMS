@@ -28,9 +28,11 @@ const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(
     moment().format("MMMM Do YYYY, h:mm:ss a")
   );
+
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.email === "admin@tecnavis.com") {
+      if (currentUser && currentUser.email === "admin@qms.com") {
         setUser(currentUser);
       } else {
         navigate("/login");
