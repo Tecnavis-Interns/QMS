@@ -19,8 +19,9 @@ const Login = () => {
         setLoggedInAs("admin");
         navigate("/adminDash"); // Navigate after setting the state
       } else if (role === "counter") {
+        const counterName = email.split("@")[0]; // This will be "counter1", "counter2", etc.
         setLoggedInAs("counter");
-        navigate("/counterDash"); // Navigate after setting the state
+        navigate(`/${counterName}`);
       } else {
         setError("Unauthorized access");
       }
