@@ -35,26 +35,14 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
   
     try {
       const auth = getAuth();
-      
-      // Ensure user is logged in and token is fresh
-      await new Promise((resolve, reject) => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          unsubscribe();
-          if (user) {
-            user.getIdToken(true).then(resolve).catch(reject);
-          } else {
-            reject(new Error("User is not authenticated"));
-          }
-        });
-      });
-  
       const user = auth.currentUser;
+      
       if (!user) {
         setError("User not authenticated. Please log in again.");
         return;
       }
   
-      // Update email if changed
+      // Update email if changed (without verification)
       if (user.email !== editedCounterData.email) {
         await updateEmail(user, editedCounterData.email);
       }
@@ -83,15 +71,7 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
       setError("Counter updated successfully.");
     } catch (error) {
       console.error("Error editing counter: ", error);
-      if (error.code === 'auth/requires-recent-login') {
-        setError("This operation requires recent authentication. Please log out and log in again before retrying.");
-      } else if (error.code === 'auth/invalid-email') {
-        setError("The email address is invalid.");
-      } else if (error.code === 'auth/email-already-in-use') {
-        setError("The email address is already in use by another account.");
-      } else {
-        setError(`Failed to update counter: ${error.message}`);
-      }
+      setError(`Failed to update counter: ${error.message}`);
     }
   };
   const handleInputChange = (e) => {
