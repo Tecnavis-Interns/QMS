@@ -952,7 +952,15 @@ const CounterDash = () => {
               (request.date ? new Date(request.date).toLocaleString() : "")}
           </TableCell>
           <TableCell>{request.service}</TableCell>
-          <TableCell>{request.pending ? "Pending" : "Active"}</TableCell>
+          <TableCell>
+            <h1 className={`text-xs font-medium me-2 pr-2 px-2.5 pl-4 py-0.5 rounded ${
+              request.pending 
+              ? 'bg-orange-400 text-orange-900 dark:bg-orange-900 dark:text-orange-700'
+              : 'bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-700'
+              }`}>
+              {request.pending ? 'Pending' : 'Active'}
+            </h1>
+          </TableCell>
           <TableCell>
           {request.pending ? (
             <Button
