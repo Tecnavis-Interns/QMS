@@ -31,6 +31,7 @@ import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { onAuthStateChanged } from "firebase/auth";
+import { serverTimestamp } from "firebase/firestore";
 
 const CounterDash = () => {
   const navigate = useNavigate();
@@ -115,28 +116,29 @@ const CounterDash = () => {
     // Clean up the listener when the component unmounts
     return () => unsubscribe();
   }, []);
+  
   useEffect(() => {
-    const fetchCompletedCount = async () => {
-      try {
-        const queueDocRef = doc(db, 'queue', 'queueDoc');
-        const queueDocSnap = await getDoc(queueDocRef);
-        
-        if (queueDocSnap.exists()) {
-          const queueData = queueDocSnap.data();
-          const receivedTokenArray = queueData.receivedToken || [];
-          setCompletedCount(receivedTokenArray.length);
+    const fetchCompletedCount = () => {
+      if (!auth.currentUser) return;
+  
+      const email = auth.currentUser.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
+      
+      return onSnapshot(completedTokensRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const tokensArray = docSnapshot.data().tokens || [];
+          setCompletedCount(tokensArray.length);
         } else {
-          console.log("Queue document does not exist");
           setCompletedCount(0);
         }
-      } catch (error) {
-        console.error("Error fetching completed count: ", error);
-        setCompletedCount(0);
-      }
+      });
     };
   
-    fetchCompletedCount();
-  }, []);
+    const unsubscribe = fetchCompletedCount();
+    return () => unsubscribe && unsubscribe();
+  }, [auth.currentUser]);
+
   useEffect(() => {
     const fetchTotalCustomerCount = async () => {
       try {
@@ -218,7 +220,7 @@ const CounterDash = () => {
         const counterName = email.split("@")[0];
         const counterNumber = parseInt(counterName.replace("counter", ""));
   
-        if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 5) {
+        if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 20) {
           navigate("/login");
           return;
         }
@@ -361,13 +363,16 @@ const CounterDash = () => {
   };
 
   useEffect(() => {
-    const queueDocRef = doc(db, 'queue', 'queueDoc');
+    if (!auth.currentUser) return;
+  
+      const email = auth.currentUser.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
     
-    const unsubscribe = onSnapshot(queueDocRef, (docSnapshot) => {
+    const unsubscribe = onSnapshot(completedTokensRef, (docSnapshot) => {
       if (docSnapshot.exists()) {
-        const queueData = docSnapshot.data();
-        const receivedTokenArray = queueData.receivedToken || [];
-        setCompletedCount(receivedTokenArray.length);
+        const tokensArray = docSnapshot.data().tokens || [];
+        setCompletedCount(tokensArray.length);
       } else {
         console.log("Queue document does not exist");
         setCompletedCount(0);
@@ -590,50 +595,67 @@ const CounterDash = () => {
 
  
   const handleSaveButtonClick = async () => {
+    if (!nowServingToken || nowServingToken === '---') {
+      console.log("No token currently being served.");
+      return;
+    }
+  
     try {
-      if (nowServingToken && nowServingToken !== '---') {
-        const queueDocRef = doc(db, 'queue', 'queueDoc');
-        const queueDocSnap = await getDoc(queueDocRef);
+      const email = auth.currentUser.email;
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
   
-        if (queueDocSnap.exists()) {
-          const queueData = queueDocSnap.data();
-          const receivedTokenArray = queueData.receivedToken || [];
+      // Fetch the current token's details from the requests collection
+      const requestsRef = collection(db, 'requests');
+      const q = query(requestsRef, where('tokenNumber', '==', nowServingToken));
+      const querySnapshot = await getDocs(q);
   
-          receivedTokenArray.push(nowServingToken);
-  
-          await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
-  
-          // Update the state with the new completedCount immediately
-          setCompletedCount(receivedTokenArray.length);
-  
-          // Set nowServingToken to "---" to indicate no token is being served
-          setNowServingToken("---");
-          const email = auth.currentUser.email;
-          const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-          
-          const docSnap = await getDoc(counterDocRef);
-          if (docSnap.exists()) {
-            await deleteDoc(counterDocRef);
-            console.log(`CounterDoc for counter${counterNumber} has been deleted`);
-          } else {
-            console.log(`No document found for counter${counterNumber}'s counterDoc`);
-          }
-  
-          // Call the next token
-          await handleNextButtonClick();
-        } else {
-          console.warn("Queue document does not exist.");
-        }
-      } else {
-        console.log("No token currently being served.");
+      if (querySnapshot.empty) {
+        console.log(`No details found for token ${nowServingToken}`);
+        return;
       }
+  
+      const tokenDetails = querySnapshot.docs[0].data();
+  
+      // Create a history entry
+      const historyEntry = {
+        token: nowServingToken,
+        name: tokenDetails.name,
+        service: tokenDetails.service,
+        completedAt: new Date().toISOString(), // Use ISO string instead of serverTimestamp
+      };
+  
+      // Update the CompletedTokens document
+      await updateDoc(completedTokensRef, {
+        tokens: arrayUnion(nowServingToken),
+      });
+  
+      // Separately update the history array
+      await updateDoc(completedTokensRef, {
+        history: arrayUnion(historyEntry)
+      });
+  
+      console.log(`Token ${nowServingToken} added to CompletedTokens and history for counter${counterNumber}`);
+  
+      // Update the queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      await updateDoc(queueDocRef, {
+        receivedToken: arrayUnion(nowServingToken)
+      });
+  
+      console.log(`Token ${nowServingToken} added to receivedToken array in queueDoc`);
+  
+      setNowServingToken("---");
+  
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      await deleteDoc(counterDocRef);
+  
+      await handleNextButtonClick();
     } catch (error) {
       console.error("Error handling completed: ", error);
     }
   };
-  
-  
+
   const recallSpecificToken = async (specialtoken) => {
     try {
       // Set the nowServingToken state to the provided token number
@@ -660,7 +682,7 @@ const CounterDash = () => {
   
       if (!querySnapshot.empty) {
         const docRef = doc(requestsRef, querySnapshot.docs[0].id);
-        await updateDoc(docRef, { status: false , pending: false });
+        await updateDoc(docRef, { status: false, pending: false });
         
         // Update the requestsData state
         setRequestsData(prevData => prevData.map(item => 
