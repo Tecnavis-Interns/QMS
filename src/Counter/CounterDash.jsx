@@ -40,7 +40,7 @@ const CounterDash = () => {
   const [userData, setUserData] = useState([]);
   // const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
-  const [completedCount, setCompletedCount] = useState(0);
+  const [counterCompletedCount, setCounterCompletedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
@@ -261,10 +261,14 @@ const CounterDash = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    fetchPendingCount();
-  }, [totalCustomerCount, completedCount]);
+  // useEffect(() => {
+  //   fetchPendingCount();
+  // }, [totalCustomerCount, completedCount]);
    
+  useEffect(() => {
+    const unsubscribe = listenToCounterCompletedCount();
+    return () => unsubscribe();
+  }, []);
 
 
   const isValidUserData = (user) => {
@@ -593,62 +597,43 @@ const CounterDash = () => {
     try {
       if (nowServingToken && nowServingToken !== '---') {
         const email = auth.currentUser.email;
-        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+        const counterName = email.split("@")[0]; // This will be like "counter1", "counter2", etc.
   
-        // Reference to the queue document
-        const queueDocRef = doc(db, 'queue', 'queueDoc');
-        const queueDocSnap = await getDoc(queueDocRef);
+        // Fetch the counter document from the counters collection
+        const countersRef = collection(db, 'counters');
+        const counterQuery = query(countersRef, where('email', '==', email));
+        const counterSnapshot = await getDocs(counterQuery);
   
-        if (queueDocSnap.exists()) {
-          const queueData = queueDocSnap.data();
-          const receivedTokenArray = queueData.receivedToken || [];
+        if (!counterSnapshot.empty) {
+          const counterDoc = counterSnapshot.docs[0];
+          const counterId = counterDoc.id;
+          const currentCompleted = counterDoc.data().completed || 0;
   
-          receivedTokenArray.push(nowServingToken);
+          // Update the counter document
+          await updateDoc(doc(countersRef, counterId), { 
+            completed: currentCompleted + 1
+          });
   
-          // Update the queue document
-          await updateDoc(queueDocRef, { receivedToken: receivedTokenArray });
-  
-          // Update the state with the new completedCount immediately
-          setCompletedCount(receivedTokenArray.length);
-  
-          // Reference to the CompletedTokens document for this counter
-          const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
-  
-          // Get the current CompletedTokens document or create it if it doesn't exist
-          const completedTokensSnap = await getDoc(completedTokensRef);
-          
-          if (completedTokensSnap.exists()) {
-            // If the document exists, update it with the new token
-            await updateDoc(completedTokensRef, {
-              tokens: arrayUnion(nowServingToken)
-            });
-          } else {
-            // If the document doesn't exist, create it with the new token
-            await setDoc(completedTokensRef, {
-              tokens: [nowServingToken]
-            });
-          }
-  
-          console.log(`Token ${nowServingToken} added to CompletedTokens for counter${counterNumber}`);
+          console.log(`Counter ${counterName} completed count incremented`);
   
           // Set nowServingToken to "---" to indicate no token is being served
           setNowServingToken("---");
   
           // Delete the counterDoc for this counter
-          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+          const counterDocRef = doc(db, counterName, 'counterDoc');
           
           const docSnap = await getDoc(counterDocRef);
           if (docSnap.exists()) {
             await deleteDoc(counterDocRef);
-            console.log(`CounterDoc for counter${counterNumber} has been deleted`);
+            console.log(`CounterDoc for ${counterName} has been deleted`);
           } else {
-            console.log(`No document found for counter${counterNumber}'s counterDoc`);
+            console.log(`No document found for ${counterName}'s counterDoc`);
           }
   
           // Call the next token
           await handleNextButtonClick();
         } else {
-          console.warn("Queue document does not exist.");
+          console.log(`Counter ${counterName} not found in counters collection`);
         }
       } else {
         console.log("No token currently being served.");
@@ -657,7 +642,20 @@ const CounterDash = () => {
       console.error("Error handling completed: ", error);
     }
   };
+
+  const listenToCounterCompletedCount = () => {
+    const email = auth.currentUser.email;
+    const countersRef = collection(db, 'counters');
+    const q = query(countersRef, where('email', '==', email));
   
+    return onSnapshot(q, (querySnapshot) => {
+      if (!querySnapshot.empty) {
+        const counterDoc = querySnapshot.docs[0];
+        const completedCount = counterDoc.data().completed || 0;
+        setCounterCompletedCount(completedCount);
+      }
+    });
+  };
   
   const recallSpecificToken = async (specialtoken) => {
     try {
@@ -851,9 +849,9 @@ const CounterDash = () => {
   }, [isServiceStarted]);
   
 
-  useEffect(() => {
-    setCurrentDate(getCurrentDate());
-  }, [user, completedCount]);
+  // useEffect(() => {
+  //   setCurrentDate(getCurrentDate());
+  // }, [user, completedCount]);
   
   
 
@@ -891,7 +889,7 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-                <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
+                <p className="text-6xl font-bold ml-12 mt-4">{counterCompletedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">

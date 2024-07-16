@@ -64,6 +64,7 @@ export default function ModalCounter({ onCounterAdded }) {
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
         uid: user.uid,
+        completed: 0, // New field added with default value 0
       };
 
       await addDoc(collection(db, "counters"), newCounter);
