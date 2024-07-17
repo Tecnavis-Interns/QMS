@@ -1,8 +1,8 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
-import { updateEmail, updatePassword, getAuth, onAuthStateChanged} from "firebase/auth";
 import { db } from "../firebase";
+import { hash } from "bcryptjs";
 
 const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
   const [editedCounterData, setEditedCounterData] = useState({ ...counter });
@@ -34,31 +34,18 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
     }
   
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      
-      if (!user) {
-        setError("User not authenticated. Please log in again.");
-        return;
-      }
-  
-      // Update email if changed (without verification)
-      if (user.email !== editedCounterData.email) {
-        await updateEmail(user, editedCounterData.email);
-      }
-  
-      // Update password if provided
-      if (newPassword) {
-        await updatePassword(user, newPassword);
-      }
-  
-      // Update Firestore document
       const counterRef = doc(db, "counters", counter.id);
       const updateData = { 
         counterName: editedCounterData.counterName,
         email: editedCounterData.email,
         service: editedCounterData.service
       };
+  
+      // If a new password is provided, hash it and update
+      if (newPassword) {
+        const hashedPassword = await hash(newPassword, 10);
+        updateData.password = hashedPassword;
+      }
   
       await updateDoc(counterRef, updateData);
   
@@ -74,6 +61,7 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
       setError(`Failed to update counter: ${error.message}`);
     }
   };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedCounterData({ ...editedCounterData, [name]: value });

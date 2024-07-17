@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Checkbox,
   Table,
@@ -26,16 +26,18 @@ import {
   updateDoc,
   arrayUnion
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { onAuthStateChanged } from "firebase/auth";
+import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 
 const CounterDash = () => {
   const navigate = useNavigate();
   const auth = getAuth();
+  const { email } = useContext(AuthContext);
   const user = auth.currentUser;
 
   const [userData, setUserData] = useState([]);
@@ -54,7 +56,21 @@ const CounterDash = () => {
   // const [receivedTokenCount, setReceivedTokenCount] = useState(0);
   // const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
 
+  useEffect(() => {
+    const checkAuth = () => {
+      const userData = JSON.parse(localStorage.getItem('currentUser'));
+      if (userData && userData.role === 'counter') {
+        console.log('Counter authenticated:', userData.email);
+        // setLoading(false);
+        // Proceed with loading counter data
+      } else {
+        console.log('Not authenticated as counter, redirecting to login');
+        navigate('/login');
+      }
+    };
 
+    checkAuth();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchRequestsData = async () => {

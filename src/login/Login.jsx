@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import Navbar from "./Navbar";
 import { signIn } from "../firebase";
 import { Card, CardHeader, CardBody, Input, Button } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
+import { db } from "../firebase";
+import { AuthContext } from "../Context/AuthContext";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
+import bcrypt from 'bcryptjs';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,26 +16,57 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [loggedInAs, setLoggedInAs] = useState(null);
   const navigate = useNavigate();
+  const { setEmail: setContextEmail } = useContext(AuthContext);
+
+  
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError(null);
+  
     try {
-      const role = await signIn(email, password);
-      if (role === "admin") {
-        setLoggedInAs("admin");
-        navigate("/adminDash"); // Navigate after setting the state
-      } else if (role === "counter") {
-        const counterName = email.split("@")[0]; // This will be "counter1", "counter2", etc.
-        setLoggedInAs("counter");
-        navigate(`/${counterName}`);
-      } else {
-        setError("Unauthorized access");
+      if (email === "admin@qms.com" && password === "QMS@123") {
+        localStorage.setItem('currentUser', JSON.stringify({
+          email: email,
+          role: "admin"
+        }));
+        navigate("/adminDash");
+        return;
       }
+  
+      if (email.endsWith("@qms.com")) {
+        const countersRef = collection(db, "counters");
+        const q = query(countersRef, where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+  
+        if (!querySnapshot.empty) {
+          const counterDoc = querySnapshot.docs[0];
+          const counterData = counterDoc.data();
+          const hashedPassword = counterData.password;
+  
+          // Compare the input password with the hashed password
+          const isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
+  
+          if (isPasswordCorrect) {
+            const counterName = email.split("@")[0];
+            localStorage.setItem('currentUser', JSON.stringify({
+              email: email,
+              role: "counter",
+              counterName: counterName
+            }));
+            setContextEmail(email);
+            navigate(`/${counterName}`);
+            return;
+          }
+        }
+      }
+  
+      throw new Error("Invalid credentials");
     } catch (error) {
-      setError(error.message);
+      console.error("Login error:", error);
+      setError(error.message || "Invalid email or password");
     }
   };
-
   return (
     <div className="flex flex-col min-h-dvh min-w-screen">
       <Navbar />
