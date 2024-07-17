@@ -32,7 +32,7 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
-    path: '/counterDash',
+    path: '/:counterName',
     element: <CounterDash />,
   },
   {
