@@ -12,6 +12,7 @@ import { getStorage } from "firebase/storage";
 import bcrypt from 'bcryptjs';
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 
+
 // Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAwYQ9ulSdOAsrzTiPKY5AFgchq8zcXDXc",

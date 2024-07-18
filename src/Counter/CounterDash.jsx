@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import {
   Checkbox,
   Table,
@@ -24,7 +24,9 @@ import {
   addDoc,
   getDoc,
   updateDoc,
-  arrayUnion
+  arrayUnion,
+  increment,
+  runTransaction 
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { getAuth } from "firebase/auth";
@@ -37,13 +39,13 @@ import { serverTimestamp } from "firebase/firestore";
 const CounterDash = () => {
   const navigate = useNavigate();
   const auth = getAuth();
-  const { email } = useContext(AuthContext);
+  const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
   const user = auth.currentUser;
 
   const [userData, setUserData] = useState([]);
   // const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
-  const [completedCount, setCompletedCount] = useState(0);
+  const [completedCounts, setCompletedCounts] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
@@ -69,7 +71,7 @@ const CounterDash = () => {
       }
     };
 
-    checkAuth();
+    setTimeout(checkAuth, 500);
   }, [navigate]);
 
   useEffect(() => {
@@ -134,26 +136,26 @@ const CounterDash = () => {
   }, []);
   
   useEffect(() => {
-    const fetchCompletedCount = () => {
-      if (!auth.currentUser) return;
-  
-      const email = auth.currentUser.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-      const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
-      
-      return onSnapshot(completedTokensRef, (docSnapshot) => {
+    if (!email) return;
+    console.log('++++++++++++++++++++++++',email);
+    // Create a query reference
+    const countersCollection = collection(db, 'counters');
+    const q = query(countersCollection, where('email', '==', email));
+    
+    // Set up the onSnapshot listener
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      querySnapshot.forEach((docSnapshot) => {
         if (docSnapshot.exists()) {
-          const tokensArray = docSnapshot.data().tokens || [];
-          setCompletedCount(tokensArray.length);
-        } else {
-          setCompletedCount(0);
+          const counterData = docSnapshot.data();
+          console.log('----------------',counterData);
+          updateCompletedCount(counterData.completed || 0);
+          console.log('jefpq2roiwu',completedCount);
         }
       });
-    };
-  
-    const unsubscribe = fetchCompletedCount();
-    return () => unsubscribe && unsubscribe();
-  }, [auth.currentUser]);
+    });
+
+    return () => unsubscribe();
+  }, [email, updateCompletedCount]);
 
   useEffect(() => {
     const fetchTotalCustomerCount = async () => {
@@ -230,17 +232,27 @@ const CounterDash = () => {
 
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const email = auth.currentUser.email;
-        const counterName = email.split("@")[0];
-        const counterNumber = parseInt(counterName.replace("counter", ""));
+    console.log('Auth state change effect running');
   
-        if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 20) {
-          navigate("/login");
-          return;
-        }
-  
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    console.log('Auth state changed. User:', user);
+    console.log('Email from context:', email);
+
+    if (email) {
+      console.log('User is authenticated');
+      // Use the email from the authenticated user object
+      const userEmail = user.email;
+      console.log('User email:', userEmail);
+
+      const counterName = userEmail.split("@")[0];
+      const counterNumber = parseInt(counterName.replace("counter", ""));
+      console.log('Counter number:', counterNumber);
+
+      if (isNaN(counterNumber) || counterNumber < 1 || counterNumber > 20) {
+        console.log('Invalid counter number, redirecting to login');
+        navigate("/login");
+        return;
+      }
         const fetchData = async () => {
           try {
             // Fetch data from 'single counter' collection
@@ -358,7 +370,7 @@ const CounterDash = () => {
         setPendingCount(updatedPending.length);
   
         // Clear the nowServingToken from the counter's document
-        const email = auth.currentUser.email;
+        // const email = auth.currentUser.email;
         const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
         const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
         
@@ -378,26 +390,8 @@ const CounterDash = () => {
     }
   };
 
-  useEffect(() => {
-    if (!auth.currentUser) return;
   
-      const email = auth.currentUser.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-      const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
-    
-    const unsubscribe = onSnapshot(completedTokensRef, (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const tokensArray = docSnapshot.data().tokens || [];
-        setCompletedCount(tokensArray.length);
-      } else {
-        console.log("Queue document does not exist");
-        setCompletedCount(0);
-      }
-    });
   
-    // Clean up the listener when the component unmounts
-    return () => unsubscribe();
-  }, []);
 
 
   const handleRecallButtonClick = () => {
@@ -406,7 +400,7 @@ const CounterDash = () => {
       return;
     }
     console.log('hi');
-    const email = auth.currentUser.email;
+    // const email = auth.currentUser.email;
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
     // Prepare and speak the voice message for recall
@@ -417,7 +411,7 @@ const CounterDash = () => {
 
 
   const handleNextButtonClick = async () => {
-    const email = auth.currentUser.email;
+    // const email = auth.currentUser.email;
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
@@ -513,7 +507,8 @@ const CounterDash = () => {
         return;
       }
   
-      const email = auth.currentUser.email;
+      // const email = auth.currentUser.email;
+  
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
     
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
@@ -553,7 +548,7 @@ const CounterDash = () => {
 
   const updateCurrentlyServing = async (tokenData) => {
     try {
-      const email = auth.currentUser.email;
+      // const email = auth.currentUser.email;
       const counterNumber = parseInt(
         email.split("@")[0].replace("counter", "")
       );
@@ -609,16 +604,15 @@ const CounterDash = () => {
   };
   
 
- 
-  const handleSaveButtonClick = async () => {
+  const handleSaveButtonClick = useCallback(async () => {
     if (!nowServingToken || nowServingToken === '---') {
       console.log("No token currently being served.");
       return;
     }
   
     try {
-      const email = auth.currentUser.email;
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      // const email = auth.currentUser.email;
+      const counterNumber = email.split("@")[0].replace("counter", "");
       const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
   
       // Fetch the current token's details from the requests collection
@@ -638,16 +632,12 @@ const CounterDash = () => {
         token: nowServingToken,
         name: tokenDetails.name,
         service: tokenDetails.service,
-        completedAt: new Date().toISOString(), // Use ISO string instead of serverTimestamp
+        completedAt: new Date().toISOString(),
       };
   
       // Update the CompletedTokens document
       await updateDoc(completedTokensRef, {
         tokens: arrayUnion(nowServingToken),
-      });
-  
-      // Separately update the history array
-      await updateDoc(completedTokensRef, {
         history: arrayUnion(historyEntry)
       });
   
@@ -661,16 +651,51 @@ const CounterDash = () => {
   
       console.log(`Token ${nowServingToken} added to receivedToken array in queueDoc`);
   
+      // Use a transaction to ensure atomic increment
+      const countersRef = collection(db, 'counters');
+      const counterQuery = query(countersRef, where('email', '==', email));
+      const counterSnapshot = await getDocs(counterQuery);
+  
+      if (!counterSnapshot.empty) {
+        const counterDoc = counterSnapshot.docs[0];
+        const counterDocRef = doc(countersRef, counterDoc.id);
+        
+        await runTransaction(db, async (transaction) => {
+          console.log('------------------------------');
+          const counterDocSnapshot = await transaction.get(counterDocRef);
+          console.log('++++++++++++++++++++');
+          if (!counterDocSnapshot.exists()) {
+            throw "Counter document does not exist!";
+          }
+          console.log('12345');
+          const newCompletedCount = (counterDocSnapshot.data().completed || 0) + 1;
+          transaction.update(counterDocRef, { completed: newCompletedCount });
+  
+          console.log(`Completed count incremented for counter ${counterNumber}: ${newCompletedCount}`);
+  
+          // Update the context with the new completed count
+          setCompletedCounts(newCompletedCount);
+          updateCompletedCount(newCompletedCount);
+        });
+  
+      } else {
+        console.log(`Counter ${counterNumber} not found in counters collection`);
+      }
+  
       setNowServingToken("---");
   
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-      await deleteDoc(counterDocRef);
+      await updateDoc(counterDocRef, {
+        nowServingToken: "-"
+      });
   
       await handleNextButtonClick();
     } catch (error) {
       console.error("Error handling completed: ", error);
     }
-  };
+  }, [nowServingToken, updateCompletedCount, handleNextButtonClick]);
+  
+
 
   const recallSpecificToken = async (specialtoken) => {
     try {
@@ -678,7 +703,7 @@ const CounterDash = () => {
       setNowServingToken(specialtoken);
   
       // Get the counter number from the user's email
-      const email = auth.currentUser.email;
+      // const email = auth.currentUser.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
       // Add the now serving token to the counterDoc
@@ -748,7 +773,7 @@ const CounterDash = () => {
       setNowServingToken(specialtoken);
   
       // Get the counter number from the user's email
-      const email = auth.currentUser.email;
+      // const email = auth.currentUser.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
       // Add the now serving token to the counterDoc

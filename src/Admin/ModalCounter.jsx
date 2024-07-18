@@ -60,6 +60,7 @@ export default function ModalCounter({ onCounterAdded }) {
         service: data.service,
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
+        completed : 0,
       };
 
       await addDoc(collection(db, "counters"), newCounter);
