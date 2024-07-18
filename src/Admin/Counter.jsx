@@ -16,7 +16,8 @@ import {
   doc,
   onSnapshot,
   query,
-  getDocs
+  getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import ModalCounter from "./ModalCounter";
 import EditCounterModal from "./EditCounterModal";
@@ -62,7 +63,14 @@ const AdminDash = () => {
         const requestsSnapshot = await getDocs(collection(db, "requests"));
         const requestsDeletePromises = requestsSnapshot.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(requestsDeletePromises);
-  
+        
+        // Update 'completed' field to 0 for all counters
+      const countersSnapshot = await getDocs(collection(db, "counters"));
+      const counterUpdatePromises = countersSnapshot.docs.map(doc => 
+        updateDoc(doc.ref, { completed: 0 })
+      );
+      await Promise.all(counterUpdatePromises);
+      
         console.log("All queues and requests have been deleted.");
         alert("Reset successful. All queues and requests have been deleted.");
       } catch (error) {

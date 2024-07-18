@@ -241,10 +241,10 @@ const CounterDash = () => {
     if (email) {
       console.log('User is authenticated');
       // Use the email from the authenticated user object
-      const userEmail = user.email;
-      console.log('User email:', userEmail);
+      // const userEmail = user.email;
+      // console.log('User email:', userEmail);
 
-      const counterName = userEmail.split("@")[0];
+      const counterName = email.split("@")[0];
       const counterNumber = parseInt(counterName.replace("counter", ""));
       console.log('Counter number:', counterNumber);
 
@@ -1028,7 +1028,7 @@ const CounterDash = () => {
           {request.pending ? (
             <Button
               onClick={() => recallSpecificToken(request.tokenNumber)}
-              disabled={nowServingToken !== "---"}
+              disabled={nowServingToken != "---"}
               className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
             >
               Call Now
