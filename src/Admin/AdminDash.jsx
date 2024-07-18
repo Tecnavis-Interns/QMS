@@ -31,16 +31,19 @@ const Dashboard = () => {
   const [counterData, setCounterData] = useState([]);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.email === "admin@qms.com") {
-        setUser(currentUser);
+    const checkAuth = () => {
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      console.log('Current user:', user);
+      if (!user || user.role !== 'admin') {
+        console.log('Redirecting to login');
+        navigate('/login');
       } else {
-        navigate("/login");
+        console.log('Admin authenticated');
       }
-    });
+    };
 
-    return () => unsubscribeAuth();
-  }, [auth, navigate]);
+    checkAuth();
+  }, [navigate]);
 
   const fetchRequests = async () => {
     try {

@@ -2,16 +2,18 @@ import {
   Button,
   Link
 } from "@nextui-org/react";
-import { signOutUser } from "../firebase";
+// import { signOutUser } from "../firebase";
 import { useNavigate, useLocation } from "react-router-dom";
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = async () => {
-    await signOutUser();
-    navigate("/");
+  const handleLogout = () => {
+    // Clear any local storage or state related to the user's session
+    localStorage.removeItem('user'); // Assuming you store user info in localStorage
+    // Navigate to the login page
+    navigate("/login");
   };
 
   return (

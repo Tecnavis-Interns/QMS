@@ -1,17 +1,18 @@
 import { initializeApp } from "firebase/app";
 import {
-  getAuth,
-  signInWithEmailAndPassword,
-  signOut
-} from "firebase/auth";
-import {
   getFirestore,
   collection,
   addDoc,
   serverTimestamp,
+  query,
+  where,
+  getDocs
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-// import bcrypt from "bcrypt"
+import bcrypt from 'bcryptjs';
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
+
+
 // Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAwYQ9ulSdOAsrzTiPKY5AFgchq8zcXDXc",
@@ -23,19 +24,20 @@ const firebaseConfig = {
   measurementId: "G-G2Q8CR4PST"
 };
 
-
 // Initialize Firebase
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 export const storage = getStorage(app);
+
+setPersistence(auth, browserLocalPersistence);
 
 // Function to submit data to Firestore
 const submitDataToFirestore = async (collectionName, data) => {
   try {
     data.date = serverTimestamp();
     const docRef = await addDoc(collection(db, collectionName), data);
-    // console.log("Data submitted successfully with ID: ", docRef.id);
     return docRef.id; // Return the generated ID
   } catch (error) {
     console.error("Error submitting data: ", error);
@@ -43,28 +45,31 @@ const submitDataToFirestore = async (collectionName, data) => {
   }
 };
 
-
-
+// New function to check login credentials
 const signIn = async (email, password) => {
-    await signInWithEmailAndPassword(auth, email, password);
-    const isAdmin = email === "admin@qms.com";
-    const isCounter = email.endsWith("@qms.com");
-
-    if (isAdmin) {
-      return "admin";
-    } else if (isCounter) {
-      return "counter";
-    } else {
-      throw new Error("Invalid input");
-    }
-};
-
-const signOutUser = async () => {
-  try {
-    await signOut(auth);
-    console.log("Logout Successful");
-  } catch (error) {
-    console.error("Error signing out: ", error);
+  if (email === "admin@qms.com" && password === "QMS@123") {
+    return "admin";
   }
+
+  if (email.endsWith("@qms.com")) {
+    const countersRef = collection(db, "counters");
+    const q = query(countersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const counterDoc = querySnapshot.docs[0];
+      const counterData = counterDoc.data();
+      const hashedPassword = counterData.password;
+
+      // Compare the input password with the hashed password
+      const isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
+
+      if (isPasswordCorrect) {
+        return "counter";
+      }
+    }
+  }
+
+  throw new Error("Invalid credentials");
 };
-export { auth, db, submitDataToFirestore, signIn, signOutUser };
+export { db, submitDataToFirestore, signIn, auth };

@@ -16,8 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
+
 
 export default function ModalCounter({ onCounterAdded }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -50,8 +49,6 @@ export default function ModalCounter({ onCounterAdded }) {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
       const id = uuidv4();
       const hashedPassword = await hash(data.password, 10);
 
@@ -63,8 +60,7 @@ export default function ModalCounter({ onCounterAdded }) {
         service: data.service,
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
-        uid: user.uid,
-        completed: 0, // New field added with default value 0
+        completed : 0,
       };
 
       await addDoc(collection(db, "counters"), newCounter);

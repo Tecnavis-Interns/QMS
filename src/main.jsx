@@ -18,6 +18,7 @@ import TVView from './TVView/TVView'
 import ConfirmationPage from './User/Confirmation'
 import Ads from './Admin/Ads';
 import Services from './Admin/Services';
+import { AuthProvider } from './Context/AuthContext';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -67,8 +68,10 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    <AuthProvider>
     <NextUIProvider>
       <RouterProvider router={router} />
     </NextUIProvider>
+    </AuthProvider>
   </React.StrictMode>,
 );

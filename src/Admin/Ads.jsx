@@ -6,6 +6,7 @@ import { ref, uploadBytes, listAll, getDownloadURL, deleteObject } from 'firebas
 import { v4 } from 'uuid';
 import toast, { Toaster } from 'react-hot-toast';
 
+
 const Slideshow = ({ mediaList, currentMediaIndex, nextMedia, prevMedia, onDeleteMedia }) => {
   if (!mediaList || mediaList.length === 0) return null;
 

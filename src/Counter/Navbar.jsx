@@ -7,15 +7,20 @@ import {
   Link,
   Button,
 } from "@nextui-org/react";
-import { signOutUser } from "../firebase";
+// import { signOutUser } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import { useContext } from 'react';
+import { AuthContext } from '../Context/AuthContext';
 
 export default function App() {
+  const { email } = useContext(AuthContext);
   const navigate = useNavigate();
-  const handleLogout = async () => {
-    await signOutUser();
-    navigate("/")
-  }
+  const handleLogout = () => {
+    // Clear any local storage or state related to the user's session
+    localStorage.removeItem('user'); // Assuming you store user info in localStorage
+    // Navigate to the login page
+    navigate("/login");
+  };
   return (
     <div className="flex h-screen">
       {/* Sidebar */}

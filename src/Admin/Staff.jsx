@@ -73,18 +73,22 @@ const Staff = () => {
   }, [fetchStaffData, fetchServices]);
 
   // Effect to handle user authentication state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        setUser(null);
-        navigate("/login");
-      }
-    });
-    return () => unsubscribe();
-  }, [auth, navigate]);
 
+  useEffect(() => {
+    const checkAuth = () => {
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      console.log('Current user:', user);
+      if (!user || user.role !== 'admin') {
+        console.log('Redirecting to login');
+        navigate('/login');
+      } else {
+        console.log('Admin authenticated');
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+  
   // Open edit modal for selected staff member
   const handleEdit = (id) => {
     const staff = staffData.find((staff) => staff.id === id);
