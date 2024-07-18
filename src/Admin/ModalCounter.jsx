@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 
 export default function ModalCounter({ onCounterAdded }) {
@@ -30,6 +31,8 @@ export default function ModalCounter({ onCounterAdded }) {
   });
 
   const [services, setServices] = useState([]);
+  const [isVisible, setIsVisible] = useState(false);
+  const toggleVisibility = () => setIsVisible(!isVisible);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -129,11 +132,20 @@ export default function ModalCounter({ onCounterAdded }) {
                 render={({ field }) => (
                   <Input
                     {...field}
-                    type="password"
+                    type={isVisible ? "text" : "password"}
                     label="Password"
                     variant="bordered"
                     isInvalid={!!errors.password}
                     errorMessage={errors.password?.message}
+                    endContent={
+                      <button className="focus:outline-none" type="button" onClick={toggleVisibility}>
+                        {isVisible ? (
+                          <EyeSlashIcon className="h-6 w-6 text-default-400" />
+                        ) : (
+                          <EyeIcon className="h-6 w-6 text-default-400" />
+                        )}
+                      </button>
+                    }
                   />
                 )}
               />
