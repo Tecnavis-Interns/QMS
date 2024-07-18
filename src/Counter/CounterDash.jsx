@@ -32,15 +32,15 @@ import { db, auth } from "../firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
-import { onAuthStateChanged } from "firebase/auth";
+
 import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 
 const CounterDash = () => {
   const navigate = useNavigate();
-  const auth = getAuth();
+  //const auth = getAuth();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
-  const user = auth.currentUser;
+
 
   const [userData, setUserData] = useState([]);
   // const [selectedRecords, setSelectedRecords] = useState([]);
@@ -232,19 +232,18 @@ const CounterDash = () => {
 
 
   useEffect(() => {
-    console.log('Auth state change effect running');
-  
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    console.log('Auth state changed. User:', user);
-    console.log('Email from context:', email);
 
+    const userData = localStorage.getItem("currentUser")
+    const json = JSON.parse (userData)
+    const email = json["email"]
+    
     if (email) {
       console.log('User is authenticated');
       // Use the email from the authenticated user object
-      // const userEmail = user.email;
-      // console.log('User email:', userEmail);
+      const userEmail = email;
+      console.log('User email:', userEmail);
 
-      const counterName = email.split("@")[0];
+      const counterName = userEmail.split("@")[0];
       const counterNumber = parseInt(counterName.replace("counter", ""));
       console.log('Counter number:', counterNumber);
 
@@ -261,7 +260,7 @@ const CounterDash = () => {
               id: doc.id,
               ...doc.data()
             }));
-            setUserData(data.filter(isValidUserData)); // Filter out invalid data
+            setUserData(data); // Filter out invalid data
   
             // Fetch total number of customers in "single counter" collection
             setTotalCustomerCount(singleCounterSnapshot.size);
@@ -278,7 +277,7 @@ const CounterDash = () => {
             const updatedData = snapshot.docs.map(doc => doc.data());
             const orderedData = updatedData.sort((a, b) => b.date - a.date);
             const reversedData = orderedData.reverse();
-            setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
+            setUserData(reversedData); // Filter out invalid data
           }
         );
   
@@ -286,9 +285,9 @@ const CounterDash = () => {
       } else {
         navigate("/login");
       }
-    });
+   
   
-    return () => unsubscribe();
+    
   }, [navigate]);
 
   useEffect(() => {
@@ -297,15 +296,15 @@ const CounterDash = () => {
    
 
 
-  const isValidUserData = (user) => {
-    return (
-      user.name &&
-      user.phone &&
-      user.date &&
-      user.service &&
-      user.token
-    );
-  };
+  // const isValidUserData = (user) => {
+  //   return (
+  //     user.name &&
+  //     user.phone &&
+  //     user.date &&
+  //     user.service &&
+  //     user.token
+  //   );
+  // };
   
   const fetchPendingCount = async () => {
     try {
@@ -500,43 +499,43 @@ const CounterDash = () => {
   };
   
 
-  const fetchNowServingToken = async () => {
-    try {
-      if (!auth.currentUser) {
-        console.log("User not authenticated yet");
-        return;
-      }
+  // const fetchNowServingToken = async () => {
+  //   try {
+  //     if (!auth.currentUser) {
+  //       console.log("User not authenticated yet");
+  //       return;
+  //     }
   
-      // const email = auth.currentUser.email;
+  //     // const email = auth.currentUser.email;
   
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  //     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
     
-      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+  //     const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
     
-      const docSnap = await getDoc(counterDocRef);
+  //     const docSnap = await getDoc(counterDocRef);
       
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setNowServingToken(data.nowServingToken);
-      } else {
-        console.log("No serving token found");
-        setNowServingToken("---");
-      }
-    } catch (error) {
-      console.error("Error fetching now serving token: ", error);
-    }
-  };
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchNowServingToken();
-      } else {
-        setNowServingToken("---");
-      }
-    });
+  //     if (docSnap.exists()) {
+  //       const data = docSnap.data();
+  //       setNowServingToken(data.nowServingToken);
+  //     } else {
+  //       console.log("No serving token found");
+  //       setNowServingToken("---");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching now serving token: ", error);
+  //   }
+  // };
+  // useEffect(() => {
+  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
+  //     if (user) {
+  //       fetchNowServingToken();
+  //     } else {
+  //       setNowServingToken("---");
+  //     }
+  //   });
   
-    return () => unsubscribe();
-  }, []);
+  //   return () => unsubscribe();
+  // }, []);
 
 
   const speak = (message) => {
@@ -891,7 +890,7 @@ const CounterDash = () => {
 
   useEffect(() => {
     setCurrentDate(getCurrentDate());
-  }, [user, completedCount]);
+  }, [completedCount]);
   
   
 
@@ -1028,7 +1027,7 @@ const CounterDash = () => {
           {request.pending ? (
             <Button
               onClick={() => recallSpecificToken(request.tokenNumber)}
-              disabled={nowServingToken != "---"}
+              disabled={nowServingToken !== "---"}
               className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
             >
               Call Now

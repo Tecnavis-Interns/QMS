@@ -163,7 +163,7 @@ const Dashboard = () => {
             />
             <div>
               <h1 className="font-bold">{counter.staffName}</h1>
-              <h1 className="text-sm">{counter.service}</h1>
+              <h1 className="text-sm">{counter.counterName}</h1>
             </div>
           </div>
           <div className="border-t pt-2">
