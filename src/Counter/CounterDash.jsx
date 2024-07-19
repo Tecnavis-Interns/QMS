@@ -51,12 +51,9 @@ const CounterDash = () => {
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
   const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
-  // const [singleCounterData, setSingleCounterData] = useState([]);
-  // const [lastTokenNumber, setLastTokenNumber] = useState(0);
+  const [counterName, setCounterName] = useState("");
   const [requestsData, setRequestsData] = useState([]);
   const [remainingCount, setRemainingCount] = useState(0);
-  // const [receivedTokenCount, setReceivedTokenCount] = useState(0);
-  // const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
 
   useEffect(() => {
     const checkAuth = () => {
@@ -213,7 +210,7 @@ const CounterDash = () => {
             setNowServingToken('---');
             console.log("Initial now serving token:", tokenArray[0]);
           } else {
-            setNowServingToken("");
+            setNowServingToken("---");
             console.log("No tokens in queue");
           }
         } else {
@@ -228,7 +225,28 @@ const CounterDash = () => {
     fetchInitialData();
   }, []);
   
+  const fetchCounterName = async () => {
+    try {
+      const countersRef = collection(db, 'counters');
+      const q = query(countersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
 
+      if (!querySnapshot.empty) {
+        const counterData = querySnapshot.docs[0].data();
+        setCounterName(counterData.counterName || "");
+      } else {
+        console.log("Counter not found in counters collection");
+        setCounterName("");
+      }
+    } catch (error) {
+      console.error("Error fetching counter name: ", error);
+      setCounterName("");
+    }
+  };
+
+  useEffect(() => {
+    fetchCounterName();
+  }, [email]);
 
 
   useEffect(() => {
@@ -903,6 +921,7 @@ const CounterDash = () => {
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
         <div>
         <div className="mb-4 mt-4 mr-24">
+          <h1 className="font-semibold">{counterName}</h1>
             <h1>Date : {currentDate} </h1>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
@@ -942,7 +961,7 @@ const CounterDash = () => {
           </div>
           </div>
           <div className="grid grid-cols-1 mb-4 mt-16">
-          <Card className="py-4 ml-4 w-[200px]">
+          <Card className="py-4 ml-4 w-[200px] mt-6">
             <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
               <h3 className="font-bold text-large mb-2">Now Serving</h3>
               <p className="text-6xl font-bold mt-4">{nowServingToken === "---" ? "---" : nowServingToken || "---"}</p>
