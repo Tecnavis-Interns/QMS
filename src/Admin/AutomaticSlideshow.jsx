@@ -6,28 +6,37 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
   const [mediaList, setMediaList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cycleComplete, setCycleComplete] = useState(false);
-  const imageListRef = ref(storage, 'images/');
-  const videoListRef = ref(storage, 'videos/');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentVideoDuration, setCurrentVideoDuration] = useState(null);
+  const mediaListRef = ref(storage, "media/");
 
   useEffect(() => {
     const fetchMedia = async () => {
       console.log("Fetching media...");
+      setIsLoading(true);
+      setError(null);
       try {
-        const imageResponse = await listAll(imageListRef);
-        const videoResponse = await listAll(videoListRef);
-
-        const imageUrls = await Promise.all(imageResponse.items.map(item => getDownloadURL(item)));
-        const videoUrls = await Promise.all(videoResponse.items.map(item => getDownloadURL(item)));
-
-        const images = imageUrls.map(url => ({ url, isVideo: false }));
-        const videos = videoUrls.map(url => ({ url, isVideo: true }));
-
-        setMediaList([...images, ...videos]);
-        console.log("Media fetched:", [...images, ...videos]);
+        const response = await listAll(mediaListRef);
+        const mediaItems = await Promise.all(
+          response.items.map(async (item) => {
+            const url = await getDownloadURL(item);
+            return { 
+              url, 
+              ref: item, 
+              name: item.name, 
+              isVideo: item.name.toLowerCase().includes('.mp4') || item.name.toLowerCase().includes('.mov')
+            };
+          })
+        );
+        console.log("Media fetched:", mediaItems);
+        setMediaList(mediaItems);
         setCurrentIndex(0); // Reset to first media after fetching new media
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching media:", error);
+        setError("Failed to load media. Please try again later.");
+        setIsLoading(false);
       }
     };
 
@@ -89,26 +98,35 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
     });
   };
 
+  // if (isLoading) {
+  //   return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center">Loading...</div>;
+  // }
+
+  if (error) {
+    return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center text-red-500">{error}</div>;
+  }
+
+  if (mediaList.length === 0) {
+    return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center">No media available</div>;
+  }
+
   return (
     <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px]">
-      {mediaList.length > 0 ? (
-        mediaList[currentIndex].isVideo ? (
-          <video
-            src={mediaList[currentIndex].url}
-            autoPlay
-            onLoadedMetadata={handleVideoDurationChange}
-            onEnded={handleVideoEnded}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <img
-            src={mediaList[currentIndex].url}
-            alt="Automatic Slideshow"
-            className="w-full h-full object-cover"
-          />
-        )
+      {mediaList[currentIndex].isVideo ? (
+        <video
+          key={mediaList[currentIndex].url}
+          src={mediaList[currentIndex].url}
+          autoPlay
+          onLoadedMetadata={handleVideoDurationChange}
+          onEnded={handleVideoEnded}
+          className="w-full h-full object-cover"
+        />
       ) : (
-        <p>Loading...</p>
+        <img
+          src={mediaList[currentIndex].url}
+          alt="Automatic Slideshow"
+          className="w-full h-full object-cover"
+        />
       )}
     </div>
   );
