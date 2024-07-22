@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { db } from './firebase'; // Adjust this import path as needed
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, where, orderBy } from 'firebase/firestore';
 import moment from 'moment';
 
 const TokenChart = () => {
@@ -11,15 +11,27 @@ const TokenChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
+        const oneWeekAgo = moment().subtract(7, 'days').startOf('day').toDate();
+        
+        const q = query(
+          collection(db, "ChartData"),
+          where("createdAt", ">=", oneWeekAgo),
+          orderBy("createdAt", "desc")
+        );
+        
         const querySnapshot = await getDocs(q);
-        const requests = querySnapshot.docs.map(doc => ({
+        const ChartData = querySnapshot.docs.map(doc => ({
           ...doc.data(),
           createdAt: doc.data().createdAt.toDate()
         }));
 
+        // Generate an array of the last 7 days
+        const last7Days = Array.from({length: 7}, (_, i) => {
+          return moment().subtract(i, 'days').format('YYYY-MM-DD');
+        }).reverse();
+
         // Process the data
-        const tokenRequestsByDay = requests.reduce((acc, request) => {
+        const tokenRequestsByDay = ChartData.reduce((acc, request) => {
           const date = moment(request.createdAt).format('YYYY-MM-DD');
           if (!acc[date]) {
             acc[date] = 0;
@@ -28,11 +40,11 @@ const TokenChart = () => {
           return acc;
         }, {});
 
-        const labels = Object.keys(tokenRequestsByDay).sort();
-        const data = labels.map(label => tokenRequestsByDay[label]);
+        // Ensure all days in the last week are represented, even if there were no requests
+        const data = last7Days.map(day => tokenRequestsByDay[day] || 0);
 
         setChartData({
-          labels: labels,
+          labels: last7Days,
           datasets: [{
             label: '# of Token Requests',
             data: data,
@@ -59,7 +71,7 @@ const TokenChart = () => {
     plugins: {
       title: {
         display: true,
-        text: 'Token Requests Per Day'
+        text: 'Token Requests Per Day (Last 7 Days)'
       },
       legend: {
         display: false,

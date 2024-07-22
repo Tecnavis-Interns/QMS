@@ -173,7 +173,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                 </Select>
               )}
             /> */}
-            <Controller
+            {/* <Controller
               name="newStaffID"
               control={control}
               render={({ field }) => (
@@ -185,7 +185,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                   variant="bordered"
                 />
               )}
-            />
+            /> */}
           </ModalBody>
           <ModalFooter>
             <Button onPress={onClose} className="w-full bg-slate-300">
