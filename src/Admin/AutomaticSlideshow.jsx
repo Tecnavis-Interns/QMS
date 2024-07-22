@@ -43,37 +43,21 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
     fetchMedia();
   }, [refresh]);
 
+  
   useEffect(() => {
-    let interval;
-    if (mediaList.length > 0) {
-      const currentMedia = mediaList[currentIndex];
-      if (currentMedia.isVideo) {
-        interval = setTimeout(() => {
-          setCurrentIndex((prevIndex) => {
-            const newIndex = (prevIndex + 1) % mediaList.length;
-            if (newIndex === 0) {
-              console.log("Cycle complete, triggering refresh");
-              setCycleComplete(true);
-            }
-            return newIndex;
-          });
-        }, currentVideoDuration || 6000); // use video duration or default 6s
-      } else {
-        interval = setInterval(() => {
-          setCurrentIndex((prevIndex) => {
-            const newIndex = (prevIndex + 1) % mediaList.length;
-            if (newIndex === 0) {
-              console.log("Cycle complete, triggering refresh");
-              setCycleComplete(true);
-            }
-            return newIndex;
-          });
-        }, 6000); // default 6s for images
-      }
-    }
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => {
+        const newIndex = (prevIndex + 1) % mediaList.length;
+        if (newIndex === 0) {
+          console.log("Cycle complete, triggering refresh");
+          setCycleComplete(true);
+        }
+        return newIndex;
+      });
+    }, 6000); // Change slide every 6 seconds
 
     return () => clearInterval(interval);
-  }, [mediaList, currentIndex, currentVideoDuration]);
+  }, [mediaList]);
 
   useEffect(() => {
     if (cycleComplete) {
@@ -83,20 +67,8 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
     }
   }, [cycleComplete, setRefresh]);
 
-  const handleVideoDurationChange = (event) => {
-    setCurrentVideoDuration(event.target.duration * 1000); // convert to milliseconds
-  };
 
-  const handleVideoEnded = () => {
-    setCurrentIndex((prevIndex) => {
-      const newIndex = (prevIndex + 1) % mediaList.length;
-      if (newIndex === 0) {
-        console.log("Cycle complete, triggering refresh");
-        setCycleComplete(true);
-      }
-      return newIndex;
-    });
-  };
+ 
 
   // if (isLoading) {
   //   return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center">Loading...</div>;
@@ -117,8 +89,9 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
           key={mediaList[currentIndex].url}
           src={mediaList[currentIndex].url}
           autoPlay
-          onLoadedMetadata={handleVideoDurationChange}
-          onEnded={handleVideoEnded}
+          loop
+          muted
+          playsInline
           className="w-full h-full object-cover"
         />
       ) : (
