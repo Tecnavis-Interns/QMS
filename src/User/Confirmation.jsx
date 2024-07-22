@@ -8,7 +8,7 @@ export default function ConfirmationPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { tokenNumber } = location.state;
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     if (!tokenNumber) {
@@ -28,7 +28,7 @@ export default function ConfirmationPage() {
     // Redirect after 10 seconds
     const redirect = setTimeout(() => {
       navigate("/userForm");
-    }, 10000);
+    }, 5000);
 
     return () => {
       clearInterval(timer);

@@ -1,21 +1,16 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getDownloadURL, listAll, ref } from 'firebase/storage';
 import { storage } from '../firebase';
 
 const AutomaticSlideshow = ({ refresh, setRefresh }) => {
   const [mediaList, setMediaList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [cycleComplete, setCycleComplete] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentVideoDuration, setCurrentVideoDuration] = useState(null);
   const mediaListRef = ref(storage, "media/");
+  const containerRef = useRef(null);
+  const mediaRefs = useRef([]);
 
   useEffect(() => {
     const fetchMedia = async () => {
-      console.log("Fetching media...");
-      setIsLoading(true);
-      setError(null);
       try {
         const response = await listAll(mediaListRef);
         const mediaItems = await Promise.all(
@@ -29,80 +24,93 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
             };
           })
         );
-        console.log("Media fetched:", mediaItems);
         setMediaList(mediaItems);
-        setCurrentIndex(0); // Reset to first media after fetching new media
-        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching media:", error);
-        setError("Failed to load media. Please try again later.");
-        setIsLoading(false);
       }
     };
 
     fetchMedia();
   }, [refresh]);
 
-  
   useEffect(() => {
+    const preloadNextMedia = (index) => {
+      const nextIndex = (index + 1) % mediaList.length;
+      const nextMedia = mediaRefs.current[nextIndex];
+      if (nextMedia) {
+        if (nextMedia.tagName === 'VIDEO') {
+          nextMedia.load();
+        }
+      }
+    };
+
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => {
         const newIndex = (prevIndex + 1) % mediaList.length;
+        preloadNextMedia(newIndex);
         if (newIndex === 0) {
-          console.log("Cycle complete, triggering refresh");
-          setCycleComplete(true);
+          setRefresh(prev => !prev);
         }
         return newIndex;
       });
-    }, 6000); // Change slide every 6 seconds
+    }, 6000);
 
     return () => clearInterval(interval);
-  }, [mediaList]);
+  }, [mediaList, setRefresh]);
 
   useEffect(() => {
-    if (cycleComplete) {
-      setCycleComplete(false);
-      console.log("Toggling refresh");
-      setRefresh(prev => !prev);
+    if (containerRef.current) {
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (let entry of entries) {
+          const { width, height } = entry.contentRect;
+          mediaRefs.current.forEach((media) => {
+            if (media) {
+              media.style.width = `${width}px`;
+              media.style.height = `${height}px`;
+            }
+          });
+        }
+      });
+
+      resizeObserver.observe(containerRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
     }
-  }, [cycleComplete, setRefresh]);
-
-
- 
-
-  // if (isLoading) {
-  //   return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center">Loading...</div>;
-  // }
-
-  if (error) {
-    return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center text-red-500">{error}</div>;
-  }
-
-  if (mediaList.length === 0) {
-    return <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px] flex items-center justify-center">No media available</div>;
-  }
+  }, []);
 
   return (
-    <div className="relative border rounded-lg shadow-lg overflow-hidden w-full h-[600px]">
-      {mediaList[currentIndex].isVideo ? (
-        <video
-          key={mediaList[currentIndex].url}
-          src={mediaList[currentIndex].url}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <img
-          src={mediaList[currentIndex].url}
-          alt="Automatic Slideshow"
-          className="w-full h-full object-cover"
-        />
-      )}
+    <div ref={containerRef} className="relative w-full h-[600px] overflow-hidden">
+      {mediaList.map((media, index) => (
+        <div
+          key={media.url}
+          className={`absolute top-0 left-0 w-full h-full transition-opacity duration-1000 ${
+            index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+          }`}
+        >
+          {media.isVideo ? (
+            <video
+              ref={(el) => (mediaRefs.current[index] = el)}
+              src={media.url}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              ref={(el) => (mediaRefs.current[index] = el)}
+              src={media.url}
+              alt={`Slideshow ${index}`}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+      ))}
     </div>
   );
 };
 
-export default AutomaticSlideshow;
+export default React.memo(AutomaticSlideshow);

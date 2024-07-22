@@ -442,74 +442,11 @@ const CounterDash = () => {
     try {
       // If there's a token currently being served, mark it as completed first
       if (nowServingToken !== "---") {
-        const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
-  
-        // Fetch the current token's details from the requests collection
-        const requestsRef = collection(db, 'requests');
-        const q = query(requestsRef, where('tokenNumber', '==', nowServingToken));
-        const querySnapshot = await getDocs(q);
-  
-        if (!querySnapshot.empty) {
-          const tokenDetails = querySnapshot.docs[0].data();
-
-          const endTime = new Date();
-          const serviceTimeMs = currentTokenStartTime ? endTime - currentTokenStartTime : 0;
-          const serviceTimeMinutes = Math.round(serviceTimeMs / 1000);
-  
-          // Create a history entry
-          const historyEntry = {
-            token: nowServingToken,
-            name: tokenDetails.name,
-            service: tokenDetails.service,
-            completedAt: endTime.toISOString(),
-            serviceTime: serviceTimeMinutes,
-          };
-  
-          // Update the CompletedTokens document
-          await updateDoc(completedTokensRef, {
-            tokens: arrayUnion(nowServingToken),
-            history: arrayUnion(historyEntry)
-          });
-  
-          console.log(`Token ${nowServingToken} added to CompletedTokens and history for counter${counterNumber}`);
-  
-          // Update the queueDoc
-          const queueDocRef = doc(db, 'queue', 'queueDoc');
-          await updateDoc(queueDocRef, {
-            receivedToken: arrayUnion(nowServingToken)
-          });
-  
-          console.log(`Token ${nowServingToken} added to receivedToken array in queueDoc`);
-  
-          // Increment completed count
-          const countersRef = collection(db, 'counters');
-          const counterQuery = query(countersRef, where('email', '==', email));
-          const counterSnapshot = await getDocs(counterQuery);
-  
-          if (!counterSnapshot.empty) {
-            const counterDoc = counterSnapshot.docs[0];
-            const counterDocRef = doc(countersRef, counterDoc.id);
-            
-            await runTransaction(db, async (transaction) => {
-              const counterDocSnapshot = await transaction.get(counterDocRef);
-              if (!counterDocSnapshot.exists()) {
-                throw "Counter document does not exist!";
-              }
-              const newCompletedCount = (counterDocSnapshot.data().completed || 0) + 1;
-              transaction.update(counterDocRef, { completed: newCompletedCount });
-  
-              console.log(`Completed count incremented for counter ${counterNumber}: ${newCompletedCount}`);
-  
-              // Update the context with the new completed count
-              setCompletedCounts(newCompletedCount);
-              updateCompletedCount(newCompletedCount);
-              setCurrentTokenStartTime(null);
-            });
-          }
-        }
+        // Complete the current token
+        await handleSaveButtonClick();
       }
   
-      // Existing code for calling the next token
+      // Now proceed with calling the next token
       // Fetch the queue document
       const queueDocRef = doc(db, 'queue', 'queueDoc');
       const queueDocSnap = await getDoc(queueDocRef);
@@ -785,7 +722,6 @@ const CounterDash = () => {
         nowServingToken: "-"
       });
       setCurrentTokenStartTime(null);
-      await handleNextButtonClick();
     } catch (error) {
       console.error("Error handling completed: ", error);
     }
@@ -898,14 +834,128 @@ const CounterDash = () => {
 
 
   const pendingSpecificToken = async (specialtoken) => {
-    
-  }
+    try {
+      // Update the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToUpdate = querySnapshot.docs[0];
+        await updateDoc(doc(requestsRef, docToUpdate.id), { 
+          pending: true,
+          status: true  // Keeping status as true to ensure it's still in the active queue
+        });
+        console.log(`Token ${specialtoken} updated to pending in requests collection.`);
+  
+        // Update the local state to reflect the change
+        setRequestsData(prevData => prevData.map(item => 
+          item.tokenNumber === specialtoken 
+            ? {...item, pending: true, status: true} 
+            : item
+        ));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+        return; // Exit the function if the token is not found in requests
+      }
+  
+      // Add the token to the pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let pendingArray = queueData.pending || [];
+  
+        // Add to pending array if not already present
+        if (!pendingArray.includes(specialtoken)) {
+          pendingArray.push(specialtoken);
+          await updateDoc(queueDocRef, { 
+            pending: pendingArray
+          });
+          console.log(`Token ${specialtoken} added to pending array in queueDoc.`);
+        } else {
+          console.log(`Token ${specialtoken} already in pending array. No update needed.`);
+        }
+  
+        // Update the pending count based on the length of the pending array
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      console.log(`Token ${specialtoken} has been successfully marked as pending.`);
+    } catch (error) {
+      console.error(`Error marking token ${specialtoken} as pending:`, error);
+    }
+  };
 
 
   const cancelSpecificToken = async (specialtoken) => {
-    
-  }
-
+    try {
+      // Delete the request from the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToDelete = querySnapshot.docs[0];
+        await deleteDoc(doc(requestsRef, docToDelete.id));
+        console.log(`Token ${specialtoken} deleted from requests collection.`);
+  
+        // Update the local state to remove the cancelled token
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+        return; // Exit the function if the token is not found in requests
+      }
+  
+      // Remove the token from the token or pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
+        let pendingArray = queueData.pending || [];
+        let updateNeeded = false;
+  
+        // Check and remove from token array if present
+        if (tokenArray.includes(specialtoken)) {
+          tokenArray = tokenArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from token array in queueDoc.`);
+        }
+  
+        // Check and remove from pending array if present
+        if (pendingArray.includes(specialtoken)) {
+          pendingArray = pendingArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from pending array in queueDoc.`);
+        }
+  
+        // Update the queue document only if changes were made
+        if (updateNeeded) {
+          await updateDoc(queueDocRef, { 
+            token: tokenArray,
+            pending: pendingArray
+          });
+          console.log(`QueueDoc updated after cancelling token ${specialtoken}.`);
+        } else {
+          console.log(`Token ${specialtoken} was not found in token or pending arrays. No update needed.`);
+        }
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      // Update the remaining count
+      setRemainingCount(prevCount => prevCount - 1);
+  
+      console.log(`Token ${specialtoken} has been successfully cancelled.`);
+    } catch (error) {
+      console.error(`Error cancelling token ${specialtoken}:`, error);
+    }
+  };
 
   const transferSpecificToken = async (specialtoken) => {
 
