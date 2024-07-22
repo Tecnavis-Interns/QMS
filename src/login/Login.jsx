@@ -9,6 +9,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import bcrypt from 'bcryptjs';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -17,7 +18,9 @@ const Login = () => {
   const [loggedInAs, setLoggedInAs] = useState(null);
   const navigate = useNavigate();
   const { setEmail: setContextEmail } = useContext(AuthContext);
+  const [isVisible, setIsVisible] = useState(false);
 
+  const toggleVisibility = () => setIsVisible(!isVisible);
   
 
   const handleLogin = async (e) => {
@@ -87,13 +90,22 @@ const Login = () => {
                 variant='bordered'
               />
               <Input
-                type="password"
+                type={isVisible ? "text" : "password"}
                 label="Password"
                 value={password}
                 id="password"
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 variant='bordered'
+                endContent={
+                  <button className="focus:outline-none" type="button" onClick={toggleVisibility}>
+                    {isVisible ? (
+                      <EyeSlashIcon className="h-6 w-6 text-default-400" />
+                    ) : (
+                      <EyeIcon className="h-6 w-6 text-default-400" />
+                    )}
+                  </button>
+                }
               />
               {error && <p className="text-red-500 text-xs italic">{error}</p>}
               <Button className="bg-[#6e71d6] text-white" type="submit">Submit</Button>

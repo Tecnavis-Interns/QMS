@@ -37,35 +37,41 @@ export default function UserForm() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
+  
     if (name === "") {
       alert("Please Enter your name.");
       return;
     }
-
+  
     if (service === "") {
       alert("Please select a service.");
       return;
     }
-
+  
     try {
       const tokenNumber = await generateTokenNumber();
       const userId = uuidv4();
-
-      await submitDataToFirestore('requests', {
+  
+      const requestData = {
         userId: userId,
         name: name,
         service: service,
         tokenNumber: tokenNumber,
         createdAt: serverTimestamp(),
         status: true
-      });
-
+      };
+  
+      // Submit data to the 'requests' collection
+      await submitDataToFirestore('requests', requestData);
+  
+      // Submit the same data to the 'ChartData' collection
+      await submitDataToFirestore('ChartData', requestData);
+  
       const queueDocRef = firestoreDoc(db, "queue/queueDoc");
       await updateDoc(queueDocRef, {
         token: arrayUnion(tokenNumber)
       });
-
+  
       navigate(`/confirmation`, { state: { tokenNumber } });
     } catch (error) {
       console.error("Error adding document: ", error);

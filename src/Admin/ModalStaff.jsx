@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect,useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import {
   Modal,
@@ -14,6 +14,7 @@ import {
 import { collection, query, where, getDocs, setDoc, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
   const { control, handleSubmit, setValue, reset, formState: { errors } } = useForm({
@@ -25,7 +26,8 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
       newStaffID: "",
     }
   });
-
+  const [isVisible, setIsVisible] = useState(false);
+  const toggleVisibility = () => setIsVisible(!isVisible);
   useEffect(() => {
     if (isOpen) {
       generateNewStaffID();
@@ -134,11 +136,20 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
               render={({ field }) => (
                 <Input
                   {...field}
-                  type="password"
+                  type={isVisible ? "text" : "password"}
                   label="Password"
                   variant="bordered"
                   isInvalid={!!errors.password}
                   errorMessage={errors.password?.message}
+                  endContent={
+                    <button className="focus:outline-none" type="button" onClick={toggleVisibility}>
+                      {isVisible ? (
+                        <EyeSlashIcon className="h-6 w-6 text-default-400" />
+                      ) : (
+                        <EyeIcon className="h-6 w-6 text-default-400" />
+                      )}
+                    </button>
+                  }
                 />
               )}
             />
@@ -162,7 +173,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                 </Select>
               )}
             /> */}
-            <Controller
+            {/* <Controller
               name="newStaffID"
               control={control}
               render={({ field }) => (
@@ -174,7 +185,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                   variant="bordered"
                 />
               )}
-            />
+            /> */}
           </ModalBody>
           <ModalFooter>
             <Button onPress={onClose} className="w-full bg-slate-300">

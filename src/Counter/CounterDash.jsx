@@ -32,15 +32,15 @@ import { db, auth } from "../firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
-import { onAuthStateChanged } from "firebase/auth";
+
 import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 
 const CounterDash = () => {
   const navigate = useNavigate();
-  const auth = getAuth();
+  //const auth = getAuth();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
-  const user = auth.currentUser;
+
 
   const [userData, setUserData] = useState([]);
   // const [selectedRecords, setSelectedRecords] = useState([]);
@@ -51,12 +51,9 @@ const CounterDash = () => {
   const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
   const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
-  // const [singleCounterData, setSingleCounterData] = useState([]);
-  // const [lastTokenNumber, setLastTokenNumber] = useState(0);
+  const [counterName, setCounterName] = useState("");
   const [requestsData, setRequestsData] = useState([]);
   const [remainingCount, setRemainingCount] = useState(0);
-  // const [receivedTokenCount, setReceivedTokenCount] = useState(0);
-  // const [statusTrueRequests, setStatusTrueRequests] = useState([]); // New state variable for status true requests
 
   useEffect(() => {
     const checkAuth = () => {
@@ -213,7 +210,7 @@ const CounterDash = () => {
             setNowServingToken('---');
             console.log("Initial now serving token:", tokenArray[0]);
           } else {
-            setNowServingToken("");
+            setNowServingToken("---");
             console.log("No tokens in queue");
           }
         } else {
@@ -228,20 +225,40 @@ const CounterDash = () => {
     fetchInitialData();
   }, []);
   
+  const fetchCounterName = async () => {
+    try {
+      const countersRef = collection(db, 'counters');
+      const q = query(countersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
 
+      if (!querySnapshot.empty) {
+        const counterData = querySnapshot.docs[0].data();
+        setCounterName(counterData.counterName || "");
+      } else {
+        console.log("Counter not found in counters collection");
+        setCounterName("");
+      }
+    } catch (error) {
+      console.error("Error fetching counter name: ", error);
+      setCounterName("");
+    }
+  };
+
+  useEffect(() => {
+    fetchCounterName();
+  }, [email]);
 
 
   useEffect(() => {
-    console.log('Auth state change effect running');
-  
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    console.log('Auth state changed. User:', user);
-    console.log('Email from context:', email);
 
+    const userData = localStorage.getItem("currentUser")
+    const json = JSON.parse (userData)
+    const email = json["email"]
+    
     if (email) {
       console.log('User is authenticated');
       // Use the email from the authenticated user object
-      const userEmail = user.email;
+      const userEmail = email;
       console.log('User email:', userEmail);
 
       const counterName = userEmail.split("@")[0];
@@ -261,7 +278,7 @@ const CounterDash = () => {
               id: doc.id,
               ...doc.data()
             }));
-            setUserData(data.filter(isValidUserData)); // Filter out invalid data
+            setUserData(data); // Filter out invalid data
   
             // Fetch total number of customers in "single counter" collection
             setTotalCustomerCount(singleCounterSnapshot.size);
@@ -278,7 +295,7 @@ const CounterDash = () => {
             const updatedData = snapshot.docs.map(doc => doc.data());
             const orderedData = updatedData.sort((a, b) => b.date - a.date);
             const reversedData = orderedData.reverse();
-            setUserData(reversedData.filter(isValidUserData)); // Filter out invalid data
+            setUserData(reversedData); // Filter out invalid data
           }
         );
   
@@ -286,30 +303,26 @@ const CounterDash = () => {
       } else {
         navigate("/login");
       }
-    });
+   
   
-    return () => unsubscribe();
+    
   }, [navigate]);
 
-  // useEffect(() => {
-  //   fetchPendingCount();
-  // }, [totalCustomerCount, completedCount]);
-   
   useEffect(() => {
     const unsubscribe = listenToCounterCompletedCount();
     return () => unsubscribe();
   }, []);
 
 
-  const isValidUserData = (user) => {
-    return (
-      user.name &&
-      user.phone &&
-      user.date &&
-      user.service &&
-      user.token
-    );
-  };
+  // const isValidUserData = (user) => {
+  //   return (
+  //     user.name &&
+  //     user.phone &&
+  //     user.date &&
+  //     user.service &&
+  //     user.token
+  //   );
+  // };
   
   const fetchPendingCount = async () => {
     try {
@@ -504,43 +517,43 @@ const CounterDash = () => {
   };
   
 
-  const fetchNowServingToken = async () => {
-    try {
-      if (!auth.currentUser) {
-        console.log("User not authenticated yet");
-        return;
-      }
+  // const fetchNowServingToken = async () => {
+  //   try {
+  //     if (!auth.currentUser) {
+  //       console.log("User not authenticated yet");
+  //       return;
+  //     }
   
-      // const email = auth.currentUser.email;
+  //     // const email = auth.currentUser.email;
   
-      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  //     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
     
-      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+  //     const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
     
-      const docSnap = await getDoc(counterDocRef);
+  //     const docSnap = await getDoc(counterDocRef);
       
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setNowServingToken(data.nowServingToken);
-      } else {
-        console.log("No serving token found");
-        setNowServingToken("---");
-      }
-    } catch (error) {
-      console.error("Error fetching now serving token: ", error);
-    }
-  };
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchNowServingToken();
-      } else {
-        setNowServingToken("---");
-      }
-    });
+  //     if (docSnap.exists()) {
+  //       const data = docSnap.data();
+  //       setNowServingToken(data.nowServingToken);
+  //     } else {
+  //       console.log("No serving token found");
+  //       setNowServingToken("---");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching now serving token: ", error);
+  //   }
+  // };
+  // useEffect(() => {
+  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
+  //     if (user) {
+  //       fetchNowServingToken();
+  //     } else {
+  //       setNowServingToken("---");
+  //     }
+  //   });
   
-    return () => unsubscribe();
-  }, []);
+  //   return () => unsubscribe();
+  // }, []);
 
 
   const speak = (message) => {
@@ -893,9 +906,9 @@ const CounterDash = () => {
   }, [isServiceStarted]);
   
 
-  // useEffect(() => {
-  //   setCurrentDate(getCurrentDate());
-  // }, [user, completedCount]);
+  useEffect(() => {
+    setCurrentDate(getCurrentDate());
+  }, [completedCount]);
   
   
 
@@ -908,6 +921,7 @@ const CounterDash = () => {
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
         <div>
         <div className="mb-4 mt-4 mr-24">
+          <h1 className="font-semibold">{counterName}</h1>
             <h1>Date : {currentDate} </h1>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
@@ -947,7 +961,7 @@ const CounterDash = () => {
           </div>
           </div>
           <div className="grid grid-cols-1 mb-4 mt-16">
-          <Card className="py-4 ml-4 w-[200px]">
+          <Card className="py-4 ml-4 w-[200px] mt-6">
             <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
               <h3 className="font-bold text-large mb-2">Now Serving</h3>
               <p className="text-6xl font-bold mt-4">{nowServingToken === "---" ? "---" : nowServingToken || "---"}</p>

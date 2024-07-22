@@ -3,12 +3,15 @@ import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { hash } from "bcryptjs";
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
   const [editedCounterData, setEditedCounterData] = useState({ ...counter });
   const [services, setServices] = useState([]);
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
+  const toggleVisibility = () => setIsVisible(!isVisible);
 
   useEffect(() => {
     setEditedCounterData({ ...counter });
@@ -98,11 +101,20 @@ const EditCounterModal = ({ isOpen, onClose, counter, setCounters }) => {
             required
           />
           <Input 
-            type="password" 
+            type={isVisible ? "text" : "password"}
             label="New Password (leave blank to keep current)" 
             name="newPassword" 
             value={newPassword} 
             onChange={handlePasswordChange} 
+            endContent={
+              <button className="focus:outline-none" type="button" onClick={toggleVisibility}>
+                {isVisible ? (
+                  <EyeSlashIcon className="h-6 w-6 text-default-400" />
+                ) : (
+                  <EyeIcon className="h-6 w-6 text-default-400" />
+                )}
+              </button>
+            }
           />
           <Select 
             label="Select your Reason to be here" 

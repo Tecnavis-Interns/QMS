@@ -128,67 +128,67 @@ const Dashboard = () => {
       </div>
 
       {/* main cards */}
-      <div className="warapper scrollbar-hide h-[400px]">
-        {counterData.map((counter) => (
-          <div key={counter.id} className="items cursor-pointer relative z-20 w-[270px] ml-8 bg-indigo-300 pt-20 h-24 rounded-xl mb-4">
-            <div className="absolute bg-slate-200 -ml-6 mt w-80 h-64 rounded-xl">
-              <div className="py-6 px-3">
-                <div className="flex">
-                  <div className="ml-2">
-                    <img
-                      className="w-10 h-10 rounded-full"
-                      src={counter.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"}
-                      alt="image"
-                    />
-                  </div>
-                  <div className="ml-3">
-                    <h1 className="font-bold">{counter.staffName}</h1>
-                    <h1 className="text-sm font-sans">{counter.service}</h1>
-                  </div>
-                </div>
-                <div className="bg-black/25 mt-6 h-[1px]"></div>
-                <div className="flex">
-                  <div className="mt-4">
-                    <div className="mr-14">
-                      <h1>{counter.name}</h1>
-                      <h1 className="mt-2">Pending: <span>{counter.pending}</span></h1>
-                      <h1 className="mt-2">Total customer: <span>{counter.totalCustomers}</span></h1>
-                      <h1 className="mt-2">Waiting: <span>{counter.waiting}</span></h1>
-                    </div>
-                  </div>
-                  <div className="bg-black/25 mt-6 -ml-10 w-[1px] h-28"></div>
-                  <div className="mt-4 ml-4">
-                    <div>
-                      <h1>Services</h1>
-                      <h1 className="mt-2">Pending: <span>{counter.servicePending}</span></h1>
-                      <h1 className="mt-2">Total customer: <span>{counter.serviceTotalCustomers}</span></h1>
-                      <h1 className="mt-2">Waiting: <span>{counter.serviceWaiting}</span></h1>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      {/* main cards */}
+<div className="mt-6 mb-6">
+  <div className="flex space-x-8 px-8 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+    <style jsx>{`
+      .flex::-webkit-scrollbar {
+        display: none;
+      }
+    `}</style>
+    {counterData.map((counter) => (
+      <div key={counter.id} className="flex-shrink-0 w-[320px] cursor-pointer">
+        <div className="bg-indigo-200 h-24 rounded-xl p-4 mb-2 w-[280px] mx-auto relative z-0">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold">
+                {counter.completed} <span className="text-sm opacity-60 font-normal">Completed</span>
+              </h1>
             </div>
-            <div className="relative -mt-10 flex justify-between">
-              <div className="-mt-6 ml-4">
-                <h1>{counter.name}</h1>
-                <h1 className="text-xl font-bold">
-                  {counter.completed} <span className="text-sm opacity-60 font-normal">Completed</span>
-                </h1>
+            <div>
+              <h1 className={`text-xs font-medium px-2.5 py-0.5 rounded ${
+                counter.isActive ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
+              }`}>
+                {counter.isActive ? 'Active' : 'Closed'}
+              </h1>
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-100 rounded-xl p-4 -mt-8 pt-10 relative z-10">
+          <div className="flex items-center mb-4">
+            <img
+              className="w-10 h-10 rounded-full mr-3"
+              src={counter.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"}
+              alt="image"
+            />
+            <div>
+              <h1 className="font-bold">{counter.staffName}</h1>
+              <h1 className="text-sm">{counter.counterName}</h1>
+            </div>
+          </div>
+          <div className="border-t pt-2">
+            <div className="flex justify-between">
+              <div className="pt-4">
+                <p>Pending: <span>{counter.pending}</span></p>
+                <p>Total customer: <span>{counter.totalCustomers}</span></p>
+                <p>Waiting: <span>{counter.waiting}</span></p>
               </div>
+              <div className="bg-black/25 mt-2 -ml-4 w-[1px] h-28"></div>
               <div>
-                <h1 className={`text-xs font-medium me-2 px-2.5 py-0.5 rounded ${
-                  counter.isActive ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
-                }`}>
-                  {counter.isActive ? 'Active' : 'Closed'}
-                </h1>
+                <h1 className="">Services</h1>
+                <p>Pending: <span>{counter.servicePending}</span></p>
+                <p>Total customer: <span>{counter.serviceTotalCustomers}</span></p>
+                <p>Waiting: <span>{counter.serviceWaiting}</span></p>
               </div>
             </div>
           </div>
-        ))}
+        </div>
       </div>
-
+    ))}
+  </div>
+</div>
       {/* cards & charts */}
-      <div className="flex w-full">
+      <div className="flex w-full pt-8">
         <div className="grid w-3/5 ml-16 -mt-7 grid-cols-3 gap-4">
           <div className="bg-red-100 h-24 text-center rounded-lg px-4 py-5">
             <p className="text-xl font-semibold text-red-700">COMPLETED</p>
@@ -210,7 +210,7 @@ const Dashboard = () => {
 
       {/* Queue List & staff */}
       <div className="h-[400px] flex">
-        <div className="w-[700px] ml-14 mr-4 -mt-20">
+        <div className="w-[700px] ml-14  -mt-20">
           <h1 className="text-xl py-2 px-3">Queue Details</h1>
           <Table aria-label="Queue Details">
             <TableHeader>
@@ -242,7 +242,7 @@ const Dashboard = () => {
           </Table>
         </div>
 
-        <div className="bg-white shadow-2xl h-72 mt-6 ml-24 rounded-xl w-[335px] overflow-y-auto">
+        <div className="bg-white shadow-2xl h-72 mt-6 ml-24 mr-4 rounded-xl w-[335px] overflow-y-auto">
         <h1 className="py-2 px-5">Current Staff</h1>
         {staffMembers.map((staff) => (
           <div key={staff.id} className="flex mt-2">
