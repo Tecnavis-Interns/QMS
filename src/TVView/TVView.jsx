@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardBody } from "@nextui-org/react";
-import { collection, onSnapshot, getDocs, doc } from "firebase/firestore";
+import { collection, onSnapshot, getDocs, doc, query, orderBy, limit } from "firebase/firestore";
 import { db } from "../firebase";
-import { getAuth } from "firebase/auth";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from "@nextui-org/react";
 import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
 
@@ -51,52 +50,43 @@ const MemoizedSlideshow = React.memo(AutomaticSlideshow);
 
 export default function UserForm() {
   const [countersData, setCountersData] = useState([]);
-  const [currentServingTokens, setCurrentServingTokens] = useState({});
+  const [nowServingData, setNowServingData] = useState({});
   const [refresh, setRefresh] = useState(false);
 
-  const counterNames = useMemo(() => ["Counter 1", "Counter 2", "Counter 3", "Counter 4", "Counter 5"], []);
+  useEffect(() => {
+    const countersRef = collection(db, 'counters');
+    const q = query(countersRef, orderBy('lastUpdated', 'desc'));
 
-  const fetchData = useCallback(async () => {
-    try {
-      const tempCountersData = await Promise.all(counterNames.map(async (counterName) => {
-        const counterRef = collection(db, counterName);
-        const querySnapshot = await getDocs(counterRef);
-        const counterTokens = querySnapshot.docs.map((doc) => doc.data().token);
-        return { counterName, tokens: counterTokens };
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const updatedCounters = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
-      setCountersData(tempCountersData);
-    } catch (error) {
-      console.error("Error fetching counters: ", error);
-    }
-  }, [counterNames]);
+      
+      setCountersData(updatedCounters);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    const unsubscribes = countersData.map((counterData) => {
-      const counterNumber = parseInt(counterData.counterName.split(" ")[1]);
-      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-
-      return onSnapshot(counterDocRef, (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const data = docSnapshot.data();
-          setCurrentServingTokens(prev => ({
-            ...prev,
-            [counterData.counterName]: data.nowServingToken || "-"
-          }));
-        } else {
-          setCurrentServingTokens(prev => ({
-            ...prev,
-            [counterData.counterName]: "-"
-          }));
-        }
+      // Set up listeners for each counter's nowServing data
+      updatedCounters.forEach(counter => {
+        const nowServingDocRef = doc(db, `counter${counter.counterName.split(' ')[1]}`, 'counterDoc');
+        onSnapshot(nowServingDocRef, (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            setNowServingData(prev => ({
+              ...prev,
+              [counter.id]: docSnapshot.data().nowServingToken || "-"
+            }));
+            setCountersData(prevCounters => {
+              const updatedCounter = prevCounters.find(c => c.id === counter.id);
+              const remainingCounters = prevCounters.filter(c => c.id !== counter.id);
+              return [updatedCounter, ...remainingCounters];
+            });
+          }
+        });
       });
     });
 
-    return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-  }, [countersData]);
+    return () => unsubscribe();
+  }, []);
+
 
   const tableContent = useMemo(() => (
     <Table 
@@ -109,19 +99,19 @@ export default function UserForm() {
         <TableColumn><h2 className="font-bold text-2xl md:text-3xl">TOKEN NUMBER</h2></TableColumn>
       </TableHeader>
       <TableBody>
-        {countersData.map((counter, index) => (
-          <TableRow key={index}>
+        {countersData.slice(0, 5).map((counter) => (
+          <TableRow key={counter.id}>
             <TableCell><h3 className="font-semibold text-xl md:text-2xl">{counter.counterName}</h3></TableCell>
             <TableCell>
               <h3 className="font-bold text-3xl md:text-4xl text-indigo-600">
-                {currentServingTokens[counter.counterName] || "-"}
+                {nowServingData[counter.id] || "-"}
               </h3>
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  ), [countersData, currentServingTokens]);
+  ), [countersData, nowServingData]);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 justify-center">
