@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './Navbar';
 import { Card, CardBody, CardFooter, Image, Button } from "@nextui-org/react";
 import { storage } from "../firebase";
@@ -6,41 +6,96 @@ import { ref, uploadBytes, listAll, getDownloadURL, deleteObject } from 'firebas
 import { v4 } from 'uuid';
 import toast, { Toaster } from 'react-hot-toast';
 
-const Ads = () => {
-  const [mediaUpload, setMediaUpload] = useState(null);
-  const [mediaList, setMediaList] = useState([]);
-  const mediaListRef = ref(storage, "media/");
+const MediaUploadForm = ({ onUpload }) => {
+  const [file, setFile] = useState(null);
 
-  const uploadMedia = async (mediaUpload) => {
-    if (mediaUpload == null) return;
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    setFile(selectedFile);
+  };
 
-    const mediaRef = ref(storage, `media/${mediaUpload.name + v4()}`);
-    try {
-      await toast.promise(
-        uploadBytes(mediaRef, mediaUpload),
-        {
-          loading: 'Uploading...',
-          success: 'Media uploaded successfully!',
-          error: 'Upload failed',
-        }
-      );
-      // After successful upload, fetch the new list of media
-      fetchMedia();
-    } catch (error) {
-      console.error("Error uploading media:", error);
+  const handleUploadClick = () => {
+    if (file) {
+      onUpload(file);
+      setFile(null);
     }
   };
 
-  const fetchMedia = async () => {
+  return (
+    <div className="flex w-full flex-wrap justify-center md:flex-nowrap">
+      <div className="max-w-sm">
+        <label className="block">
+          <span className="sr-only">Choose media</span>
+          <input
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileChange}
+            className="mb-2 block w-full text-sm text-gray-500
+              file:me-4 file:py-2 file:px-4
+              file:rounded-lg file:border-0
+              file:text-sm file:font-semibold
+              file:bg-[#908fe2] file:text-white
+              hover:file:bg-[#6e71d6]
+              file:disabled:opacity-50 file:disabled:pointer-events-none
+              dark:text-neutral-500
+              dark:file:bg-red-500
+              dark:hover:file:bg-red-400"
+          />
+        </label>
+      </div>
+      <Button onClick={handleUploadClick} className="ml-2">Upload Media</Button>
+    </div>
+  );
+};
+
+const MediaCard = ({ item, onDelete }) => (
+  <Card shadow="sm" isPressable onPress={() => console.log("item pressed")}>
+    <CardBody className="overflow-visible p-0">
+      {item.isVideo ? (
+        <video src={item.url} className="w-full object-cover h-[140px]" controls />
+      ) : (
+        <Image
+          shadow="sm"
+          radius="lg"
+          width="100%"
+          alt={item.name}
+          className="w-full object-cover h-[140px]"
+          src={item.url}
+        />
+      )}
+    </CardBody>
+    <CardFooter className="text-small justify-between">
+      <b>{item.name.split('-')[0]}</b>
+      <div onClick={(e) => e.stopPropagation()}>
+        <Button
+          color="error"
+          auto
+          flat
+          size="sm"
+          onClick={() => onDelete(item.ref)}
+          className="transition-colors duration-200 ease-in-out bg-red-0 text-black hover:bg-red-500"
+        >
+          Delete
+        </Button>
+      </div>
+    </CardFooter>
+  </Card>
+);
+
+const Ads = () => {
+  const [mediaList, setMediaList] = useState([]);
+  const mediaListRef = ref(storage, "media/");
+
+  const fetchMedia = useCallback(async () => {
     try {
       const response = await listAll(mediaListRef);
       const mediaItems = await Promise.all(
         response.items.map(async (item) => {
           const url = await getDownloadURL(item);
-          return { 
-            url, 
-            ref: item, 
-            name: item.name, 
+          return {
+            url,
+            ref: item,
+            name: item.name,
             isVideo: item.name.toLowerCase().includes('.mp4') || item.name.toLowerCase().includes('.mov')
           };
         })
@@ -49,6 +104,25 @@ const Ads = () => {
     } catch (error) {
       console.error("Error fetching media:", error);
       toast.error("Failed to fetch media");
+    }
+  }, [mediaListRef]);
+
+  const uploadMedia = async (file) => {
+    if (!file) return;
+
+    const mediaRef = ref(storage, `media/${file.name + v4()}`);
+    try {
+      await toast.promise(
+        uploadBytes(mediaRef, file),
+        {
+          loading: 'Uploading...',
+          success: 'Media uploaded successfully!',
+          error: 'Upload failed',
+        }
+      );
+      fetchMedia(); // Refresh the media list after successful upload
+    } catch (error) {
+      console.error("Error uploading media:", error);
     }
   };
 
@@ -66,7 +140,7 @@ const Ads = () => {
           >
             Delete
           </button>
-          <button 
+          <button
             onClick={() => toast.dismiss(t.id)}
             className="bg-gray-500 text-white border-none px-3 py-1 rounded-md cursor-pointer"
           >
@@ -83,7 +157,7 @@ const Ads = () => {
       },
     });
   };
-  
+
   const confirmDelete = async (mediaRef) => {
     try {
       await toast.promise(
@@ -94,8 +168,7 @@ const Ads = () => {
           error: 'Failed to delete media',
         }
       );
-      // After successful deletion, fetch the updated list of media
-      fetchMedia();
+      fetchMedia(); // Refresh the media list after successful deletion
     } catch (error) {
       console.error("Error deleting media:", error);
     }
@@ -103,7 +176,7 @@ const Ads = () => {
 
   useEffect(() => {
     fetchMedia();
-  }, []);
+  }, [fetchMedia]);
 
   return (
     <div className="flex min-h-screen">
@@ -112,74 +185,11 @@ const Ads = () => {
       </div>
       <div className="flex flex-col flex-1 ml-64 p-4">
         <div className="flex justify-center mt-4 mb-8">
-          <div className="flex w-full flex-wrap justify-center md:flex-nowrap">
-            <div className="max-w-sm">
-              <form>
-                <label className="block">
-                  <span className="sr-only">Choose media</span>
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    onChange={(event) => {
-                      const file = event.target.files[0];
-                      setMediaUpload(file);
-                    }}
-                    className="mb-2 block w-full text-sm text-gray-500
-                      file:me-4 file:py-2 file:px-4
-                      file:rounded-lg file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-[#908fe2] file:text-white
-                      hover:file:bg-[#6e71d6]
-                      file:disabled:opacity-50 file:disabled:pointer-events-none
-                      dark:text-neutral-500
-                      dark:file:bg-red-500
-                      dark:hover:file:bg-red-400"
-                  />
-                </label>
-              </form>
-            </div>
-            <Button onClick={() => uploadMedia(mediaUpload)} className="ml-2">Upload Media</Button>
-          </div>
+          <MediaUploadForm onUpload={uploadMedia} />
         </div>
-        
         <div className="gap-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {mediaList.map((item, index) => (
-            <Card shadow="sm" key={index} isPressable onPress={() => console.log("item pressed")}>
-              <CardBody className="overflow-visible p-0">
-                {item.isVideo ? (
-                  <video
-                    src={item.url}
-                    className="w-full object-cover h-[140px]"
-                    controls
-                  />
-                ) : (
-                  <Image
-                    shadow="sm"
-                    radius="lg"
-                    width="100%"
-                    alt={item.name}
-                    className="w-full object-cover h-[140px]"
-                    src={item.url}
-                  />
-                )}
-              </CardBody>
-              <CardFooter className="text-small justify-between">
-                <b>{item.name.split('-')[0]}</b>
-                <Button 
-                  color="error" 
-                  auto 
-                  flat 
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent card press event
-                    deleteMedia(item.ref);
-                  }}
-                  className="transition-colors duration-200 ease-in-out bg-red-0 text-black hover:bg-red-500"
-                >
-                  Delete
-                </Button>
-              </CardFooter>
-            </Card>
+            <MediaCard key={index} item={item} onDelete={deleteMedia} />
           ))}
         </div>
       </div>

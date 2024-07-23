@@ -63,7 +63,7 @@ export default function UserForm() {
 
   const handleSubmit = async (selectedService) => {
     try {
-      const tokenNumber = await generateTokenNumber();
+      const tokenNumber = await generateTokenNumber(selectedService);
       const userId = uuidv4();
   
       const requestData = {
@@ -92,17 +92,37 @@ export default function UserForm() {
     }
   };
 
-  const generateTokenNumber = async () => {
+  const generateTokenNumber = async (selectedService) => {
     try {
+      // First, fetch the custom ID for the selected service
+      const servicesCollection = collection(db, "services");
+      const serviceQuery = await getDocs(servicesCollection);
+      const serviceDoc = serviceQuery.docs.find(doc => doc.data().name === selectedService);
+      
+      if (!serviceDoc) {
+        throw new Error("Service not found");
+      }
+  
+      const serviceCustomId = serviceDoc.data().customId;
+      const servicePrefix = serviceCustomId.charAt(0); // Get the first letter of the custom ID
+  
+      // Now, get the last token number for this service
       const queueDocRef = firestoreDoc(db, "queue/queueDoc");
       const queueDocSnap = await getDoc(queueDocRef);
-
-      let lastTokenNumber = queueDocSnap.exists() ? queueDocSnap.data().lastTokenNumber || 0 : 0;
+  
+      let lastTokens = queueDocSnap.exists() ? queueDocSnap.data().lastTokens || {} : {};
+      let lastTokenNumber = lastTokens[servicePrefix] || 0;
       let newTokenNumber = lastTokenNumber + 1;
-
-      await setDoc(queueDocRef, { lastTokenNumber: newTokenNumber }, { merge: true });
-
-      return newTokenNumber;
+  
+      // Generate the new token
+      const paddedNumber = newTokenNumber.toString().padStart(3, '0');
+      const newToken = `${servicePrefix}${paddedNumber}`;
+  
+      // Update the last token number for this service
+      lastTokens[servicePrefix] = newTokenNumber;
+      await setDoc(queueDocRef, { lastTokens: lastTokens }, { merge: true });
+  
+      return newToken;
     } catch (error) {
       console.error("Error generating token number: ", error);
       return "";
@@ -157,5 +177,5 @@ export default function UserForm() {
         </div>
       </div>
     </div>
-  );
-}
+  )
+};

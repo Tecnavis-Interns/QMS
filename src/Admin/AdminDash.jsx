@@ -128,7 +128,6 @@ const Dashboard = () => {
       </div>
 
       {/* main cards */}
-      {/* main cards */}
 <div className="mt-6 mb-6">
   <div className="flex space-x-8 px-8 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
     <style jsx>{`
@@ -137,13 +136,13 @@ const Dashboard = () => {
       }
     `}</style>
     {counterData.map((counter) => (
-      <div key={counter.id} className="flex-shrink-0 w-[320px] cursor-pointer">
-        <div className="bg-indigo-200 h-24 rounded-xl p-4 mb-2 w-[280px] mx-auto relative z-0">
+   <div key={counter.id} className="flex-shrink-0 w-[200px] cursor-pointer"> {/* Reduced from 320px to 160px */}
+        <div className="bg-indigo-200 h-20 rounded-xl p-3 mb-2 w-[200px] mx-auto relative z-0"> {/* Reduced from 280px to 140px, and adjusted height and padding */}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-xl font-bold">
-                {counter.completed} <span className="text-sm opacity-60 font-normal">Completed</span>
-              </h1>
+            <h1 className="text-lg font-bold"> {/* Reduced font size */}
+            {counter.completed} <span className="text-xs opacity-60 font-normal">Completed</span> {/* Reduced font size */}
+            </h1>
             </div>
             <div>
               <h1 className={`text-xs font-medium px-2.5 py-0.5 rounded ${
@@ -154,25 +153,25 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        <div className="bg-slate-100 rounded-xl p-4 -mt-8 pt-10 relative z-10">
-          <div className="flex items-center mb-4">
-            <img
-              className="w-10 h-10 rounded-full mr-3"
+        <div className="bg-slate-100 rounded-xl p-3 -mt-6 pt-8 relative z-10"> {/* Adjusted padding and margin */}
+        <div className="flex items-center mb-2"> {/* Reduced margin */}
+        <img
+              className="w-8 h-8 rounded-full mr-2" 
               src={counter.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"}
               alt="image"
             />
             <div>
-              <h1 className="font-bold">{counter.staffName}</h1>
-              <h1 className="text-sm">{counter.counterName}</h1>
+            <h1 className="font-bold text-sm">{counter.staffName}</h1> {/* Reduced font size */}
+            <h1 className="text-xs">{counter.counterName}</h1> {/* Reduced font size */}
             </div>
           </div>
-          <div className="border-t pt-2">
-            <div className="flex justify-between">
+          <div className="border-t pt-1"> {/* Reduced padding */}
+            {/* <div className="flex justify-between">
               <div className="pt-4">
                 <p>Pending: <span>{counter.pending}</span></p>
                 <p>Total customer: <span>{counter.totalCustomers}</span></p>
                 <p>Waiting: <span>{counter.waiting}</span></p>
-              </div>
+              </div> 
               <div className="bg-black/25 mt-2 -ml-4 w-[1px] h-28"></div>
               <div>
                 <h1 className="">Services</h1>
@@ -180,7 +179,7 @@ const Dashboard = () => {
                 <p>Total customer: <span>{counter.serviceTotalCustomers}</span></p>
                 <p>Waiting: <span>{counter.serviceWaiting}</span></p>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -242,7 +241,7 @@ const Dashboard = () => {
           </Table>
         </div>
 
-        <div className="bg-white shadow-2xl h-72 mt-6 ml-24 mr-4 rounded-xl w-[335px] overflow-y-auto">
+        <div className="bg-white shadow-2xl h-72 mt-13 ml-28  rounded-xl w-[335px] overflow-y-auto">
         <h1 className="py-2 px-5">Current Staff</h1>
         {staffMembers.map((staff) => (
           <div key={staff.id} className="flex mt-2">

@@ -35,6 +35,7 @@ import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 
 import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
+import { Tooltip } from "@nextui-org/react";
 
 const CounterDash = () => {
   const navigate = useNavigate();
@@ -831,27 +832,18 @@ const CounterDash = () => {
   };
 
 
-  const handleTransferButtonClickForToken = (tokenNumber, event) => {
-    setIsTransferDropdownOpenMap(prevState => ({
-      ...prevState,
-      [tokenNumber]: !prevState[tokenNumber]
-    }));
-    event.stopPropagation();
+  const handleTransferButtonClickForToken = (tokenNumber) => {
+    if (transferButtonRefs.current[tokenNumber]) {
+      const rect = transferButtonRefs.current[tokenNumber].getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+      setIsTransferDropdownOpenMap(!isTransferDropdownOpenMap);
+    }
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.transfer-dropdown')) {
-        setIsTransferDropdownOpenMap({});
-        setIsTransferDropdownOpen(false);
-      }
-    };
   
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
 
   const transferSpecificToken = async (tokenNumber, selectedCounterEmail) => {
     if (!tokenNumber) {
@@ -897,11 +889,8 @@ const CounterDash = () => {
   
         // Update local state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
-        setIsTransferDropdownOpenMap(prevState => ({
-          ...prevState,
-          [tokenNumber]: false
-        }));
-  
+        setIsTransferDropdownOpen(false);
+
         // If the transferred token was the currently serving token, clear it
         if (nowServingToken === tokenNumber) {
           setNowServingToken("---");
@@ -984,6 +973,90 @@ const CounterDash = () => {
       console.log(`Token ${specialtoken} has been successfully marked as pending.`);
     } catch (error) {
       console.error(`Error marking token ${specialtoken} as pending:`, error);
+    }
+  };
+
+
+  const handleTransferredTokenPending = async (specialtoken) => {
+    try {
+      // Get the current counter number
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+      // Update the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToUpdate = querySnapshot.docs[0];
+        await updateDoc(doc(requestsRef, docToUpdate.id), { 
+          pending: true,
+          status: true  // Keeping status as true to ensure it's still in the active queue
+        });
+        console.log(`Token ${specialtoken} updated to pending in requests collection.`);
+  
+        // Update the local state to reflect the change
+        setRequestsData(prevData => prevData.map(item => 
+          item.tokenNumber === specialtoken 
+            ? {...item, pending: true, status: true} 
+            : item
+        ));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+      }
+  
+      // Add the token to the pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let pendingArray = queueData.pending || [];
+  
+        // Add to pending array if not already present
+        if (!pendingArray.includes(specialtoken)) {
+          pendingArray.push(specialtoken);
+          await updateDoc(queueDocRef, { 
+            pending: pendingArray
+          });
+          console.log(`Token ${specialtoken} added to pending array in queueDoc.`);
+        } else {
+          console.log(`Token ${specialtoken} already in pending array. No update needed.`);
+        }
+  
+        // Update the pending count based on the length of the pending array
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      // Delete the token from receivedTokens array in counterDoc
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
+  
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        let receivedTokens = counterData.receivedTokens || [];
+  
+        // Remove the token from receivedTokens
+        receivedTokens = receivedTokens.filter(t => t.token !== specialtoken);
+  
+        // Update the counter document
+        await updateDoc(counterDocRef, {
+          receivedTokens: receivedTokens
+        });
+  
+        console.log(`Token ${specialtoken} removed from receivedTokens in counter${counterNumber}'s counterDoc.`);
+  
+        // Update local state
+        setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
+      } else {
+        console.log("Counter document does not exist.");
+      }
+  
+      console.log(`Token ${specialtoken} has been successfully marked as pending and removed from transferred tokens.`);
+    } catch (error) {
+      console.error(`Error marking transferred token ${specialtoken} as pending:`, error);
     }
   };
 
@@ -1165,6 +1238,137 @@ const CounterDash = () => {
     }
   };
 
+  const handleTransferredTokenCall = async (token) => {
+    try {
+
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+  
+      // Get the current counter document
+      const counterDocSnap = await getDoc(counterDocRef);
+      
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        const receivedTokens = counterData.receivedTokens || [];
+  
+        // Find and remove the token from receivedTokens
+        const updatedReceivedTokens = receivedTokens.filter(t => t.token !== token);
+  
+        // Update the counter document
+        await updateDoc(counterDocRef, {
+          receivedTokens: updatedReceivedTokens,
+          nowServingToken: token
+        });
+  
+        // Update local state
+        setNowServingToken(token);
+        setCurrentTokenStartTime(new Date());
+  
+        setTransferredTokens(prev => prev.filter(t => t.token !== token));
+
+        const message = `Token number ${token}, please proceed to counter ${counterNumber}`;
+        console.log("Speaking message:", message);
+        speak(message);
+  
+        console.log(`Transferred token ${token} is now being served at counter ${counterNumber}`);
+      } else {
+        console.log("Counter document does not exist");
+      }
+    } catch (error) {
+      console.error("Error handling transferred token call:", error);
+    }
+  };
+
+
+  const handleTransferredTokenCancel = async (specialtoken) => {
+    try {
+      // Get the counter number from the user's email
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      
+      // Delete the token from receivedTokens array in counterDoc
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
+  
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        let receivedTokens = counterData.receivedTokens || [];
+  
+        // Remove the token from receivedTokens
+        receivedTokens = receivedTokens.filter(t => t.token !== specialtoken);
+  
+        // Update the counter document
+        await updateDoc(counterDocRef, {
+          receivedTokens: receivedTokens
+        });
+  
+        console.log(`Token ${specialtoken} removed from receivedTokens in counter${counterNumber}'s counterDoc.`);
+  
+        // Update local state
+        setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
+      }
+  
+      // Delete the request from the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToDelete = querySnapshot.docs[0];
+        await deleteDoc(doc(requestsRef, docToDelete.id));
+        console.log(`Token ${specialtoken} deleted from requests collection.`);
+  
+        // Update the local state to remove the cancelled token
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+      }
+  
+      // Remove the token from the token or pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
+        let pendingArray = queueData.pending || [];
+        let updateNeeded = false;
+  
+        // Check and remove from token array if present
+        if (tokenArray.includes(specialtoken)) {
+          tokenArray = tokenArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from token array in queueDoc.`);
+        }
+  
+        // Check and remove from pending array if present
+        if (pendingArray.includes(specialtoken)) {
+          pendingArray = pendingArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from pending array in queueDoc.`);
+        }
+  
+        // Update the queue document only if changes were made
+        if (updateNeeded) {
+          await updateDoc(queueDocRef, { 
+            token: tokenArray,
+            pending: pendingArray
+          });
+          console.log(`QueueDoc updated after cancelling token ${specialtoken}.`);
+        } else {
+          console.log(`Token ${specialtoken} was not found in token or pending arrays. No update needed.`);
+        }
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      // Update the remaining count
+      setRemainingCount(prevCount => prevCount - 1);
+  
+      console.log(`Token ${specialtoken} has been successfully cancelled and removed from all relevant collections.`);
+    } catch (error) {
+      console.error(`Error cancelling transferred token ${specialtoken}:`, error);
+    }
+  };
 
   const getCurrentDate = () => {
     const dateObj = new Date();
@@ -1181,7 +1385,19 @@ const CounterDash = () => {
     setCurrentDate(getCurrentDate());
   }, [completedCount]);
   
-  
+  const DeleteIcon = ({ className, onClick }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={`w-6 h-6 ${className}`}
+      onClick={onClick}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+    </svg>
+  );
 
   return (
     <div className="flex">
@@ -1357,36 +1573,51 @@ const CounterDash = () => {
             </h1>
           </TableCell>
           <TableCell>
-              {request.pending ? (
-                <Button
-                  onClick={() => recallSpecificToken(request.tokenNumber)}
-                  disabled={nowServingToken !== "---"}
-                  className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-                >
-                  Call Now
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => callSpecificToken(request.tokenNumber)}
-                  disabled={nowServingToken !== "---"}
-                  className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-                >
-                  Call Now
-                </Button>
+            {request.transferredAt ? (
+              <Button
+                onClick={() => handleTransferredTokenCall(request.tokenNumber || request.token)}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Call Now
+              </Button>
+            ) : request.pending ? (
+              <Button
+                onClick={() => recallSpecificToken(request.tokenNumber || request.token)}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Call Now
+              </Button>
+            ) : (
+              <Button
+                onClick={() => callSpecificToken(request.tokenNumber || request.token)}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Call Now
+              </Button>
             )}
           </TableCell>
           <TableCell>
             <div className="relative transfer-dropdown">
-              <Button
-                ref={el => transferButtonRefs.current[request.tokenNumber] = el}
-                onClick={(e) => handleTransferButtonClickForToken(request.tokenNumber, e)}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+            <Button
+              ref={transferButtonRefs.current[request.tokenNumber || request.token]}
+              onClick={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
+              className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
               >
-                Transfer
-              </Button>
-              {isTransferDropdownOpenMap[request.tokenNumber] && (
+              Transfer
+            </Button>
+              {isTransferDropdownOpenMap[request.tokenNumber || request.token] && (
                 <div 
-                  className="absolute z-10 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 transfer-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: `${dropdownPosition.top}px`,
+                    left: `${dropdownPosition.left}px`,
+                    width: `${dropdownPosition.width}px`,
+                    zIndex: 1000,
+                  }}
+                  className="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
                 >
                   <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                     {availableCounters.map((counter) => (
@@ -1394,7 +1625,7 @@ const CounterDash = () => {
                         key={counter.id}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
                         role="menuitem"
-                        onClick={() => transferSpecificToken(request.tokenNumber, counter.email)}
+                        onClick={() => transferSpecificToken(request.tokenNumber || request.token, counter.email)}
                       >
                         {counter.counterName}
                       </button>
@@ -1405,22 +1636,37 @@ const CounterDash = () => {
             </div>
           </TableCell>
           <TableCell>
-              <Button
-                onClick={() => pendingSpecificToken(request.tokenNumber)}
-                disabled={nowServingToken !== "---"}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-              >
-                Pending
-              </Button>
+          <Button
+            onClick={() => request.transferredAt ? 
+              handleTransferredTokenPending(request.tokenNumber || request.token) : 
+              pendingSpecificToken(request.tokenNumber || request.token)}
+            disabled={nowServingToken !== "---"}
+            className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+          >
+            Pending
+          </Button>
           </TableCell>
           <TableCell>
-              <Button
-                onClick={() => cancelSpecificToken(request.tokenNumber)}
-                disabled={nowServingToken !== "---"}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-              >
-                Cancel
-              </Button>
+            <Tooltip content={nowServingToken === "---" ? "Delete Token" : "Cannot delete while serving"}>
+            <div className={nowServingToken !== "---" ? "opacity-50 cursor-not-allowed" : ""}>
+              <DeleteIcon
+                onClick={() => {
+                  if (nowServingToken === "---") {
+                    if (request.transferredAt) {
+                      handleTransferredTokenCancel(request.tokenNumber || request.token);
+                    } else {
+                      cancelSpecificToken(request.tokenNumber || request.token);
+                    }
+                  }
+                }}
+                className={`${
+                  nowServingToken === "---" 
+                    ? "text-red-500 hover:text-red-700 cursor-pointer" 
+                    : "text-gray-400"
+                }`}
+              />
+            </div>
+          </Tooltip>
           </TableCell>
         </TableRow>
       ))}
