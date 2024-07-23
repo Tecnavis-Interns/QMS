@@ -8,7 +8,7 @@ export default function ConfirmationPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { tokenNumber } = location.state;
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     if (!tokenNumber) {

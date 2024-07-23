@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import {
   Checkbox,
   Table,
@@ -35,25 +35,33 @@ import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 
 import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
+import { Tooltip } from "@nextui-org/react";
 
 const CounterDash = () => {
   const navigate = useNavigate();
-  //const auth = getAuth();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
+  const transferButtonRef = useRef(null);
+  
 
 
   const [userData, setUserData] = useState([]);
-  // const [selectedRecords, setSelectedRecords] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const [completedCounts, setCompletedCounts] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
-  const [nextTokenIndex, setNextTokenIndex] = useState(null); // Initialize to null
-  const [isServiceStarted, setIsServiceStarted] = useState(false); // Initialize to false
+  const [nextTokenIndex, setNextTokenIndex] = useState(null); 
+  const [isServiceStarted, setIsServiceStarted] = useState(false); 
   const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [counterName, setCounterName] = useState("");
   const [requestsData, setRequestsData] = useState([]);
   const [remainingCount, setRemainingCount] = useState(0);
+  const [currentTokenStartTime, setCurrentTokenStartTime] = useState(null);
+  const [availableCounters, setAvailableCounters] = useState([]);
+  const [isTransferDropdownOpen, setIsTransferDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [transferredTokens, setTransferredTokens] = useState([]);
+  const [isTransferDropdownOpenMap, setIsTransferDropdownOpenMap] = useState({});
+  const transferButtonRefs = useRef({});
 
   useEffect(() => {
     const checkAuth = () => {
@@ -100,6 +108,29 @@ const CounterDash = () => {
   
     fetchRequestsData();
   }, []);
+
+  const fetchTransferredTokens = useCallback(async () => {
+    try {
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
+  
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        const receivedTokens = counterData.receivedTokens || [];
+        setTransferredTokens(receivedTokens);
+      } else {
+        console.log("No transferred tokens found");
+        setTransferredTokens([]);
+      }
+    } catch (error) {
+      console.error("Error fetching transferred tokens: ", error);
+    }
+  }, [email, db]);
+
+  useEffect(() => {
+    fetchTransferredTokens();
+  }, [fetchTransferredTokens]);
 
   const fetchRemainingCount = async () => {
     try {
@@ -314,15 +345,6 @@ const CounterDash = () => {
    
 
 
-  // const isValidUserData = (user) => {
-  //   return (
-  //     user.name &&
-  //     user.phone &&
-  //     user.date &&
-  //     user.service &&
-  //     user.token
-  //   );
-  // };
   
   const fetchPendingCount = async () => {
     try {
@@ -396,6 +418,7 @@ const CounterDash = () => {
         });
   
         console.log(`NowServingToken cleared from counter${counterNumber}'s counterDoc`);
+        setCurrentTokenStartTime(null);
   
       } else {
         console.warn("No data found for the current serving token in 'requests'.");
@@ -407,7 +430,6 @@ const CounterDash = () => {
     }
   };
 
-  
   
 
 
@@ -432,12 +454,15 @@ const CounterDash = () => {
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
-    if (nowServingToken !== "---") {
-      console.log("A token is already being served.");
-      return;
-    }
   
     try {
+      // If there's a token currently being served, mark it as completed first
+      if (nowServingToken !== "---") {
+        // Complete the current token
+        await handleSaveButtonClick();
+      }
+  
+      // Now proceed with calling the next token
       // Fetch the queue document
       const queueDocRef = doc(db, 'queue', 'queueDoc');
       const queueDocSnap = await getDoc(queueDocRef);
@@ -456,7 +481,7 @@ const CounterDash = () => {
   
           // Update the currently serving token in the database
           const tokenData = { token: nextToken };
-          await updateCurrentlyServing(tokenData);
+          setCurrentTokenStartTime(new Date());
   
           // Update the status in the requests collection
           const requestsRef = collection(db, 'requests');
@@ -468,7 +493,7 @@ const CounterDash = () => {
             await updateDoc(doc(requestsRef, requestDoc.id), { status: false });
             
             console.log(`Request with token ${nextToken} status updated to false`);
-
+  
             setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
           } else {
             console.log(`Request with token ${nextToken} not found in requests collection`);
@@ -478,10 +503,6 @@ const CounterDash = () => {
           console.log("Speaking message:", message);
           speak(message);
   
-          // Store the nowServingToken to a new collection named counterNumber
-          const counterCollectionRef = collection(db, `counter${counterNumber}`);
-          await addDoc(counterCollectionRef, tokenData);
-          console.log(`Data with token ${nextToken} stored in 'counter${counterNumber}'.`);
   
           // Update the status in the counters collection
           const countersRef = collection(db, 'counters');
@@ -495,16 +516,17 @@ const CounterDash = () => {
           } else {
             console.log(`Counter ${counterNumber} not found in counters collection`);
           }
-
-             // Add the now serving token to the counterDoc subcollection
-             const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-
-             // Use setDoc with merge option
-             await setDoc(counterDocRef, {
-               nowServingToken: nextToken,  // or use an empty string '' if you prefer
-             }, { merge: true });
-
-          console.log(`Now serving token ${nextToken} added to counter${counterNumber}'s counterDoc`);  } else {
+  
+          // Add the now serving token to the counterDoc subcollection
+          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+  
+          // Use setDoc with merge option
+          await setDoc(counterDocRef, {
+            nowServingToken: nextToken,
+          }, { merge: true });
+  
+          console.log(`Now serving token ${nextToken} added to counter${counterNumber}'s counterDoc`);
+        } else {
           console.log("No tokens in the queue");
           setNowServingToken("---");
         }
@@ -517,44 +539,6 @@ const CounterDash = () => {
   };
   
 
-  // const fetchNowServingToken = async () => {
-  //   try {
-  //     if (!auth.currentUser) {
-  //       console.log("User not authenticated yet");
-  //       return;
-  //     }
-  
-  //     // const email = auth.currentUser.email;
-  
-  //     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-    
-  //     const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-    
-  //     const docSnap = await getDoc(counterDocRef);
-      
-  //     if (docSnap.exists()) {
-  //       const data = docSnap.data();
-  //       setNowServingToken(data.nowServingToken);
-  //     } else {
-  //       console.log("No serving token found");
-  //       setNowServingToken("---");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching now serving token: ", error);
-  //   }
-  // };
-  // useEffect(() => {
-  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
-  //     if (user) {
-  //       fetchNowServingToken();
-  //     } else {
-  //       setNowServingToken("---");
-  //     }
-  //   });
-  
-  //   return () => unsubscribe();
-  // }, []);
-
 
   const speak = (message) => {
     const speechSynthesis = window.speechSynthesis;
@@ -563,64 +547,6 @@ const CounterDash = () => {
   }
 
 
-  const updateCurrentlyServing = async (tokenData) => {
-    try {
-      // const email = auth.currentUser.email;
-      const counterNumber = parseInt(
-        email.split("@")[0].replace("counter", "")
-      );
-      const servingCollectionName = `single CurrentlyServingCounter`;
-
-      // Get the current serving document
-      const querySnapshot = await getDocs(collection(db, servingCollectionName));
-      if (!querySnapshot.empty) {
-        // If document exists, update it
-        const docId = querySnapshot.docs[0].id;
-        await setDoc(doc(collection(db, servingCollectionName), docId), tokenData);
-      } else {
-        // If document doesn't exist, create a new one
-        await setDoc(doc(collection(db, servingCollectionName)), tokenData);
-      }
-      console.log("Currently serving token updated successfully.");
-    } catch (error) {
-      console.error("Error updating currently serving token: ", error);
-    }
-  };
-  
-  const storeNextTokenData = async (tokenData) => {
-    try {
-      const nextTokenCollectionName = `single nextTokenCounter`;
-  
-      // Reference to the next token collection
-      const nextTokenCollectionRef = collection(db, nextTokenCollectionName);
-  
-      if (tokenData === '-' || !tokenData) {
-        // If the token data is '-' or undefined, delete the document from the collection
-        const querySnapshot = await getDocs(nextTokenCollectionRef);
-        querySnapshot.forEach(async (doc) => {
-          await deleteDoc(doc.ref);
-        });
-      } else {
-        // Otherwise, store the new token data in the database
-        // Check if a document already exists in the collection
-        const querySnapshot = await getDocs(nextTokenCollectionRef);
-        if (!querySnapshot.empty) {
-          // If a document exists, update it with the new token data
-          const docId = querySnapshot.docs[0].id;
-          await setDoc(doc(nextTokenCollectionRef, docId), { token: tokenData.token });
-        } else {
-          // If no document exists, create a new one with the token data
-          await setDoc(doc(nextTokenCollectionRef), { token: tokenData.token });
-        }
-      }
-  
-      console.log("Next token data stored successfully.");
-    } catch (error) {
-      console.error("Error storing next token data: ", error);
-    }
-  };
-  
-
   const handleSaveButtonClick = useCallback(async () => {
     if (!nowServingToken || nowServingToken === '---') {
       console.log("No token currently being served.");
@@ -628,8 +554,7 @@ const CounterDash = () => {
     }
   
     try {
-      // const email = auth.currentUser.email;
-      const counterNumber = email.split("@")[0].replace("counter", "");
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const completedTokensRef = doc(db, `counter${counterNumber}`, 'CompletedTokens');
   
       // Fetch the current token's details from the requests collection
@@ -644,19 +569,35 @@ const CounterDash = () => {
   
       const tokenDetails = querySnapshot.docs[0].data();
   
+      const endTime = new Date();
+      const serviceTimeMs = currentTokenStartTime ? endTime - currentTokenStartTime : 0;
+      const serviceTimeMinutes = Math.round(serviceTimeMs / 60000);
+  
       // Create a history entry
       const historyEntry = {
         token: nowServingToken,
         name: tokenDetails.name,
         service: tokenDetails.service,
-        completedAt: new Date().toISOString(),
+        completedAt: endTime.toISOString(),
+        serviceTime: serviceTimeMinutes,
       };
   
-      // Update the CompletedTokens document
-      await updateDoc(completedTokensRef, {
-        tokens: arrayUnion(nowServingToken),
-        history: arrayUnion(historyEntry)
-      });
+      // Check if the CompletedTokens document exists
+      const docSnap = await getDoc(completedTokensRef);
+  
+      if (docSnap.exists()) {
+        // Document exists, update it
+        await updateDoc(completedTokensRef, {
+          tokens: arrayUnion(nowServingToken),
+          history: arrayUnion(historyEntry)
+        });
+      } else {
+        // Document doesn't exist, create it
+        await setDoc(completedTokensRef, {
+          tokens: [nowServingToken],
+          history: [historyEntry]
+        });
+      }
   
       console.log(`Token ${nowServingToken} added to CompletedTokens and history for counter${counterNumber}`);
   
@@ -678,13 +619,10 @@ const CounterDash = () => {
         const counterDocRef = doc(countersRef, counterDoc.id);
         
         await runTransaction(db, async (transaction) => {
-          console.log('------------------------------');
           const counterDocSnapshot = await transaction.get(counterDocRef);
-          console.log('++++++++++++++++++++');
           if (!counterDocSnapshot.exists()) {
             throw "Counter document does not exist!";
           }
-          console.log('12345');
           const newCompletedCount = (counterDocSnapshot.data().completed || 0) + 1;
           transaction.update(counterDocRef, { completed: newCompletedCount });
   
@@ -705,19 +643,24 @@ const CounterDash = () => {
       await updateDoc(counterDocRef, {
         nowServingToken: "-"
       });
-  
-      await handleNextButtonClick();
+      setCurrentTokenStartTime(null);
     } catch (error) {
       console.error("Error handling completed: ", error);
+      // Add more detailed error logging
+      if (error.code) {
+        console.error("Error code:", error.code);
+      }
+      if (error.message) {
+        console.error("Error message:", error.message);
+      }
     }
-  }, [nowServingToken, updateCompletedCount, handleNextButtonClick]);
-  
-
+  }, [nowServingToken, updateCompletedCount, email, currentTokenStartTime, db]);
 
   const recallSpecificToken = async (specialtoken) => {
     try {
       // Set the nowServingToken state to the provided token number
       setNowServingToken(specialtoken);
+      setCurrentTokenStartTime(new Date());
   
       // Get the counter number from the user's email
       // const email = auth.currentUser.email;
@@ -784,10 +727,428 @@ const CounterDash = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchAvailableCounters = async () => {
+      try {
+        const countersRef = collection(db, 'counters');
+        const querySnapshot = await getDocs(countersRef);
+        const counters = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            counterName: doc.data().counterName,
+            email: doc.data().email
+          }))
+          .filter(counter => counter.email !== email); // Exclude the current counter
+        setAvailableCounters(counters);
+      } catch (error) {
+        console.error("Error fetching available counters:", error);
+      }
+    };
+  
+    fetchAvailableCounters();
+  }, [email]);
+
+  const handleTransferButtonClick = async () => {
+    if (transferButtonRef.current) {
+      const rect = transferButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+      setIsTransferDropdownOpen(!isTransferDropdownOpen);
+    }
+  };
+
+
+  const handleTransfer = async (selectedCounterEmail) => {
+    if (!nowServingToken || nowServingToken === '---') {
+      console.log("No token currently being served.");
+      return;
+    }
+  
+    try {
+      const currentCounterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const selectedCounterNumber = parseInt(selectedCounterEmail.split("@")[0].replace("counter", ""));
+  
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", nowServingToken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const tokenData = querySnapshot.docs[0].data();
+        const transferTimestamp = new Date().toISOString();
+  
+        // Create transfer history entry
+        const transferEntry = {
+          token: nowServingToken,
+          fromCounter: currentCounterNumber,
+          toCounter: selectedCounterNumber,
+          transferredAt: transferTimestamp,
+          name: tokenData.name,
+          service: tokenData.service
+        };
+  
+        // Update the selected counter's document
+        const selectedCounterRef = doc(db, `counter${selectedCounterNumber}`, 'counterDoc');
+        await updateDoc(selectedCounterRef, { 
+          nowServingToken: nowServingToken,
+          receivedTokens: arrayUnion(transferEntry)
+        });
+  
+        // Update the request document with the new counter number
+        await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
+          counterNumber: selectedCounterNumber
+        });
+  
+        console.log(`Token ${nowServingToken} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
+  
+        // Update local state
+        setNowServingToken("---");
+        setCurrentTokenStartTime(null);
+        setIsTransferDropdownOpen(false);
+  
+        // Remove the transferred token from the local requestsData
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nowServingToken));
+  
+        // Clear the nowServingToken from the current counter's document
+        const currentCounterRef = doc(db, `counter${currentCounterNumber}`, 'counterDoc');
+        await updateDoc(currentCounterRef, {
+          nowServingToken: "-"
+        });
+  
+      } else {
+        console.log(`Token ${nowServingToken} not found in requests collection.`);
+      }
+  
+    } catch (error) {
+      console.error(`Error transferring token ${nowServingToken}:`, error);
+      if (error.code) {
+        console.error("Error code:", error.code);
+      }
+      if (error.message) {
+        console.error("Error message:", error.message);
+      }
+    }
+  };
+
+
+  const handleTransferButtonClickForToken = (tokenNumber) => {
+    setIsTransferDropdownOpenMap(prev => ({
+      ...prev,
+      [tokenNumber]: !prev[tokenNumber]
+    }));
+  };
+  
+
+  const transferSpecificToken = async (tokenNumber, selectedCounterEmail) => {
+    try {
+      const currentCounterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const selectedCounterNumber = parseInt(selectedCounterEmail.split("@")[0].replace("counter", ""));
+  
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", tokenNumber));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const tokenData = querySnapshot.docs[0].data();
+        const transferTimestamp = new Date().toISOString();
+  
+        // Create transfer history entry
+        const transferEntry = {
+          token: tokenNumber,
+          fromCounter: currentCounterNumber,
+          toCounter: selectedCounterNumber,
+          transferredAt: transferTimestamp,
+          name: tokenData.name,
+          service: tokenData.service
+        };
+  
+        // Update the selected counter's document
+        const selectedCounterRef = doc(db, `counter${selectedCounterNumber}`, 'counterDoc');
+        await updateDoc(selectedCounterRef, { 
+          receivedTokens: arrayUnion(transferEntry)
+        });
+  
+        // Update the request document with the new counter number
+        await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
+          counterNumber: selectedCounterNumber,
+          status: true // Set the status back to true (active) in the new counter's queue
+        });
+  
+        console.log(`Token ${tokenNumber} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
+  
+        // Update local state
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
+        setIsTransferDropdownOpenMap(prev => ({...prev, [tokenNumber]: false}));
+  
+      } else {
+        console.log(`Token ${tokenNumber} not found in requests collection.`);
+      }
+  
+    } catch (error) {
+      console.error(`Error transferring token ${tokenNumber}:`, error);
+    }
+  };
+  
+  const pendingSpecificToken = async (specialtoken) => {
+    try {
+      // Update the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToUpdate = querySnapshot.docs[0];
+        await updateDoc(doc(requestsRef, docToUpdate.id), { 
+          pending: true,
+          status: true  // Keeping status as true to ensure it's still in the active queue
+        });
+        console.log(`Token ${specialtoken} updated to pending in requests collection.`);
+  
+        // Update the local state to reflect the change
+        setRequestsData(prevData => prevData.map(item => 
+          item.tokenNumber === specialtoken 
+            ? {...item, pending: true, status: true} 
+            : item
+        ));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+        return; // Exit the function if the token is not found in requests
+      }
+  
+      // Add the token to the pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let pendingArray = queueData.pending || [];
+  
+        // Add to pending array if not already present
+        if (!pendingArray.includes(specialtoken)) {
+          pendingArray.push(specialtoken);
+          await updateDoc(queueDocRef, { 
+            pending: pendingArray
+          });
+          console.log(`Token ${specialtoken} added to pending array in queueDoc.`);
+        } else {
+          console.log(`Token ${specialtoken} already in pending array. No update needed.`);
+        }
+  
+        // Update the pending count based on the length of the pending array
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      console.log(`Token ${specialtoken} has been successfully marked as pending.`);
+    } catch (error) {
+      console.error(`Error marking token ${specialtoken} as pending:`, error);
+    }
+  };
+
+
+  const handleTransferredTokenPending = async (specialtoken) => {
+    try {
+      // Get the current counter number
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+      // Update the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToUpdate = querySnapshot.docs[0];
+        await updateDoc(doc(requestsRef, docToUpdate.id), { 
+          pending: true,
+          status: true  // Keeping status as true to ensure it's still in the active queue
+        });
+        console.log(`Token ${specialtoken} updated to pending in requests collection.`);
+  
+        // Update the local state to reflect the change
+        setRequestsData(prevData => prevData.map(item => 
+          item.tokenNumber === specialtoken 
+            ? {...item, pending: true, status: true} 
+            : item
+        ));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+      }
+  
+      // Add the token to the pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let pendingArray = queueData.pending || [];
+  
+        // Add to pending array if not already present
+        if (!pendingArray.includes(specialtoken)) {
+          pendingArray.push(specialtoken);
+          await updateDoc(queueDocRef, { 
+            pending: pendingArray
+          });
+          console.log(`Token ${specialtoken} added to pending array in queueDoc.`);
+        } else {
+          console.log(`Token ${specialtoken} already in pending array. No update needed.`);
+        }
+  
+        // Update the pending count based on the length of the pending array
+        setPendingCount(pendingArray.length);
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      // Delete the token from receivedTokens array in counterDoc
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
+  
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        let receivedTokens = counterData.receivedTokens || [];
+  
+        // Remove the token from receivedTokens
+        receivedTokens = receivedTokens.filter(t => t.token !== specialtoken);
+  
+        // Update the counter document
+        await updateDoc(counterDocRef, {
+          receivedTokens: receivedTokens
+        });
+  
+        console.log(`Token ${specialtoken} removed from receivedTokens in counter${counterNumber}'s counterDoc.`);
+  
+        // Update local state
+        setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
+      } else {
+        console.log("Counter document does not exist.");
+      }
+  
+      console.log(`Token ${specialtoken} has been successfully marked as pending and removed from transferred tokens.`);
+    } catch (error) {
+      console.error(`Error marking transferred token ${specialtoken} as pending:`, error);
+    }
+  };
+
+
+  const cancelSpecificToken = async (specialtoken) => {
+    try {
+      // Delete the request from the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToDelete = querySnapshot.docs[0];
+        await deleteDoc(doc(requestsRef, docToDelete.id));
+        console.log(`Token ${specialtoken} deleted from requests collection.`);
+  
+        // Update the local state to remove the cancelled token
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+        return; // Exit the function if the token is not found in requests
+      }
+  
+      // Remove the token from the token or pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
+        let pendingArray = queueData.pending || [];
+        let updateNeeded = false;
+  
+        // Check and remove from token array if present
+        if (tokenArray.includes(specialtoken)) {
+          tokenArray = tokenArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from token array in queueDoc.`);
+        }
+  
+        // Check and remove from pending array if present
+        if (pendingArray.includes(specialtoken)) {
+          pendingArray = pendingArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from pending array in queueDoc.`);
+        }
+  
+        // Update the queue document only if changes were made
+        if (updateNeeded) {
+          await updateDoc(queueDocRef, { 
+            token: tokenArray,
+            pending: pendingArray
+          });
+          console.log(`QueueDoc updated after cancelling token ${specialtoken}.`);
+        } else {
+          console.log(`Token ${specialtoken} was not found in token or pending arrays. No update needed.`);
+        }
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      // Update the remaining count
+      setRemainingCount(prevCount => prevCount - 1);
+  
+      console.log(`Token ${specialtoken} has been successfully cancelled.`);
+    } catch (error) {
+      console.error(`Error cancelling token ${specialtoken}:`, error);
+    }
+  };
+
+  const handleCancelButtonClick = async () => {
+    if (!nowServingToken || nowServingToken === '---') {
+      console.log("No token currently being served.");
+      return;
+    }
+  
+    try {
+      // Delete the currently serving token from the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", nowServingToken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToDelete = querySnapshot.docs[0];
+        await deleteDoc(doc(requestsRef, docToDelete.id));
+        console.log(`Token ${nowServingToken} deleted from requests collection.`);
+  
+        // Update the local state to remove the cancelled token
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nowServingToken));
+      } else {
+        console.log(`Token ${nowServingToken} not found in requests collection.`);
+      }
+  
+      // Get the counter number from the user's email
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+  
+      // Clear the nowServingToken from the counter's document
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      await updateDoc(counterDocRef, {
+        nowServingToken: "-"
+      });
+  
+      // Set nowServingToken to "---"
+      setNowServingToken("---");
+      setCurrentTokenStartTime(null);
+  
+      console.log(`Token ${nowServingToken} has been successfully cancelled.`);
+  
+    } catch (error) {
+      console.error(`Error cancelling token ${nowServingToken}:`, error);
+    }
+  };
+
+
+
   const callSpecificToken = async (specialtoken) => {
     try {
       // Set the nowServingToken state to the provided token number
       setNowServingToken(specialtoken);
+      setCurrentTokenStartTime(new Date());
   
       // Get the counter number from the user's email
       // const email = auth.currentUser.email;
@@ -849,6 +1210,137 @@ const CounterDash = () => {
     }
   };
 
+  const handleTransferredTokenCall = async (token) => {
+    try {
+
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+  
+      // Get the current counter document
+      const counterDocSnap = await getDoc(counterDocRef);
+      
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        const receivedTokens = counterData.receivedTokens || [];
+  
+        // Find and remove the token from receivedTokens
+        const updatedReceivedTokens = receivedTokens.filter(t => t.token !== token);
+  
+        // Update the counter document
+        await updateDoc(counterDocRef, {
+          receivedTokens: updatedReceivedTokens,
+          nowServingToken: token
+        });
+  
+        // Update local state
+        setNowServingToken(token);
+        setCurrentTokenStartTime(new Date());
+  
+        setTransferredTokens(prev => prev.filter(t => t.token !== token));
+
+        const message = `Token number ${token}, please proceed to counter ${counterNumber}`;
+        console.log("Speaking message:", message);
+        speak(message);
+  
+        console.log(`Transferred token ${token} is now being served at counter ${counterNumber}`);
+      } else {
+        console.log("Counter document does not exist");
+      }
+    } catch (error) {
+      console.error("Error handling transferred token call:", error);
+    }
+  };
+
+
+  const handleTransferredTokenCancel = async (specialtoken) => {
+    try {
+      // Get the counter number from the user's email
+      const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+      
+      // Delete the token from receivedTokens array in counterDoc
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
+  
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        let receivedTokens = counterData.receivedTokens || [];
+  
+        // Remove the token from receivedTokens
+        receivedTokens = receivedTokens.filter(t => t.token !== specialtoken);
+  
+        // Update the counter document
+        await updateDoc(counterDocRef, {
+          receivedTokens: receivedTokens
+        });
+  
+        console.log(`Token ${specialtoken} removed from receivedTokens in counter${counterNumber}'s counterDoc.`);
+  
+        // Update local state
+        setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
+      }
+  
+      // Delete the request from the requests collection
+      const requestsRef = collection(db, "requests");
+      const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
+      const querySnapshot = await getDocs(q);
+  
+      if (!querySnapshot.empty) {
+        const docToDelete = querySnapshot.docs[0];
+        await deleteDoc(doc(requestsRef, docToDelete.id));
+        console.log(`Token ${specialtoken} deleted from requests collection.`);
+  
+        // Update the local state to remove the cancelled token
+        setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== specialtoken));
+      } else {
+        console.log(`Token ${specialtoken} not found in requests collection.`);
+      }
+  
+      // Remove the token from the token or pending array in queueDoc
+      const queueDocRef = doc(db, 'queue', 'queueDoc');
+      const queueDocSnap = await getDoc(queueDocRef);
+  
+      if (queueDocSnap.exists()) {
+        const queueData = queueDocSnap.data();
+        let tokenArray = queueData.token || [];
+        let pendingArray = queueData.pending || [];
+        let updateNeeded = false;
+  
+        // Check and remove from token array if present
+        if (tokenArray.includes(specialtoken)) {
+          tokenArray = tokenArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from token array in queueDoc.`);
+        }
+  
+        // Check and remove from pending array if present
+        if (pendingArray.includes(specialtoken)) {
+          pendingArray = pendingArray.filter(token => token !== specialtoken);
+          updateNeeded = true;
+          console.log(`Token ${specialtoken} removed from pending array in queueDoc.`);
+        }
+  
+        // Update the queue document only if changes were made
+        if (updateNeeded) {
+          await updateDoc(queueDocRef, { 
+            token: tokenArray,
+            pending: pendingArray
+          });
+          console.log(`QueueDoc updated after cancelling token ${specialtoken}.`);
+        } else {
+          console.log(`Token ${specialtoken} was not found in token or pending arrays. No update needed.`);
+        }
+      } else {
+        console.log("Queue document does not exist.");
+      }
+  
+      // Update the remaining count
+      setRemainingCount(prevCount => prevCount - 1);
+  
+      console.log(`Token ${specialtoken} has been successfully cancelled and removed from all relevant collections.`);
+    } catch (error) {
+      console.error(`Error cancelling transferred token ${specialtoken}:`, error);
+    }
+  };
 
   const getCurrentDate = () => {
     const dateObj = new Date();
@@ -858,59 +1350,26 @@ const CounterDash = () => {
     return `${month} ${day}, ${year}`;
   };
   
-  useEffect(() => {
-    const startServiceAutomatically = async () => {
-      setIsServiceStarted(true); // Start the service automatically
-      try {
-        // Fetch and sort the "requests" collection by token number in ascending order
-        const querySnapshot = await getDocs(
-          query(collection(db, "requests"), orderBy("token", "asc"))
-        );
   
-        // Extract the sorted user data
-        const sortedUserData = querySnapshot.docs.map(doc => doc.data());
-        if (sortedUserData.length > 0) {
-          setUserData(sortedUserData);
-          const nowServingToken = sortedUserData[0].token;
-          console.log(`Now serving token is ${nowServingToken}`);
-        } else {
-          console.log("No tokens found in requests collection.");
-          return;
-        }
-  
-        if (sortedUserData.length > nextTokenIndex || nextTokenIndex === null) {
-          // Check if the previous token has been served
-          if (nextTokenIndex === null || nextTokenIndex === 0 || sortedUserData[nextTokenIndex - 1].visited) {
-            const newNextTokenIndex = nextTokenIndex === null ? 0 : nextTokenIndex;
-            setNextTokenIndex(newNextTokenIndex + 1);
-            console.log(`Next token is ${sortedUserData[newNextTokenIndex].token}`);
-            
-            // Update the currently serving token in the database
-            const tokenData = {
-              token: sortedUserData[newNextTokenIndex].token
-            };
-            await updateCurrentlyServing(tokenData);
-            await storeNextTokenData(sortedUserData[newNextTokenIndex]);
-          } else {
-            console.log("Previous token has not been served yet.");
-          }
-        } else {
-          console.log("No more tokens in queue");
-        }
-      } catch (error) {
-        console.error("Error starting service automatically: ", error);
-      }
-    };
-  
-    startServiceAutomatically(); // Call the function to start the service automatically
-  }, [isServiceStarted]);
   
 
   useEffect(() => {
     setCurrentDate(getCurrentDate());
   }, [completedCount]);
   
-  
+  const DeleteIcon = ({ className, onClick }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={`w-6 h-6 ${className}`}
+      onClick={onClick}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+    </svg>
+  );
 
   return (
     <div className="flex">
@@ -990,10 +1449,10 @@ const CounterDash = () => {
             </CardBody>
           </Card>
           </div>
-          <div className="mb-2 mt-12 ml-14">
+          <div className="mb-2 mt-16 ml-14">
             <div className="flex justify-end mb-2">
               <Button onClick={handleNextButtonClick}
-                disabled={nowServingToken !== "---"}
+                // disabled={nowServingToken !== "---"}
                 className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
                 Next
               </Button>
@@ -1005,11 +1464,48 @@ const CounterDash = () => {
                 Recall
               </Button>
             </div>
-            {/* <div className="flex justify-end mb-2">
-              <Button onClick={handleResetButtonClick} className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
-                Reset Token
+            <div className="flex justify-end mb-2 relative">
+              <Button 
+                ref={transferButtonRef}
+                onClick={handleTransferButtonClick}
+                disabled={!nowServingToken || nowServingToken === "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8"
+              >
+                Transfer
               </Button>
-            </div> */}
+            </div>
+            {isTransferDropdownOpen && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`,
+                  width: `${dropdownPosition.width}px`,
+                  zIndex: 1000,
+                }}
+                className="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+              >
+                <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                  {availableCounters.map((counter) => (
+                    <button
+                      key={counter.id}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                      role="menuitem"
+                      onClick={() => handleTransfer(counter.email)}
+                    >
+                      {counter.counterName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end mb-2">
+              <Button onClick={handleCancelButtonClick}
+                disabled={!nowServingToken}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8">
+                Cancel
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
@@ -1021,45 +1517,127 @@ const CounterDash = () => {
       <TableColumn>Service</TableColumn>
       <TableColumn>Status</TableColumn>
       <TableColumn></TableColumn>
+      <TableColumn></TableColumn>
+      <TableColumn></TableColumn>
+      <TableColumn></TableColumn>
     </TableHeader>
     <TableBody>
-      {requestsData.map(request => (
-        <TableRow key={request.id}>
-          <TableCell>{request.tokenNumber}</TableCell>
+      {[...requestsData, ...transferredTokens].map(request => (
+        <TableRow key={request.id || request.token}>
+          <TableCell>{request.tokenNumber || request.token}</TableCell>
           <TableCell>{request.name}</TableCell>
           <TableCell>
             {request.date instanceof Date ? 
               request.date.toLocaleString() : 
-              (request.date ? new Date(request.date).toLocaleString() : "")}
+              (request.date ? new Date(request.date).toLocaleString() : 
+              (request.transferredAt ? new Date(request.transferredAt).toLocaleString() : ""))}
           </TableCell>
           <TableCell>{request.service}</TableCell>
           <TableCell>
             <h1 className={`text-xs font-medium me-2 pr-2 px-2.5 pl-4 py-0.5 rounded ${
               request.pending 
               ? 'bg-orange-400 text-orange-900 dark:bg-orange-900 dark:text-orange-700'
+              : request.transferredAt
+              ? 'bg-blue-300 text-blue-900 dark:bg-blue-900 dark:text-blue-700'
               : 'bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-700'
               }`}>
-              {request.pending ? 'Pending' : 'Active'}
+              {request.pending ? 'Pending' : (request.transferredAt ? 'Transferred' : 'Active')}
             </h1>
           </TableCell>
           <TableCell>
-          {request.pending ? (
-            <Button
-              onClick={() => recallSpecificToken(request.tokenNumber)}
-              disabled={nowServingToken !== "---"}
-              className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-            >
-              Call Now
-            </Button>
-          ) : (
-            <Button
-              onClick={() => callSpecificToken(request.tokenNumber)}
-              disabled={nowServingToken !== "---"}
-              className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
-            >
-              Call Now
-            </Button>
-          )}
+            {request.transferredAt ? (
+              <Button
+                onClick={() => handleTransferredTokenCall(request.tokenNumber || request.token)}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Call Now
+              </Button>
+            ) : request.pending ? (
+              <Button
+                onClick={() => recallSpecificToken(request.tokenNumber || request.token)}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Call Now
+              </Button>
+            ) : (
+              <Button
+                onClick={() => callSpecificToken(request.tokenNumber || request.token)}
+                disabled={nowServingToken !== "---"}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Call Now
+              </Button>
+            )}
+          </TableCell>
+          <TableCell>
+            <div className="relative transfer-dropdown">
+              <Button
+                ref={el => transferButtonRefs.current[request.tokenNumber || request.token] = el}
+                onClick={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              >
+                Transfer
+              </Button>
+              {isTransferDropdownOpenMap[request.tokenNumber || request.token] && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    zIndex: 1000,
+                  }}
+                  className="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                >
+                  <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                    {availableCounters.map((counter) => (
+                      <button
+                        key={counter.id}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                        role="menuitem"
+                        onClick={() => transferSpecificToken(request.tokenNumber || request.token, counter.email)}
+                      >
+                        {counter.counterName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </TableCell>
+          <TableCell>
+          <Button
+            onClick={() => request.transferredAt ? 
+              handleTransferredTokenPending(request.tokenNumber || request.token) : 
+              pendingSpecificToken(request.tokenNumber || request.token)}
+            disabled={nowServingToken !== "---"}
+            className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+          >
+            Pending
+          </Button>
+          </TableCell>
+          <TableCell>
+            <Tooltip content={nowServingToken === "---" ? "Delete Token" : "Cannot delete while serving"}>
+            <div className={nowServingToken !== "---" ? "opacity-50 cursor-not-allowed" : ""}>
+              <DeleteIcon
+                onClick={() => {
+                  if (nowServingToken === "---") {
+                    if (request.transferredAt) {
+                      handleTransferredTokenCancel(request.tokenNumber || request.token);
+                    } else {
+                      cancelSpecificToken(request.tokenNumber || request.token);
+                    }
+                  }
+                }}
+                className={`${
+                  nowServingToken === "---" 
+                    ? "text-red-500 hover:text-red-700 cursor-pointer" 
+                    : "text-gray-400"
+                }`}
+              />
+            </div>
+          </Tooltip>
           </TableCell>
         </TableRow>
       ))}
