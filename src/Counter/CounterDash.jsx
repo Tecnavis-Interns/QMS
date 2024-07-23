@@ -41,7 +41,7 @@ const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
   const transferButtonRef = useRef(null);
-  const transferButtonRefs = useRef({});
+  
 
 
   const [userData, setUserData] = useState([]);
@@ -61,6 +61,7 @@ const CounterDash = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [transferredTokens, setTransferredTokens] = useState([]);
   const [isTransferDropdownOpenMap, setIsTransferDropdownOpenMap] = useState({});
+  const transferButtonRefs = useRef({});
 
   useEffect(() => {
     const checkAuth = () => {
@@ -833,24 +834,14 @@ const CounterDash = () => {
 
 
   const handleTransferButtonClickForToken = (tokenNumber) => {
-    if (transferButtonRefs.current[tokenNumber]) {
-      const rect = transferButtonRefs.current[tokenNumber].getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
-      setIsTransferDropdownOpenMap(!isTransferDropdownOpenMap);
-    }
+    setIsTransferDropdownOpenMap(prev => ({
+      ...prev,
+      [tokenNumber]: !prev[tokenNumber]
+    }));
   };
   
 
   const transferSpecificToken = async (tokenNumber, selectedCounterEmail) => {
-    if (!tokenNumber) {
-      console.log("No token specified for transfer.");
-      return;
-    }
-  
     try {
       const currentCounterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const selectedCounterNumber = parseInt(selectedCounterEmail.split("@")[0].replace("counter", ""));
@@ -889,19 +880,7 @@ const CounterDash = () => {
   
         // Update local state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
-        setIsTransferDropdownOpen(false);
-
-        // If the transferred token was the currently serving token, clear it
-        if (nowServingToken === tokenNumber) {
-          setNowServingToken("---");
-          setCurrentTokenStartTime(null);
-  
-          // Clear the nowServingToken from the current counter's document
-          const currentCounterRef = doc(db, `counter${currentCounterNumber}`, 'counterDoc');
-          await updateDoc(currentCounterRef, {
-            nowServingToken: "-"
-          });
-        }
+        setIsTransferDropdownOpenMap(prev => ({...prev, [tokenNumber]: false}));
   
       } else {
         console.log(`Token ${tokenNumber} not found in requests collection.`);
@@ -909,16 +888,9 @@ const CounterDash = () => {
   
     } catch (error) {
       console.error(`Error transferring token ${tokenNumber}:`, error);
-      if (error.code) {
-        console.error("Error code:", error.code);
-      }
-      if (error.message) {
-        console.error("Error message:", error.message);
-      }
     }
   };
-
-
+  
   const pendingSpecificToken = async (specialtoken) => {
     try {
       // Update the requests collection
@@ -1601,20 +1573,19 @@ const CounterDash = () => {
           </TableCell>
           <TableCell>
             <div className="relative transfer-dropdown">
-            <Button
-              ref={transferButtonRefs.current[request.tokenNumber || request.token]}
-              onClick={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
-              className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
+              <Button
+                ref={el => transferButtonRefs.current[request.tokenNumber || request.token] = el}
+                onClick={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
+                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
               >
-              Transfer
-            </Button>
+                Transfer
+              </Button>
               {isTransferDropdownOpenMap[request.tokenNumber || request.token] && (
                 <div 
                   style={{
                     position: 'absolute',
-                    top: `${dropdownPosition.top}px`,
-                    left: `${dropdownPosition.left}px`,
-                    width: `${dropdownPosition.width}px`,
+                    top: '100%',
+                    left: 0,
                     zIndex: 1000,
                   }}
                   className="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
