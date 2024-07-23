@@ -38,14 +38,17 @@ const Services = () => {
         const querySnapshot = await getDocs(collection(db, 'services'));
         const data = querySnapshot.docs.map((doc) => ({
           id: doc.id,
+          customId: doc.data().customId,
           ...doc.data(),
         }));
-        setServices(data);
+        // Sort the services by customId
+        const sortedData = data.sort((a, b) => a.customId.localeCompare(b.customId));
+        setServices(sortedData);
       } catch (error) {
         console.error('Error fetching services:', error);
       }
     };
-
+  
     fetchServices();
   }, []);
 
@@ -54,7 +57,7 @@ const Services = () => {
       setAlertMessage('Service name cannot be blank.');
       return;
     }
-
+  
     const existingService = services.find(
       (service) => service.name.trim().toLowerCase() === newService.trim().toLowerCase()
     );
@@ -62,27 +65,55 @@ const Services = () => {
       setAlertMessage('This service already exists.');
       return;
     }
-
+  
     try {
-      await addDoc(collection(db, 'services'), { name: newService.trim() });
-      setNewService('');
+      // Generate the new custom ID
+      let customId = 'A001';
+      if (services.length > 0) {
+        // Sort services by customId to ensure we're using the latest one
+        const sortedServices = [...services].sort((a, b) => a.customId.localeCompare(b.customId));
+        const lastId = sortedServices[sortedServices.length - 1].customId;
+        let letter = lastId.charAt(0);
+        let number = parseInt(lastId.slice(1));
+  
+        // Increment letter
+        letter = String.fromCharCode(letter.charCodeAt(0) + 1);
+  
+        // If we've gone past 'Z', reset to 'A' and increment the number
+        if (letter > 'Z') {
+          letter = 'A';
+          number++;
+        }
+  
+        customId = `${letter}${number.toString().padStart(3, '0')}`;
+      }
+  
+      const docRef = await addDoc(collection(db, 'services'), { 
+        customId: customId,
+        name: newService.trim() 
+      });
+      
+      // Fetch and update the services list
       const querySnapshot = await getDocs(collection(db, 'services'));
       const data = querySnapshot.docs.map((doc) => ({
         id: doc.id,
+        customId: doc.data().customId,
         ...doc.data(),
       }));
-      setServices(data);
+      const sortedData = data.sort((a, b) => a.customId.localeCompare(b.customId));
+      setServices(sortedData);
+      
+      setNewService('');
       setAlertMessage('');
     } catch (error) {
       console.error('Error adding service:', error);
     }
   };
-
   const handleDeleteService = async (id) => {
     if (!window.confirm('Are you sure you want to delete this service?')) {
       return;
     }
-
+  
     try {
       await deleteDoc(doc(db, 'services', id));
       setServices(services.filter((service) => service.id !== id));
@@ -90,13 +121,11 @@ const Services = () => {
       console.error('Error deleting service:', error);
     }
   };
-
+  
   const handleEditService = (service) => {
-    console.log('Editing service:', service); // Debug log
     setEditServiceId(service.id);
     setEditServiceName(service.name);
     setIsModalOpen(true);
-    console.log('Modal Open:', isModalOpen); // Debug log to check modal state
   };
 
   const handleUpdateService = async () => {
@@ -145,14 +174,14 @@ const Services = () => {
           {alertMessage && <div className="text-red-500">{alertMessage}</div>}
           <Table aria-label="Service List" className="min-w-full bg-white border rounded shadow-md">
             <TableHeader>
-              <TableColumn>ID</TableColumn>
+              <TableColumn>Series No</TableColumn>
               <TableColumn>Name</TableColumn>
               <TableColumn>Actions</TableColumn>
             </TableHeader>
             <TableBody>
               {services.map((service) => (
                 <TableRow key={service.id}>
-                  <TableCell>{service.id}</TableCell>
+                  <TableCell>{service.customId}</TableCell>
                   <TableCell>{service.name}</TableCell>
                   <TableCell>
                     <Button size="small" onClick={() => handleEditService(service)} className="bg-[#b9b0eb] text-black hover:text-black-200 mr-2">

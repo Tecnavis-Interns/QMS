@@ -219,7 +219,7 @@ const handleDelete = async (docId) => {
               <Table aria-label="Staff table" removeWrapper>
                 <TableHeader>
                   <TableColumn>Sl. no.</TableColumn>
-                  <TableColumn>Staff ID</TableColumn>
+                  {/* <TableColumn>Staff ID</TableColumn> */}
                   <TableColumn>Name</TableColumn>
                   <TableColumn>Email</TableColumn>
                   {/* <TableColumn>Service</TableColumn> */}
@@ -229,7 +229,7 @@ const handleDelete = async (docId) => {
                   {staffData.filter(i => i.active).map((user, index) => (
                     <TableRow key={index}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell>{user.id}</TableCell>
+                      {/* <TableCell>{user.id}</TableCell> */}
                       <TableCell>{user.staffName}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       {/* <TableCell>{user.service}</TableCell> */}

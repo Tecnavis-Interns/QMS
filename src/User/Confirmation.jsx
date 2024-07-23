@@ -25,10 +25,10 @@ export default function ConfirmationPage() {
       setCountdown((prevCount) => prevCount - 1);
     }, 1000);
 
-    // Redirect after 10 seconds
+    // Redirect after 5 seconds
     const redirect = setTimeout(() => {
       navigate("/userForm");
-    }, 10000);
+    }, 5000);
 
     return () => {
       clearInterval(timer);

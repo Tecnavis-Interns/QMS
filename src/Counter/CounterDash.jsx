@@ -309,9 +309,9 @@ const CounterDash = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const unsubscribe = listenToCounterCompletedCount();
-    return () => unsubscribe();
-  }, []);
+    fetchPendingCount();
+  }, [totalCustomerCount, completedCount]);
+   
 
 
   // const isValidUserData = (user) => {
@@ -947,7 +947,7 @@ const CounterDash = () => {
                 <h3 className="font-bold text-large ">Completed</h3>
               </CardHeader>
               <CardBody className="overflow-visible py-2">
-                <p className="text-6xl font-bold ml-12 mt-4">{counterCompletedCount}</p>
+                <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">

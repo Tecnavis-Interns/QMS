@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Input, Button, Radio, RadioGroup } from "@nextui-org/react";
+import { Input, Radio, RadioGroup } from "@nextui-org/react";
 import Navbar from "../Components/Navbar";
 import { collection, doc as firestoreDoc, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp, getDocs } from "firebase/firestore";
 import { db, submitDataToFirestore } from "../firebase";
@@ -10,6 +10,8 @@ export default function UserForm() {
   const [name, setName] = useState("");
   const [service, setService] = useState("");
   const [services, setServices] = useState([]);
+  const [nameError, setNameError] = useState("");
+  const [serviceError, setServiceError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,34 +30,46 @@ export default function UserForm() {
   }, []);
 
   const handleNameChange = (event) => {
-    setName(event.target.value);
+    const newName = event.target.value;
+    setName(newName);
+    
+    if (/[^a-zA-Z\s]/.test(newName)) {
+      setNameError("Please avoid symbols");
+    } else {
+      setNameError("");
+    }
   };
 
-  const handleServiceChange = (value) => {
+  const handleServiceChange = async (value) => {
     setService(value);
+    setServiceError("");
+
+    if (name.trim() === "") {
+      setNameError("Please enter your name.");
+      return;
+    }
+
+    if (/[^a-zA-Z\s]/.test(name)) {
+      setNameError("Please avoid symbols");
+      return;
+    }
+
+    try {
+      await handleSubmit(value);
+    } catch (error) {
+      console.error("Error submitting form: ", error);
+    }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-  
-    if (name === "") {
-      alert("Please Enter your name.");
-      return;
-    }
-  
-    if (service === "") {
-      alert("Please select a service.");
-      return;
-    }
-  
+  const handleSubmit = async (selectedService) => {
     try {
-      const tokenNumber = await generateTokenNumber();
+      const tokenNumber = await generateTokenNumber(selectedService);
       const userId = uuidv4();
   
       const requestData = {
         userId: userId,
-        name: name,
-        service: service,
+        name: name.trim(),
+        service: selectedService,
         tokenNumber: tokenNumber,
         createdAt: serverTimestamp(),
         status: true
@@ -78,17 +92,37 @@ export default function UserForm() {
     }
   };
 
-  const generateTokenNumber = async () => {
+  const generateTokenNumber = async (selectedService) => {
     try {
+      // First, fetch the custom ID for the selected service
+      const servicesCollection = collection(db, "services");
+      const serviceQuery = await getDocs(servicesCollection);
+      const serviceDoc = serviceQuery.docs.find(doc => doc.data().name === selectedService);
+      
+      if (!serviceDoc) {
+        throw new Error("Service not found");
+      }
+  
+      const serviceCustomId = serviceDoc.data().customId;
+      const servicePrefix = serviceCustomId.charAt(0); // Get the first letter of the custom ID
+  
+      // Now, get the last token number for this service
       const queueDocRef = firestoreDoc(db, "queue/queueDoc");
       const queueDocSnap = await getDoc(queueDocRef);
-
-      let lastTokenNumber = queueDocSnap.exists() ? queueDocSnap.data().lastTokenNumber || 0 : 0;
+  
+      let lastTokens = queueDocSnap.exists() ? queueDocSnap.data().lastTokens || {} : {};
+      let lastTokenNumber = lastTokens[servicePrefix] || 0;
       let newTokenNumber = lastTokenNumber + 1;
-
-      await setDoc(queueDocRef, { lastTokenNumber: newTokenNumber }, { merge: true });
-
-      return newTokenNumber;
+  
+      // Generate the new token
+      const paddedNumber = newTokenNumber.toString().padStart(3, '0');
+      const newToken = `${servicePrefix}${paddedNumber}`;
+  
+      // Update the last token number for this service
+      lastTokens[servicePrefix] = newTokenNumber;
+      await setDoc(queueDocRef, { lastTokens: lastTokens }, { merge: true });
+  
+      return newToken;
     } catch (error) {
       console.error("Error generating token number: ", error);
       return "";
@@ -101,7 +135,7 @@ export default function UserForm() {
       <div className="flex flex-1 justify-center flex-wrap lg:mx-10">
         <div className="md:min-w-[40%] min-w-full px-5 flex flex-col items-center justify-center md:p-10 gap-4">
           <h2 className="font-semibold md:text-xl">Create a request</h2>
-          <form onSubmit={handleSubmit} className="flex flex-col w-[27rem] gap-4">
+          <div className="flex flex-col w-[27rem] gap-4">
             <Input
               type="text"
               label="Name"
@@ -111,6 +145,8 @@ export default function UserForm() {
               autoComplete="off"
               id="name"
               variant="bordered"
+              errorMessage={nameError}
+              isInvalid={nameError !== ""}
             />
             <RadioGroup
               label="Select your Reason to be here"
@@ -121,6 +157,8 @@ export default function UserForm() {
                 base: "w-full max-w-md",
                 wrapper: "grid grid-cols-3 gap-5 sm:grid-cols-4 md:grid-cols-1"
               }}
+              errorMessage={serviceError}
+              isInvalid={serviceError !== ""}
             >
               {services.map((item) => (
                 <Radio
@@ -135,14 +173,9 @@ export default function UserForm() {
                 </Radio>
               ))}
             </RadioGroup>
-            <Button className="bg-[#6e71d6] text-white w-[27rem]" type="submit">
-              Submit
-            </Button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
   );
-  
-  
 }
