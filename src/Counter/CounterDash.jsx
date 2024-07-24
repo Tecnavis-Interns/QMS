@@ -872,7 +872,7 @@ const CounterDash = () => {
         // Update the request document with the new counter number
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
           counterNumber: selectedCounterNumber,
-          status: true // Set the status back to true (active) in the new counter's queue
+          status: false // Set the status back to true (active) in the new counter's queue
         });
   
         console.log(`Token ${tokenNumber} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
