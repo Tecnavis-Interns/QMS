@@ -818,7 +818,8 @@ const CounterDash = () => {
   
         // Update the request document with the new counter number
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
-          counterNumber: selectedCounterNumber
+          counterNumber: selectedCounterNumber,
+          transfer: true 
         });
   
         console.log(`Token ${nowServingToken} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
@@ -912,7 +913,9 @@ const CounterDash = () => {
         // Update the request document with the new counter number and set the status to false
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
           counterNumber: selectedCounterNumber,
-          status: false
+          status: false,
+          transfer: true,
+          pending: false
         });
     
         console.log(`Token ${tokenNumber} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);

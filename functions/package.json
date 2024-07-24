@@ -13,8 +13,11 @@
   },
   "main": "index.js",
   "dependencies": {
+    "chart.js": "^4.4.3",
     "firebase-admin": "^12.2.0",
-    "firebase-functions": "^5.0.1"
+    "firebase-functions": "^5.0.1",
+    "randomcolor": "^0.6.2",
+    "react-chartjs-2": "^5.2.0"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.1.0"

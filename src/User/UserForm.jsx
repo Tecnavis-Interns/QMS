@@ -72,7 +72,8 @@ export default function UserForm() {
         service: selectedService,
         tokenNumber: tokenNumber,
         createdAt: serverTimestamp(),
-        status: true
+        status: true,
+        transfer: false
       };
   
       // Submit data to the 'requests' collection
