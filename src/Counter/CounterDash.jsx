@@ -37,6 +37,7 @@ import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 
+
 const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
@@ -48,8 +49,6 @@ const CounterDash = () => {
   const [currentDate, setCurrentDate] = useState("");
   const [completedCounts, setCompletedCounts] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
-  const [nextTokenIndex, setNextTokenIndex] = useState(null); 
-  const [isServiceStarted, setIsServiceStarted] = useState(false); 
   const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [counterName, setCounterName] = useState("");
@@ -1034,6 +1033,8 @@ const CounterDash = () => {
 
 
   const cancelSpecificToken = async (specialtoken) => {
+    const confirmCancel = window.confirm(`Are you sure you want to cancel token ${nowServingToken}?`);
+    if (confirmCancel){
     try {
       // Delete the request from the requests collection
       const requestsRef = collection(db, "requests");
@@ -1097,14 +1098,16 @@ const CounterDash = () => {
     } catch (error) {
       console.error(`Error cancelling token ${specialtoken}:`, error);
     }
-  };
+  }
+};
 
   const handleCancelButtonClick = async () => {
     if (!nowServingToken || nowServingToken === '---') {
       console.log("No token currently being served.");
       return;
     }
-  
+    const confirmCancel = window.confirm(`Are you sure you want to cancel token ${nowServingToken}?`);
+    if (confirmCancel){
     try {
       // Delete the currently serving token from the requests collection
       const requestsRef = collection(db, "requests");
@@ -1140,7 +1143,8 @@ const CounterDash = () => {
     } catch (error) {
       console.error(`Error cancelling token ${nowServingToken}:`, error);
     }
-  };
+  }
+};
 
 
 
@@ -1253,6 +1257,8 @@ const CounterDash = () => {
 
 
   const handleTransferredTokenCancel = async (specialtoken) => {
+    const confirmCancel = window.confirm(`Are you sure you want to cancel the token`);
+    if (confirmCancel) {
     try {
       // Get the counter number from the user's email
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
@@ -1340,7 +1346,8 @@ const CounterDash = () => {
     } catch (error) {
       console.error(`Error cancelling transferred token ${specialtoken}:`, error);
     }
-  };
+  }
+};
 
   const getCurrentDate = () => {
     const dateObj = new Date();
