@@ -34,7 +34,7 @@ export default function App() {
               { path: "/staff", label: "Staff" },
               { path: "/services", label: "Services" },
               { path: "/ads", label: "Advertisement" },
-              { path: "/reports", label: "Reports" } ,            
+              { path: "/reports", label: "Reports" } ,  
             ].map((item) => (
               <Button
                 key={item.path}

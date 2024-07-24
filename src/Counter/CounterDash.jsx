@@ -37,6 +37,7 @@ import { AuthContext } from "../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 
+
 const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
@@ -48,8 +49,6 @@ const CounterDash = () => {
   const [currentDate, setCurrentDate] = useState("");
   const [completedCounts, setCompletedCounts] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
-  const [nextTokenIndex, setNextTokenIndex] = useState(null); 
-  const [isServiceStarted, setIsServiceStarted] = useState(false); 
   const [nowServingToken, setNowServingToken] = useState("---");
   const [totalCustomerCount, setTotalCustomerCount] = useState(0);
   const [counterName, setCounterName] = useState("");
@@ -78,6 +77,27 @@ const CounterDash = () => {
 
     setTimeout(checkAuth, 500);
   }, [navigate]);
+
+  useEffect(() => {
+    if(email){
+    const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+    const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+
+    const unsubscribe = onSnapshot(counterDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const counterData = docSnapshot.data();
+        const receivedTokens = counterData.receivedTokens || [];
+        setTransferredTokens(receivedTokens);
+      } else {
+        console.log("No transferred tokens found");
+        setTransferredTokens([]);
+      }
+    });
+
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }
+  }, [email]);
 
   useEffect(() => {
     const fetchRequestsData = async () => {
@@ -798,7 +818,8 @@ const CounterDash = () => {
   
         // Update the request document with the new counter number
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
-          counterNumber: selectedCounterNumber
+          counterNumber: selectedCounterNumber,
+          transfer: true 
         });
   
         console.log(`Token ${nowServingToken} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
@@ -845,15 +866,15 @@ const CounterDash = () => {
     try {
       const currentCounterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const selectedCounterNumber = parseInt(selectedCounterEmail.split("@")[0].replace("counter", ""));
-  
+    
       const requestsRef = collection(db, "requests");
       const q = query(requestsRef, where("tokenNumber", "==", tokenNumber));
       const querySnapshot = await getDocs(q);
-  
+    
       if (!querySnapshot.empty) {
         const tokenData = querySnapshot.docs[0].data();
         const transferTimestamp = new Date().toISOString();
-  
+    
         // Create transfer history entry
         const transferEntry = {
           token: tokenNumber,
@@ -863,29 +884,50 @@ const CounterDash = () => {
           name: tokenData.name,
           service: tokenData.service
         };
+    
+        // Check if the token is already in the receivedTokens array of the current counter
+        const currentCounterRef = doc(db, `counter${currentCounterNumber}`, 'counterDoc');
+        const currentCounterDoc = await getDoc(currentCounterRef);
+        let currentReceivedTokens = currentCounterDoc.data().receivedTokens || [];
+    
+        // Remove the token if it's already present in the current counter
+        const existingTokenIndex = currentReceivedTokens.findIndex(token => token.token === tokenNumber);
+        if (existingTokenIndex !== -1) {
+          currentReceivedTokens = currentReceivedTokens.filter(t => t.token !== tokenNumber);
   
-        // Update the selected counter's document
+        // Update the counter document
+            await updateDoc(currentCounterRef, {
+              receivedTokens:  currentReceivedTokens
+            });
+        }
+    
+        // Check if the token is already in the receivedTokens array of the selected counter
         const selectedCounterRef = doc(db, `counter${selectedCounterNumber}`, 'counterDoc');
-        await updateDoc(selectedCounterRef, { 
-          receivedTokens: arrayUnion(transferEntry)
-        });
-  
-        // Update the request document with the new counter number
+        const selectedCounterDoc = await getDoc(selectedCounterRef);
+        let selectedReceivedTokens = selectedCounterDoc.data().receivedTokens || [];
+    
+        // Add the new transfer entry to the selected counter's receivedTokens array
+        selectedReceivedTokens.push(transferEntry);
+        await updateDoc(selectedCounterRef, { receivedTokens: selectedReceivedTokens });
+    
+        // Update the request document with the new counter number and set the status to false
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
           counterNumber: selectedCounterNumber,
-          status: true // Set the status back to true (active) in the new counter's queue
+          status: false,
+          transfer: true,
+          pending: false
         });
-  
+    
         console.log(`Token ${tokenNumber} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
-  
+    
         // Update local state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
         setIsTransferDropdownOpenMap(prev => ({...prev, [tokenNumber]: false}));
-  
+    
       } else {
         console.log(`Token ${tokenNumber} not found in requests collection.`);
       }
-  
+    
     } catch (error) {
       console.error(`Error transferring token ${tokenNumber}:`, error);
     }
@@ -1034,6 +1076,8 @@ const CounterDash = () => {
 
 
   const cancelSpecificToken = async (specialtoken) => {
+    const confirmCancel = window.confirm(`Are you sure you want to cancel token ${nowServingToken}?`);
+    if (confirmCancel){
     try {
       // Delete the request from the requests collection
       const requestsRef = collection(db, "requests");
@@ -1097,14 +1141,16 @@ const CounterDash = () => {
     } catch (error) {
       console.error(`Error cancelling token ${specialtoken}:`, error);
     }
-  };
+  }
+};
 
   const handleCancelButtonClick = async () => {
     if (!nowServingToken || nowServingToken === '---') {
       console.log("No token currently being served.");
       return;
     }
-  
+    const confirmCancel = window.confirm(`Are you sure you want to cancel token ${nowServingToken}?`);
+    if (confirmCancel){
     try {
       // Delete the currently serving token from the requests collection
       const requestsRef = collection(db, "requests");
@@ -1140,7 +1186,8 @@ const CounterDash = () => {
     } catch (error) {
       console.error(`Error cancelling token ${nowServingToken}:`, error);
     }
-  };
+  }
+};
 
 
 
@@ -1253,6 +1300,8 @@ const CounterDash = () => {
 
 
   const handleTransferredTokenCancel = async (specialtoken) => {
+    const confirmCancel = window.confirm(`Are you sure you want to cancel the token`);
+    if (confirmCancel) {
     try {
       // Get the counter number from the user's email
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
@@ -1340,7 +1389,8 @@ const CounterDash = () => {
     } catch (error) {
       console.error(`Error cancelling transferred token ${specialtoken}:`, error);
     }
-  };
+  }
+};
 
   const getCurrentDate = () => {
     const dateObj = new Date();

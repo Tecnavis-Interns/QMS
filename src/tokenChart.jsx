@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { db } from './firebase'; // Adjust this import path as needed
-import { collection, query, getDocs, where, orderBy } from 'firebase/firestore';
-import moment from 'moment';
+import { collection, getDocs } from 'firebase/firestore';
+
+const getRandomBrightColor = () => {
+  const hue = Math.floor(Math.random() * 360); // Random hue between 0 and 360
+  const saturation = Math.floor(Math.random() * 41) + 60; // Saturation between 60% and 100%
+  const lightness = Math.floor(Math.random() * 21) + 60; // Lightness between 60% and 80%
+
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
 
 const TokenChart = () => {
   const [chartData, setChartData] = useState(null);
@@ -11,28 +19,15 @@ const TokenChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const oneWeekAgo = moment().subtract(7, 'days').startOf('day').toDate();
-        
-        const q = query(
-          collection(db, "ChartData"),
-          where("createdAt", ">=", oneWeekAgo),
-          orderBy("createdAt", "desc")
-        );
-        
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(collection(db, "ChartData"));
         const ChartData = querySnapshot.docs.map(doc => ({
           ...doc.data(),
           createdAt: doc.data().createdAt.toDate()
         }));
 
-        // Generate an array of the last 7 days
-        const last7Days = Array.from({length: 7}, (_, i) => {
-          return moment().subtract(i, 'days').format('YYYY-MM-DD');
-        }).reverse();
-
         // Process the data
-        const tokenRequestsByDay = ChartData.reduce((acc, request) => {
-          const date = moment(request.createdAt).format('YYYY-MM-DD');
+        const tokenRequests = ChartData.reduce((acc, request) => {
+          const date = request.createdAt.toDateString(); // Use date as a key
           if (!acc[date]) {
             acc[date] = 0;
           }
@@ -40,16 +35,19 @@ const TokenChart = () => {
           return acc;
         }, {});
 
-        // Ensure all days in the last week are represented, even if there were no requests
-        const data = last7Days.map(day => tokenRequestsByDay[day] || 0);
+        // Extract labels and data
+        const labels = Object.keys(tokenRequests);
+        const data = Object.values(tokenRequests);
+
+        const colors = labels.map(() => getRandomBrightColor());
 
         setChartData({
-          labels: last7Days,
+          labels: labels,
           datasets: [{
             label: '# of Token Requests',
             data: data,
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: colors,
+            borderColor: 'rgba(0, 0, 0, 0.1)',
             borderWidth: 1
           }]
         });
@@ -63,21 +61,37 @@ const TokenChart = () => {
   }, []);
 
   const options = {
-    scales: {
-      y: {
-        beginAtZero: true
-      }
-    },
     plugins: {
       title: {
         display: true,
-        text: 'Token Requests Per Day (Last 7 Days)'
+        text: 'Token Requests Distribution'
       },
       legend: {
-        display: false,
+        display: true,
+        position: 'top',
+        labels: {
+          // Custom legend label styling
+          boxWidth: 20,
+          padding: 10,
+          // Use a custom function to stack the labels vertically
+          generateLabels: (chart) => {
+            const data = chart.data;
+            if (!data.labels.length) return [];
+  
+            return data.labels.map((label, index) => ({
+              text: label,
+              fillStyle: data.datasets[0].backgroundColor[index],
+              strokeStyle: data.datasets[0].borderColor[index],
+              lineWidth: data.datasets[0].borderWidth,
+              hidden: false,
+              // Adjust the styling here to control how the labels are displayed
+            }));
+          }
+        }
       }
     }
   };
+  
 
   if (!chartData) {
     return <div>Loading...</div>;
@@ -86,7 +100,7 @@ const TokenChart = () => {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="bg-white p-6 rounded-lg shadow-lg">
-        <Bar data={chartData} options={options} />
+        <Pie data={chartData} options={options} />
       </div>
     </div>
   );
