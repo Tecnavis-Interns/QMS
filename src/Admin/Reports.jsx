@@ -16,7 +16,7 @@ import {
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
 import { MdArrowDropDown, MdSearch } from "react-icons/md";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, query, where } from "firebase/firestore";
 import { db } from '../firebase';
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
@@ -28,7 +28,7 @@ export default function ReportSection() {
   const [services, setServices] = useState([{ id: "All", name: "All" }]);
   const [selectedCounter, setSelectedCounter] = useState(new Set(["All"]));
   const [selectedService, setSelectedService] = useState(new Set(["All"]));
-  const [reportType, setReportType] = useState(" ");
+  const [reportType, setReportType] = useState("counter");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [filterValue, setFilterValue] = useState("");
@@ -42,88 +42,118 @@ export default function ReportSection() {
   }, [selectedCounter, selectedService, reportType]);
 
   const fetchCountersAndServices = async () => {
-    const countersSnapshot = await getDocs(collection(db, "counters"));
-    const fetchedCounters = countersSnapshot.docs.map(doc => ({
-      id: doc.id,
-      name: doc.data().counterName
-    }));
-    setCounters([{ id: "All", name: "All" }, ...fetchedCounters]);
-
-    const servicesSnapshot = await getDocs(collection(db, "services"));
-    const fetchedServices = servicesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      name: doc.data().name,
-      prefix: doc.data().prefix // Assuming each service has a prefix field
-    }));
-    setServices([{ id: "All", name: "All", prefix: "" }, ...fetchedServices]);
+    try {
+      const countersSnapshot = await getDocs(collection(db, "counters"));
+      const fetchedCounters = countersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().counterName
+      }));
+      setCounters([{ id: "All", name: "All" }, ...fetchedCounters]);
+  
+      const servicesSnapshot = await getDocs(collection(db, "services"));
+      const fetchedServices = servicesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+        prefix: doc.data().prefix // Assuming each service has a prefix field
+      }));
+      setServices([{ id: "All", name: "All", prefix: "" }, ...fetchedServices]);
+    } catch (error) {
+      console.error("Error fetching counters and services:", error);
+    }
   };
 
   const fetchData = async () => {
-    let fetchedData = [];
+    try {
+      let fetchedData = [];
 
-    if (reportType === "service") {
-      const chartDataRef = collection(db, "ChartData");
-      let q = chartDataRef;
+      if (reportType === "service") {
+        const chartDataRef = collection(db, "ChartData");
+        let q = chartDataRef;
 
-      if (!selectedService.has("All")) {
-        const selectedPrefixes = Array.from(selectedService).map(id => 
-          services.find(s => s.id === id)?.prefix
-        ).filter(Boolean);
+        if (!selectedService.has("All")) {
+          const selectedPrefixes = Array.from(selectedService).map(id => 
+            services.find(s => s.id === id)?.prefix
+          ).filter(Boolean);
 
-        if (selectedPrefixes.length > 0) {
-          q = query(q, where("tokenNumber", "in", selectedPrefixes.map(prefix => new RegExp(`^${prefix}`))))
+          if (selectedPrefixes.length > 0) {
+            q = query(q, where("tokenNumber", "in", selectedPrefixes.map(prefix => new RegExp(`^${prefix}`))))
+          }
+        }
+
+        const querySnapshot = await getDocs(q);
+        fetchedData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          service: doc.data().service,
+          tokenNumber: doc.data().tokenNumber,
+          createdAt: doc.data().createdAt.toDate().toLocaleString(),
+        }));
+
+        // Additional filtering if needed
+        if (!selectedService.has("All")) {
+          const selectedServiceNames = Array.from(selectedService).map(id => 
+            services.find(s => s.id === id)?.name
+          );
+          fetchedData = fetchedData.filter(item => selectedServiceNames.includes(item.service));
+        }
+      } else {
+        // Counter report
+        const selectedCounters = selectedCounter.has("All") 
+        ? counters.filter(c => c.id !== "All")
+        : counters.filter(c => selectedCounter.has(c.id));
+
+      console.log("Selected counters:", selectedCounters);
+
+      for (const counter of selectedCounters) {
+        const counterName = counter.name.replace("Counter ", "").toLowerCase().replace(/\s/g, "");
+        console.log("Fetching data for counter:", counterName);
+        
+        const completedTokensRef = doc(db, `counter${counterName}`, "CompletedTokens");
+        const completedTokensSnapshot = await getDoc(completedTokensRef);
+        
+        console.log("Snapshot exists:", completedTokensSnapshot.exists());
+        
+        if (completedTokensSnapshot.exists()) {
+          const snapshotData = completedTokensSnapshot.data();
+          console.log("CompletedTokens document data:", snapshotData);
+          
+          if (!snapshotData.history || !Array.isArray(snapshotData.history)) {
+            console.log("history field is missing or not an array for counter:", counterName);
+            return; // Skip this counter
+          }
+          const historyData = snapshotData.history;
+          console.log("History data:", historyData);
+          if (historyData.length === 0) {
+            console.log("History array is empty for counter:", counterName);
+          }
+          
+          fetchedData = [
+            ...fetchedData,
+            ...historyData.map((item, index) => {
+              console.log("Processing history item:", item);
+              const uniqueKey = `${item?.token || 'unknown'}-${item?.completedAt || Date.now()}-${index}`;
+              return {
+                id: uniqueKey, // Add this line to create a unique id for each item
+                name: item?.name || 'N/A',
+                service: item?.service || 'N/A',
+                serviceTime: item?.completedAt ? new Date(item.completedAt).toLocaleString() : 'N/A',
+                token: item?.token || 'N/A',
+                counter: counter.name
+              };
+            }),
+          ];
         }
       }
-
-      const querySnapshot = await getDocs(q);
-      fetchedData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name,
-        service: doc.data().service,
-        tokenNumber: doc.data().tokenNumber,
-        createdAt: doc.data().createdAt.toDate().toLocaleString(),
-      }));
-
-      // Additional filtering if needed
-      if (!selectedService.has("All")) {
-        const selectedServiceNames = Array.from(selectedService).map(id => 
-          services.find(s => s.id === id)?.name
-        );
-        fetchedData = fetchedData.filter(item => selectedServiceNames.includes(item.service));
-      }
-    } else {
-      // Counter report (unchanged)
-      const selectedCounters = selectedCounter.has("All") 
-      ? counters.filter(c => c.id !== "All")
-      : counters.filter(c => selectedCounter.has(c.id));
-
-    for (const counter of selectedCounters) {
-      const counterNumber = counter.name.replace("Counter ", "");
-      const completedTokensRef = doc(db, `counter${counterNumber}`, "CompletedTokens");
-      const completedTokensSnapshot = await getDoc(completedTokensRef);
-      
-      if (completedTokensSnapshot.exists()) {
-        const historyData = completedTokensSnapshot.data()?.History || [];
-        
-        fetchedData = [
-          ...fetchedData,
-          ...historyData.map(item => ({
-            name: item.name || 'N/A',
-            service: item.service || 'N/A',
-            serviceTime: item.serviceTime ? new Date(item.serviceTime.seconds * 1000).toLocaleString() : 'N/A',
-            token: item.token || 'N/A',
-            counter: counter.name
-          })),
-        
-        ];
-      }
-    }
     }
 
-    fetchedData = fetchedData.map((item, index) => ({ ...item, siNo: index + 1 }));
-    setData(fetchedData);
+      console.log("Fetched data:", fetchedData);
+      fetchedData = fetchedData.map((item, index) => ({ ...item, siNo: index + 1 }));
+      setData(fetchedData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
-  
+
   const filteredItems = useMemo(() => {
     let filteredData = [...data];
     if (filterValue) {
