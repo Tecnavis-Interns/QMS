@@ -19,6 +19,7 @@ import ConfirmationPage from './User/Confirmation'
 import Ads from './Admin/Ads';
 import Services from './Admin/Services';
 import { AuthProvider } from './Context/AuthContext';
+import Reports from './Admin/Reports';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -63,6 +64,10 @@ const router = createBrowserRouter([
   {
     path:'/Services',
     element:<Services/>,
+  },
+  {
+    path:'/Reports',
+    element:<Reports/>,
   }
 ]);
 

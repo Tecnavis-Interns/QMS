@@ -33,7 +33,8 @@ export default function App() {
               { path: "/counter", label: "Counter" },
               { path: "/staff", label: "Staff" },
               { path: "/services", label: "Services" },
-              { path: "/ads", label: "Advertisement" }
+              { path: "/ads", label: "Advertisement" },
+              { path: "/reports", label: "Reports" } ,  
             ].map((item) => (
               <Button
                 key={item.path}
