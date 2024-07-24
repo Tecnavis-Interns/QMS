@@ -155,14 +155,10 @@ const Dashboard = () => {
         </div>
         <div className="bg-slate-100 rounded-xl p-3 -mt-6 pt-8 relative z-10"> {/* Adjusted padding and margin */}
         <div className="flex items-center mb-2"> {/* Reduced margin */}
-        <img
-              className="w-8 h-8 rounded-full mr-2" 
-              src={counter.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"}
-              alt="image"
-            />
-            <div>
+        
+            <div className="flex flex-col items-center">
             <h1 className="font-bold text-sm">{counter.staffName}</h1> {/* Reduced font size */}
-            <h1 className="text-xs">{counter.counterName}</h1> {/* Reduced font size */}
+            <h1 className="font-bold">{counter.counterName}</h1> {/* Reduced font size */}
             </div>
           </div>
           <div className="border-t pt-1"> {/* Reduced padding */}
@@ -209,7 +205,7 @@ const Dashboard = () => {
 
       {/* Queue List & staff */}
       <div className="h-[400px] flex">
-        <div className="w-[700px] ml-14  -mt-20">
+        <div className="w-[700px] ml-14  -mt-20 p-4">
           <h1 className="text-xl py-2 px-3">Queue Details</h1>
           <Table aria-label="Queue Details">
             <TableHeader>
@@ -241,7 +237,7 @@ const Dashboard = () => {
           </Table>
         </div>
 
-        <div className="bg-white shadow-2xl h-72 mt-13 ml-28  rounded-xl w-[335px] overflow-y-auto">
+        <div className="bg-white shadow-2xl h-72 mt-13 ml-22  rounded-xl w-[335px] overflow-y-auto">
         <h1 className="py-2 px-5">Current Staff</h1>
         {staffMembers.map((staff) => (
           <div key={staff.id} className="flex mt-2">
