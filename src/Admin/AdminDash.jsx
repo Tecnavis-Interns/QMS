@@ -9,7 +9,6 @@ import {
 } from "@nextui-org/react";
 import moment from "moment";
 import "./Dashboard.css";
-
 import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import TokenChart from "../../src/tokenChart";
