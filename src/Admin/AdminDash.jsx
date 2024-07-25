@@ -47,11 +47,22 @@ const Dashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const q = query(collection(db, "requests"), where("status", "==", true));
-      const querySnapshot = await getDocs(q);
-      const requestsData = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      console.log("Fetched requests:", requestsData);
-      setRequests(requestsData);
+      const transferredQuery = query(collection(db, "requests"), where("transfer", "==", true));
+      const activeQuery = query(collection(db, "requests"), where("status", "==", true));
+  
+      const [transferredSnapshot, activeSnapshot] = await Promise.all([
+        getDocs(transferredQuery),
+        getDocs(activeQuery)
+      ]);
+  
+      const transferredRequests = transferredSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      const activeRequests = activeSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+  
+      // Combine and remove duplicates
+      const allRequests = [...transferredRequests, ...activeRequests.filter(req => !req.transfer)];
+  
+      console.log("Fetched requests:", allRequests);
+      setRequests(allRequests);
     } catch (error) {
       console.error("Error fetching requests:", error);
     }
@@ -156,9 +167,9 @@ const Dashboard = () => {
               </div>
               <div className="bg-slate-100 rounded-xl p-2 sm:p-3 -mt-6 pt-6 sm:pt-8 relative z-10">
                 <div className="flex items-center mb-1 sm:mb-2">
-                  <div className="flex flex-col items-center">
-                    <h1 className="font-bold text-xs sm:text-sm">{counter.staffName}</h1>
+                  <div className="flex flex-col">
                     <h1 className="font-bold text-xs sm:text-sm">{counter.counterName}</h1>
+                    <h1 className=" text-xs sm:text-sm">{counter.service}</h1>
                   </div>
                 </div>
                 <div className="border-t pt-1 sm:pt-2">
@@ -212,11 +223,17 @@ const Dashboard = () => {
                   <TableCell>{request.service}</TableCell>
                   <TableCell>
                     <h1 className={`text-xs font-medium me-2 pr-2 px-2.5 py-0.5 rounded ${
-                      request.pending 
-                        ? 'bg-orange-400 text-orange-900 dark:bg-orange-900 dark:text-orange-700'
-                        : 'bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-700'
+                      request.transfer 
+                        ? 'bg-blue-300 text-blue-900 dark:bg-blue-900 dark:text-blue-300'
+                        : request.pending
+                          ? 'bg-orange-400 text-orange-900 dark:bg-orange-900 dark:text-orange-700'
+                          : 'bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-700'
                     }`}>
-                      {request.pending ? 'Pending' : 'In Queue'}
+                      {request.transfer 
+                        ? 'Transferred' 
+                        : request.pending
+                          ? 'Pending'
+                          : 'In Queue'}
                     </h1>
                   </TableCell>
                 </TableRow>
