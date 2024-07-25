@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import {
+  Checkbox,
   Table,
   TableHeader,
   TableColumn,
@@ -18,16 +19,22 @@ import {
   where,
   deleteDoc,
   setDoc,
+  limit,
   doc,
+  addDoc,
   getDoc,
   updateDoc,
   arrayUnion,
+  increment,
   runTransaction 
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
+import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardBody } from "@nextui-org/card";
+import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
+
 import { AuthContext } from "../Context/AuthContext";
+import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 
 
@@ -56,34 +63,19 @@ const CounterDash = () => {
   const transferButtonRefs = useRef({});
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       const userData = JSON.parse(localStorage.getItem('currentUser'));
       if (userData && userData.role === 'counter') {
         console.log('Counter authenticated:', userData.email);
-        const counterEmail = userData.email;
-        const countersCollectionRef = collection(db, 'counters');
-        const q = query(countersCollectionRef, where("email", "==", counterEmail));
-        
-        try {
-          const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            const counterDoc = querySnapshot.docs[0];
-            const counterDocRef = doc(db, 'counters', counterDoc.id);
-            await updateDoc(counterDocRef, { active: true });
-            console.log(`Counter ${counterEmail} is now active`);
-          } else {
-            console.log('Counter document not found');
-          }
-        } catch (error) {
-          console.error("Error setting counter as active:", error);
-        }
+        // setLoading(false);
+        // Proceed with loading counter data
       } else {
         console.log('Not authenticated as counter, redirecting to login');
         navigate('/login');
       }
     };
-  
-    checkAuth();
+
+    setTimeout(checkAuth, 500);
   }, [navigate]);
 
   useEffect(() => {
@@ -102,6 +94,7 @@ const CounterDash = () => {
       }
     });
 
+    // Clean up the listener when the component unmounts
     return () => unsubscribe();
   }
   }, [email]);
@@ -192,6 +185,8 @@ const CounterDash = () => {
   
   useEffect(() => {
     if (!email) return;
+    console.log('++++++++++++++++++++++++',email);
+    // Create a query reference
     const countersCollection = collection(db, 'counters');
     const q = query(countersCollection, where('email', '==', email));
     
@@ -200,7 +195,9 @@ const CounterDash = () => {
       querySnapshot.forEach((docSnapshot) => {
         if (docSnapshot.exists()) {
           const counterData = docSnapshot.data();
+          console.log('----------------',counterData);
           updateCompletedCount(counterData.completed || 0);
+          console.log('completed',completedCount);
         }
       });
     });
@@ -221,6 +218,35 @@ const CounterDash = () => {
   
     fetchTotalCustomerCount();
   }, []);
+
+  
+  useEffect(() => {
+    const fetchNowServingToken = async () => {
+      if (email) {
+        const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+        const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+        
+        try {
+          const counterDocSnap = await getDoc(counterDocRef);
+          if (counterDocSnap.exists()) {
+            const counterData = counterDocSnap.data();
+            const currentToken = counterData.nowServingToken;
+            if (currentToken && currentToken !== "-") {
+              setNowServingToken(currentToken);
+              setCurrentTokenStartTime(new Date()); // Assuming the start time is now
+            } else {
+              setNowServingToken("---");
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching now serving token:", error);
+        }
+      }
+    };
+  
+    fetchNowServingToken();
+  }, [email]);
+
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -250,7 +276,7 @@ const CounterDash = () => {
         // setRemainingCount(requestsSnapshot.size);
         setRemainingCount(requestsSnapshot.size);
         // setTotalCustomerCount(requestsSnapshot.size);
-        setNowServingToken("---");
+        // setNowServingToken("---");
   
         // Fetch the queue data for nowServingToken
         const queueDocRef = doc(db, 'queue', 'queueDoc');
@@ -261,10 +287,10 @@ const CounterDash = () => {
           const tokenArray = queueData.token || [];
   
           if (tokenArray.length > 0) {
-            setNowServingToken('---');
-            console.log("Initial now serving token:", tokenArray[0]);
+            // setNowServingToken('---');
+            // console.log("Initial now serving token:", tokenArray[0]);
           } else {
-            setNowServingToken("---");
+            // setNowServingToken("---");
             console.log("No tokens in queue");
           }
         } else {
@@ -430,7 +456,9 @@ const CounterDash = () => {
         // Update the state variables
         setNowServingToken("---");
         setPendingCount(updatedPending.length);
- 
+  
+        // Clear the nowServingToken from the counter's document
+        // const email = auth.currentUser.email;
         const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
         const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
         
@@ -459,6 +487,7 @@ const CounterDash = () => {
       console.log("No token currently being served.");
       return;
     }
+    console.log('hi');
     // const email = auth.currentUser.email;
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
@@ -470,6 +499,7 @@ const CounterDash = () => {
 
 
   const handleNextButtonClick = async () => {
+    // const email = auth.currentUser.email;
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
@@ -481,6 +511,8 @@ const CounterDash = () => {
         await handleSaveButtonClick();
       }
   
+      // Now proceed with calling the next token
+      // Fetch the queue document
       const queueDocRef = doc(db, 'queue', 'queueDoc');
       const queueDocSnap = await getDoc(queueDocRef);
   
@@ -678,7 +710,9 @@ const CounterDash = () => {
       // Set the nowServingToken state to the provided token number
       setNowServingToken(specialtoken);
       setCurrentTokenStartTime(new Date());
-
+  
+      // Get the counter number from the user's email
+      // const email = auth.currentUser.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
   
       // Add the now serving token to the counterDoc
@@ -1421,7 +1455,7 @@ const CounterDash = () => {
       <div className="fixed top-0 left-0 bottom-0">
         <Navbar />
       </div>
-      <div className="flex-1 ml-60">
+      <div className="flex-1 ml-60 pb-4 flex flex-col"> {/* Added flex flex-col */}
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
         <div>
         <div className="mb-4 mt-4 mr-24">
@@ -1553,19 +1587,21 @@ const CounterDash = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center p-10 py-5 gap-10 w-full">
-          <Table aria-label="Example static collection table" removeWrapper>
-    <TableHeader>
-      <TableColumn>Token</TableColumn>
-      <TableColumn>Name</TableColumn>
-      <TableColumn>Date</TableColumn>
-      <TableColumn>Service</TableColumn>
-      <TableColumn>Status</TableColumn>
-      <TableColumn></TableColumn>
-      <TableColumn></TableColumn>
-      <TableColumn></TableColumn>
-      <TableColumn></TableColumn>
-    </TableHeader>
+    <div className="flex flex-col items-center justify-center w-full">
+      {[...requestsData, ...transferredTokens].length > 0 ? (
+        <div className="p-10 py-5 w-full"> 
+            <Table aria-label="Example static collection table" removeWrapper>
+              <TableHeader>
+                <TableColumn>Token</TableColumn>
+                <TableColumn>Name</TableColumn>
+                <TableColumn>Date</TableColumn>
+                <TableColumn>Service</TableColumn>
+                <TableColumn>Status</TableColumn>
+                <TableColumn></TableColumn>
+                <TableColumn></TableColumn>
+                <TableColumn></TableColumn>
+                <TableColumn></TableColumn>
+              </TableHeader>
     <TableBody>
       {[...requestsData, ...transferredTokens].map(request => (
         <TableRow key={request.id || request.token}>
@@ -1688,7 +1724,11 @@ const CounterDash = () => {
       ))}
     </TableBody>
   </Table>
-          </div>
+        </div >
+        ) :<div className="h-80 flex items-center justify-center text-gray-500 -mt-12">
+              Queue is empty and no tokens available
+            </div>}
+      </div>         
         </div>
       </div>
     </div>
