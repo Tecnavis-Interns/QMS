@@ -63,19 +63,38 @@ const CounterDash = () => {
   const transferButtonRefs = useRef({});
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const userData = JSON.parse(localStorage.getItem('currentUser'));
       if (userData && userData.role === 'counter') {
         console.log('Counter authenticated:', userData.email);
         // setLoading(false);
         // Proceed with loading counter data
+        
+        // Set counter as active
+        const counterEmail = userData.email;
+        const countersCollectionRef = collection(db, 'counters');
+        const q = query(countersCollectionRef, where("email", "==", counterEmail));
+        
+        try {
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const counterDoc = querySnapshot.docs[0];
+            const counterDocRef = doc(db, 'counters', counterDoc.id);
+            await updateDoc(counterDocRef, { active: true });
+            console.log(`Counter ${counterEmail} is now active`);
+          } else {
+            console.log('Counter document not found');
+          }
+        } catch (error) {
+          console.error("Error setting counter as active:", error);
+        }
       } else {
         console.log('Not authenticated as counter, redirecting to login');
         navigate('/login');
       }
     };
-
-    setTimeout(checkAuth, 500);
+  
+    checkAuth();
   }, [navigate]);
 
   useEffect(() => {

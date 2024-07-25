@@ -1,13 +1,11 @@
 import React from "react";
 import {
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
   Link,
   Button,
 } from "@nextui-org/react";
 // import { signOutUser } from "../firebase";
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useNavigate } from "react-router-dom";
 import { useContext } from 'react';
 import { AuthContext } from '../Context/AuthContext';
@@ -15,11 +13,41 @@ import { AuthContext } from '../Context/AuthContext';
 export default function App() {
   const { email } = useContext(AuthContext);
   const navigate = useNavigate();
-  const handleLogout = () => {
-    // Clear any local storage or state related to the user's session
-    localStorage.removeItem('user'); // Assuming you store user info in localStorage
-    // Navigate to the login page
-    navigate("/login");
+  const handleLogout = async () => {
+    console.log("Logout process started");
+    const userData = JSON.parse(localStorage.getItem('currentUser'));
+    console.log("User data from localStorage:", userData);
+  
+    if (userData && userData.role === 'counter') {
+      console.log("User is a counter, attempting to set inactive");
+      const counterEmail = userData.email;
+      const countersCollectionRef = collection(db, 'counters');
+      const q = query(countersCollectionRef, where("email", "==", counterEmail));
+      
+      try {
+        const querySnapshot = await getDocs(q);
+        console.log("Query snapshot:", querySnapshot);
+        if (!querySnapshot.empty) {
+          const counterDoc = querySnapshot.docs[0];
+          console.log("Counter document found:", counterDoc.id);
+          const counterDocRef = doc(db, 'counters', counterDoc.id);
+          await updateDoc(counterDocRef, { active: false });
+          console.log(`Counter ${counterEmail} is now set to inactive`);
+        } else {
+          console.log('Counter document not found');
+        }
+      } catch (error) {
+        console.error("Error setting counter as inactive:", error);
+      }
+    }
+    
+    // Clear user data from localStorage
+    localStorage.removeItem('currentUser');
+    console.log("Local storage cleared");
+    
+    // Redirect to login page
+    navigate('/login');
+    console.log("Navigated to login page");
   };
   return (
     <div className="flex h-screen">
