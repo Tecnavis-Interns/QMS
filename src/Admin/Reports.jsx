@@ -28,10 +28,10 @@ export default function ReportSection() {
   const [services, setServices] = useState([{ id: "All", name: "All" }]);
   const [selectedCounter, setSelectedCounter] = useState(new Set(["All"]));
   const [selectedService, setSelectedService] = useState(new Set(["All"]));
-  const [reportType, setReportType] = useState("counter");
+  const [reportType, setReportType] = useState(" ");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const [filterValue, setFilterValue] = useState("");
+  const [filterValue, setFilterValue] = useState(""); 
 
   useEffect(() => {
     fetchCountersAndServices();
@@ -199,9 +199,33 @@ export default function ReportSection() {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    doc.autoTable({ html: '#reportTable' });
+    const columns = reportType === "service"
+      ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
+      : ["siNo", "name", "service", "serviceTime", "token", "counter"];
+  
+    // Map the data to match the columns
+    const rows = data.map(item => columns.map(columnKey => item[columnKey]));
+  
+    // Generate the table
+    doc.autoTable({
+      head: [columns.map(column => column.toUpperCase())],
+      body: rows,
+      startY: 10,
+      styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+      theme: 'striped',
+      didDrawPage: function (data) {
+        // Footer
+        const str = "Page " + doc.internal.getNumberOfPages();
+        doc.setFontSize(10);
+        const pageSize = doc.internal.pageSize;
+        const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+        doc.text(str, data.settings.margin.left, pageHeight - 10);
+      }
+    });
+  
     doc.save("report.pdf");
   };
+  
 
   const columns = reportType === "service" 
     ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
@@ -214,7 +238,8 @@ export default function ReportSection() {
       </div>
       <div className="flex-1 ml-64 p-8">
         <div className="flex flex-col gap-4">
-          <div className="flex justify-between gap-3 items-end flex-wrap">
+          <div className="flex justify-between items-end">
+          <div className="flex gap-3">
             <Dropdown>
               <DropdownTrigger>
                 <Button endContent={<MdArrowDropDown />} variant="flat">
@@ -272,14 +297,16 @@ export default function ReportSection() {
                 </DropdownMenu>
               </Dropdown>
             )}
-            <Button color="primary" onPress={exportToExcel}>
-              Export to Excel
-            </Button>
-            <Button color="secondary" onPress={exportToPDF}>
-              Export to PDF
-            </Button>
+            </div>
+            <div className="flex gap-3">
+              <Button color="primary" onPress={exportToExcel}>
+                Export to Excel
+              </Button>
+              <Button color="secondary" onPress={exportToPDF}>
+                Export to PDF
+              </Button>
+            </div>
           </div>
-          
           <Input
             isClearable
             className="w-full sm:max-w-[30%]"
