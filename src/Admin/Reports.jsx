@@ -138,7 +138,7 @@ export default function ReportSection() {
                 id: uniqueKey, // Add this line to create a unique id for each item
                 name: item?.name || 'N/A',
                 service: item?.service || 'N/A',
-                serviceTime: item?.completedAt ? new Date(item.completedAt).toLocaleString() : 'N/A',
+                serviceTime: item?.serviceTime ? `${item.serviceTime} minutes` : 'N/A',
                 token: item?.token || 'N/A',
                 counter: counter.name
               };
@@ -255,7 +255,7 @@ export default function ReportSection() {
                   onSelectionChange={(keys) => setReportType(Array.from(keys)[0])}
                 >
                   <DropdownItem key="counter">Counter</DropdownItem>
-                  <DropdownItem key="service">Service</DropdownItem>
+                  <DropdownItem key="service">Token</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
               {reportType === "counter" && (

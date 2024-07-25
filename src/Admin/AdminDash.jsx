@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import TokenChart from "../../src/tokenChart";
 import { db } from '../firebase';
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc, onSnapshot } from 'firebase/firestore';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -42,85 +42,76 @@ const Dashboard = () => {
     };
 
     checkAuth();
+    const unsubscribeRequests = setupRequestsListener();
+    const unsubscribeStaff = setupStaffListener();
+    const unsubscribeQueue = setupQueueListener();
+    const unsubscribeCounters = setupCountersListener();
+
+    // Clean up listeners on component unmount
+    return () => {
+      unsubscribeRequests();
+      unsubscribeStaff();
+      unsubscribeQueue();
+      unsubscribeCounters();
+    };
   }, [navigate]);
 
-  const fetchRequests = async () => {
-    try {
-      const transferredQuery = query(collection(db, "requests"), where("transfer", "==", true));
-      const activeQuery = query(collection(db, "requests"), where("status", "==", true));
-  
-      const [transferredSnapshot, activeSnapshot] = await Promise.all([
-        getDocs(transferredQuery),
-        getDocs(activeQuery)
-      ]);
-  
-      const transferredRequests = transferredSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      const activeRequests = activeSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-  
-      // Combine and remove duplicates
-      const allRequests = [...transferredRequests, ...activeRequests.filter(req => !req.transfer)];
-  
-      console.log("Fetched requests:", allRequests);
-      setRequests(allRequests);
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-    }
+  const setupRequestsListener = () => {
+    const transferredQuery = query(collection(db, "requests"), where("transfer", "==", true));
+    const activeQuery = query(collection(db, "requests"), where("status", "==", true));
+
+    const unsubscribeTransferred = onSnapshot(transferredQuery, (snapshot) => {
+      const transferredRequests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      updateRequests(transferredRequests, true);
+    });
+
+    const unsubscribeActive = onSnapshot(activeQuery, (snapshot) => {
+      const activeRequests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+      updateRequests(activeRequests, false);
+    });
+
+    return () => {
+      unsubscribeTransferred();
+      unsubscribeActive();
+    };
   };
 
-  const fetchStaffMembers = async () => {
-    try {
-      const staffQuery = query(collection(db, "staff"),where("active", "==", true));
-      const staffSnapshot = await getDocs(staffQuery);
-      const staffData = staffSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      console.log("Fetched staff members:", staffData);
+  const updateRequests = (newRequests, isTransferred) => {
+    setRequests(prevRequests => {
+      const updatedRequests = isTransferred
+        ? [...newRequests, ...prevRequests.filter(req => !req.transfer)]
+        : [...prevRequests.filter(req => req.transfer), ...newRequests.filter(req => !req.transfer)];
+      return updatedRequests;
+    });
+  };
+
+  const setupStaffListener = () => {
+    const staffQuery = query(collection(db, "staff"), where("active", "==", true));
+    return onSnapshot(staffQuery, (snapshot) => {
+      const staffData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
       setStaffMembers(staffData);
-    } catch (error) {
-      console.error("Error fetching staff members:", error);
-    }
+    });
   };
 
-  const fetchQueueCounts = async () => {
-    try {
-      const queueDocRef = doc(db, "queue", "queueDoc");
-      const queueDocSnap = await getDoc(queueDocRef);
-      
-      if (queueDocSnap.exists()) {
-        const queueData = queueDocSnap.data();
+  const setupQueueListener = () => {
+    const queueDocRef = doc(db, "queue", "queueDoc");
+    return onSnapshot(queueDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const queueData = docSnap.data();
         setCompletedCount(queueData.receivedToken?.length || 0);
         setPendingCount(queueData.pending?.length || 0);
         setRemainingCount(queueData.token?.length || 0);
-        console.log("Queue counts fetched:", {
-          completed: queueData.receivedToken?.length || 0,
-          pending: queueData.pending?.length || 0,
-          remaining: queueData.token?.length || 0
-        });
-      } else {
-        console.log("No queue document found!");
       }
-    } catch (error) {
-      console.error("Error fetching queue counts:", error);
-    }
+    });
   };
 
-  const fetchCounterData = async () => {
-    try {
-      const countersQuery = query(collection(db, "counters"));
-      const countersSnapshot = await getDocs(countersQuery);
-      const countersData = countersSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      console.log("Fetched counter data:", countersData);
+  const setupCountersListener = () => {
+    const countersQuery = query(collection(db, "counters"));
+    return onSnapshot(countersQuery, (snapshot) => {
+      const countersData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
       setCounterData(countersData);
-    } catch (error) {
-      console.error("Error fetching counter data:", error);
-    }
+    });
   };
-
-  useEffect(() => {
-    fetchRequests();
-    fetchStaffMembers();
-    fetchQueueCounts();
-    fetchCounterData();
-  }, []);
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(moment().format("MMMM Do YYYY, h:mm:ss a"));
@@ -157,9 +148,9 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <h1 className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
-                      counter.isActive ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
+                      counter.active ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
                     }`}>
-                      {counter.isActive ? 'Active' : 'Closed'}
+                      {counter.active ? 'Active' : 'Closed'}
                     </h1>
                   </div>
                 </div>
