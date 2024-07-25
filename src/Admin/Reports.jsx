@@ -25,20 +25,22 @@ import "jspdf-autotable";
 export default function ReportSection() {
   const [data, setData] = useState([]);
   const [counters, setCounters] = useState([]);
-  const [services, setServices] = useState([{ id: "All", name: "All" }]);
+  const [services, setServices] = useState([]);
   const [selectedCounter, setSelectedCounter] = useState(new Set(["All"]));
   const [selectedService, setSelectedService] = useState(new Set(["All"]));
-  const [reportType, setReportType] = useState(" ");
+  const [reportType, setReportType] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const [filterValue, setFilterValue] = useState(""); 
+  const [filterValue, setFilterValue] = useState("");
 
   useEffect(() => {
     fetchCountersAndServices();
   }, []);
 
   useEffect(() => {
-    fetchData();
+    if (reportType) {
+      fetchData();
+    }
   }, [selectedCounter, selectedService, reportType]);
 
   const fetchCountersAndServices = async () => {
@@ -226,77 +228,76 @@ export default function ReportSection() {
     doc.save("report.pdf");
   };
   
-
   const columns = reportType === "service" 
     ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
     : ["siNo", "name", "service", "serviceTime", "token", "counter"];
 
   return (
-    <div className="flex">
+    <div className="flex h-screen bg-gray-100">
       <div className="w-64 fixed h-full">
         <Navbar />
       </div>
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 ml-64 p-8 overflow-auto">
         <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-end">
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button endContent={<MdArrowDropDown />} variant="flat">
-                  Report Type: {reportType.charAt(0).toUpperCase() + reportType.slice(1)}
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Select Report Type"
-                selectedKeys={new Set([reportType])}
-                selectionMode="single"
-                onSelectionChange={(keys) => setReportType(Array.from(keys)[0])}
-              >
-                <DropdownItem key="counter">Counter</DropdownItem>
-                <DropdownItem key="service">Token</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-            {reportType === "counter" && (
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex gap-3">
               <Dropdown>
                 <DropdownTrigger>
                   <Button endContent={<MdArrowDropDown />} variant="flat">
-                    Counter: {Array.from(selectedCounter).map(id => counters.find(c => c.id === id)?.name).join(", ")}
+                    Report Type: {reportType ? reportType.charAt(0).toUpperCase() + reportType.slice(1) : "Select"}
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
                   disallowEmptySelection
-                  aria-label="Select Counter"
-                  selectedKeys={selectedCounter}
-                  selectionMode="multiple"
-                  onSelectionChange={setSelectedCounter}
+                  aria-label="Select Report Type"
+                  selectedKeys={new Set([reportType])}
+                  selectionMode="single"
+                  onSelectionChange={(keys) => setReportType(Array.from(keys)[0])}
                 >
-                  {counters.map((counter) => (
-                    <DropdownItem key={counter.id}>{counter.name}</DropdownItem>
-                  ))}
+                  <DropdownItem key="counter">Counter</DropdownItem>
+                  <DropdownItem key="service">Token</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
-            )}
-            {reportType === "service" && (
-              <Dropdown>
-                <DropdownTrigger>
-                <Button endContent={<MdArrowDropDown />} variant="flat">
-                    Service: {Array.from(selectedService).map(id => services.find(s => s.id === id)?.name).join(", ")}
-                </Button>
-                </DropdownTrigger>
-                <DropdownMenu
-                  disallowEmptySelection
-                  aria-label="Select Service"
-                  selectedKeys={selectedService}
-                  selectionMode="multiple"
-                  onSelectionChange={setSelectedService}
-                >
-                {services.map((service) => (
-                    <DropdownItem key={service.id}>{service.name}</DropdownItem>
+              {reportType === "counter" && (
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button endContent={<MdArrowDropDown />} variant="flat">
+                      Counter: {Array.from(selectedCounter).map(id => counters.find(c => c.id === id)?.name).join(", ")}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    disallowEmptySelection
+                    aria-label="Select Counter"
+                    selectedKeys={selectedCounter}
+                    selectionMode="multiple"
+                    onSelectionChange={setSelectedCounter}
+                  >
+                    {counters.map((counter) => (
+                      <DropdownItem key={counter.id}>{counter.name}</DropdownItem>
                     ))}
-                </DropdownMenu>
-              </Dropdown>
-            )}
+                  </DropdownMenu>
+                </Dropdown>
+              )}
+              {reportType === "service" && (
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button endContent={<MdArrowDropDown />} variant="flat">
+                      Service: {Array.from(selectedService).map(id => services.find(s => s.id === id)?.name).join(", ")}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    disallowEmptySelection
+                    aria-label="Select Service"
+                    selectedKeys={selectedService}
+                    selectionMode="multiple"
+                    onSelectionChange={setSelectedService}
+                  >
+                    {services.map((service) => (
+                      <DropdownItem key={service.id}>{service.name}</DropdownItem>
+                    ))}
+                  </DropdownMenu>
+                </Dropdown>
+              )}
             </div>
             <div className="flex gap-3">
               <Button color="primary" onPress={exportToExcel}>
@@ -307,47 +308,56 @@ export default function ReportSection() {
               </Button>
             </div>
           </div>
-          <Input
-            isClearable
-            className="w-full sm:max-w-[30%]"
-            placeholder="Search..."
-            startContent={<MdSearch />}
-            value={filterValue}
-            onClear={() => setFilterValue("")}
-            onValueChange={setFilterValue}
-          />
           
-          <Table
-            aria-label="Report table"
-            id="reportTable"
-            bottomContent={
-              <div className="flex w-full justify-center">
-                <Pagination
-                  isCompact
-                  showControls
-                  showShadow
-                  color="primary"
-                  page={page}
-                  total={pages}
-                  onChange={setPage}
-                />
-              </div>
-            }
-            bottomContentPlacement="outside"
-          >
-            <TableHeader>
-              {columns.map((columnKey) => (
-                <TableColumn key={columnKey}>{columnKey.toUpperCase()}</TableColumn>
-              ))}
-            </TableHeader>
-            <TableBody items={items}>
-              {(item) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {reportType ? (
+            <>
+              <Input
+                isClearable
+                className="w-full sm:max-w-[30%] mb-4"
+                placeholder="Search..."
+                startContent={<MdSearch />}
+                value={filterValue}
+                onClear={() => setFilterValue("")}
+                onValueChange={setFilterValue}
+              />
+              
+              <Table
+                aria-label="Report table"
+                id="reportTable"
+                bottomContent={
+                  <div className="flex w-full justify-center">
+                    <Pagination
+                      isCompact
+                      showControls
+                      showShadow
+                      color="primary"
+                      page={page}
+                      total={pages}
+                      onChange={setPage}
+                    />
+                  </div>
+                }
+                bottomContentPlacement="outside"
+              >
+                <TableHeader>
+                  {columns.map((columnKey) => (
+                    <TableColumn key={columnKey}>{columnKey.toUpperCase()}</TableColumn>
+                  ))}
+                </TableHeader>
+                <TableBody items={items}>
+                  {(item) => (
+                    <TableRow key={item.id}>
+                      {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </>
+          ) : (
+            <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+              <p className="text-l text-gray-600">Please select a report type to view the data.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
