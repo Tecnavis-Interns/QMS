@@ -78,6 +78,12 @@ const CounterDash = () => {
     setTimeout(checkAuth, 500);
   }, [navigate]);
 
+  const getCounterNumber = (email) => {
+    if(email){
+    return parseInt(email.split("@")[0].replace("counter", ""));
+    }
+  };
+
   useEffect(() => {
     if(email){
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
@@ -105,7 +111,7 @@ const CounterDash = () => {
         const requestsRef = collection(db, "requests");
         const q = query(requestsRef, orderBy("tokenNumber", "asc"));
         
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const unsubscribe = onSnapshot(q, async (querySnapshot) => {
           const data = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
@@ -118,7 +124,17 @@ const CounterDash = () => {
           console.log("Filtered data:", filteredData); // For debugging
           
           setRequestsData(filteredData);
-          setRemainingCount(filteredData.length);
+          const counterNumber = getCounterNumber(email);
+          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+          const counterDocSnap = await getDoc(counterDocRef);
+          
+          let receivedTokensCount = 0;
+          if (counterDocSnap.exists()) {
+            const receivedTokens = counterDocSnap.data().receivedTokens || [];
+            receivedTokensCount = receivedTokens.length;
+          }
+
+          await fetchRemainingCount();
         });
         return () => unsubscribe();
       } catch (error) {
@@ -159,8 +175,20 @@ const CounterDash = () => {
         where("status", "==", true)
       );
       const requestsSnapshot = await getDocs(requestsQuery);
-      console.log("Remaining count:", requestsSnapshot.size);
-      setRemainingCount(requestsSnapshot.size);
+      let activeCount = requestsSnapshot.size;
+      const counterNumber = getCounterNumber(email);
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
+      
+      let receivedTokensCount = 0;
+      if (counterDocSnap.exists()) {
+        const receivedTokens = counterDocSnap.data().receivedTokens || [];
+        receivedTokensCount = receivedTokens.length;
+      }
+  
+      const totalRemainingCount = activeCount + receivedTokensCount;
+      console.log("Remaining count:", totalRemainingCount);
+      setRemainingCount(totalRemainingCount);
     } catch (error) {
       console.error("Error fetching remaining count:", error);
     }
@@ -271,31 +299,40 @@ const CounterDash = () => {
         console.log("All Requests Data: ", JSON.stringify(requestsData, null, 2));
       
         setRequestsData(requestsData);
+        const counterNumber = getCounterNumber(email);
+        const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+        const counterDocSnap = await getDoc(counterDocRef);
         
-        // Set the remaining count (documents with status true)
-        // setRemainingCount(requestsSnapshot.size);
-        setRemainingCount(requestsSnapshot.size);
-        // setTotalCustomerCount(requestsSnapshot.size);
-        // setNowServingToken("---");
-  
-        // Fetch the queue data for nowServingToken
-        const queueDocRef = doc(db, 'queue', 'queueDoc');
-        const queueDocSnap = await getDoc(queueDocRef);
-  
-        if (queueDocSnap.exists()) {
-          const queueData = queueDocSnap.data();
-          const tokenArray = queueData.token || [];
-  
-          if (tokenArray.length > 0) {
-            // setNowServingToken('---');
-            // console.log("Initial now serving token:", tokenArray[0]);
-          } else {
-            // setNowServingToken("---");
-            console.log("No tokens in queue");
-          }
-        } else {
-          console.log("Queue document does not exist");
+        let receivedTokensCount = 0;
+        if (counterDocSnap.exists()) {
+          const receivedTokens = counterDocSnap.data().receivedTokens || [];
+          receivedTokensCount = receivedTokens.length;
         }
+
+        console.log('Received Tokens Count:', receivedTokensCount);
+
+        // Set the remaining count (documents with status true + receivedTokens)
+        const totalRemainingCount = requestsSnapshot.size + receivedTokensCount;
+        setRemainingCount(totalRemainingCount);
+        console.log("Total Remaining Count:", totalRemainingCount);
+    
+          // Fetch the queue data for nowServingToken
+          const queueDocRef = doc(db, 'queue', 'queueDoc');
+          const queueDocSnap = await getDoc(queueDocRef);
+    
+          if (queueDocSnap.exists()) {
+            const queueData = queueDocSnap.data();
+            const tokenArray = queueData.token || [];
+    
+            if (tokenArray.length > 0) {
+              console.log("Tokens in queue:", tokenArray);
+            } else {
+              // setNowServingToken("---");
+              console.log("No tokens in queue");
+            }
+          } else {
+            console.log("Queue document does not exist");
+          }
   
       } catch (error) {
         console.error("Error fetching initial data: ", error);
@@ -944,11 +981,24 @@ const CounterDash = () => {
           counterNumber: selectedCounterNumber,
           status: false,
           transfer: true,
-          pending: false
         });
     
         console.log(`Token ${tokenNumber} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
-    
+        
+        if (tokenData.pending) {
+          // Decrement the pendingCount
+          setPendingCount(prevCount => prevCount - 1);
+  
+          // Update the queueDoc to remove the token from the pending array
+          const queueDocRef = doc(db, 'queue', 'queueDoc');
+          const queueDocSnap = await getDoc(queueDocRef);
+          if (queueDocSnap.exists()) {
+            const queueData = queueDocSnap.data();
+            let pendingArray = queueData.pending || [];
+            pendingArray = pendingArray.filter(token => token !== tokenNumber);
+            await updateDoc(queueDocRef, { pending: pendingArray });
+          }
+        }
         // Update local state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
         setIsTransferDropdownOpenMap(prev => ({...prev, [tokenNumber]: false}));
@@ -1093,6 +1143,7 @@ const CounterDash = () => {
   
         // Update local state
         setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
+        setRemainingCount(prevCount => prevCount - 1);
       } else {
         console.log("Counter document does not exist.");
       }
