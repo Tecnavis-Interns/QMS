@@ -15,13 +15,13 @@ import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"
 
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAwYQ9ulSdOAsrzTiPKY5AFgchq8zcXDXc",
-  authDomain: "qms-single.firebaseapp.com",
-  projectId: "qms-single",
-  storageBucket: "qms-single.appspot.com",
-  messagingSenderId: "777295272594",
-  appId: "1:777295272594:web:fedd23ee8a069310f8e44b",
-  measurementId: "G-G2Q8CR4PST"
+  apiKey: "AIzaSyB7GhJxfZ_ULBlH-GQ1TB0GZhaYcTJaJAM",
+  authDomain: "qms-singlequeue.firebaseapp.com",
+  projectId: "qms-singlequeue",
+  storageBucket: "qms-singlequeue.appspot.com",
+  messagingSenderId: "760173523661",
+  appId: "1:760173523661:web:eb385f0aad121fe1442f84",
+  measurementId: "G-0H3LNT8C16"
 };
 
 // Initialize Firebase
