@@ -63,12 +63,29 @@ const CounterDash = () => {
   const transferButtonRefs = useRef({});
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const userData = JSON.parse(localStorage.getItem('currentUser'));
       if (userData && userData.role === 'counter') {
         console.log('Counter authenticated:', userData.email);
         // setLoading(false);
         // Proceed with loading counter data
+        const counterEmail = userData.email;
+        const countersCollectionRef = collection(db, 'counters');
+        const q = query(countersCollectionRef, where("email", "==", counterEmail));
+
+        try {
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const counterDoc = querySnapshot.docs[0];
+            const counterDocRef = doc(db, 'counters', counterDoc.id);
+            await updateDoc(counterDocRef, { active: true });
+            console.log(`Counter ${counterEmail} is now active`);
+          } else {
+            console.log('Counter document not found');
+          }
+        } catch (error) {
+          console.error("Error setting counter as active:", error);
+        }
       } else {
         console.log('Not authenticated as counter, redirecting to login');
         navigate('/login');
@@ -655,7 +672,8 @@ const CounterDash = () => {
         return;
       }
   
-      const tokenDetails = querySnapshot.docs[0].data();
+      const requestDoc = querySnapshot.docs[0];
+      const tokenDetails = requestDoc.data();
   
       const endTime = new Date();
       const serviceTimeMs = currentTokenStartTime ? endTime - currentTokenStartTime : 0;
@@ -732,6 +750,13 @@ const CounterDash = () => {
         nowServingToken: "-"
       });
       setCurrentTokenStartTime(null);
+  
+      // Update the transfer field if necessary
+      if (tokenDetails.transfer) {
+        await updateDoc(requestDoc.ref, { transfer: false });
+        console.log(`Transfer field set to false for token ${nowServingToken}`);
+      }
+  
     } catch (error) {
       console.error("Error handling completed: ", error);
       // Add more detailed error logging
@@ -743,6 +768,7 @@ const CounterDash = () => {
       }
     }
   }, [nowServingToken, updateCompletedCount, email, currentTokenStartTime, db]);
+  
 
   const recallSpecificToken = async (specialtoken) => {
     try {
@@ -877,12 +903,22 @@ const CounterDash = () => {
           service: tokenData.service
         };
   
-        // Update the selected counter's document
+        // Check if the selected counter's document exists
         const selectedCounterRef = doc(db, `counter${selectedCounterNumber}`, 'counterDoc');
-        await updateDoc(selectedCounterRef, { 
-          nowServingToken: nowServingToken,
-          receivedTokens: arrayUnion(transferEntry)
-        });
+        const selectedCounterDoc = await getDoc(selectedCounterRef);
+  
+        if (selectedCounterDoc.exists()) {
+          // Update the selected counter's document
+          await updateDoc(selectedCounterRef, { 
+            receivedTokens: arrayUnion(transferEntry)
+          });
+        } else {
+          console.error(`No document exists for counter ${selectedCounterNumber}.`);
+          // You may choose to create the document here if needed
+          await setDoc(selectedCounterRef, { 
+            receivedTokens: [transferEntry]
+          });
+        }
   
         // Update the request document with the new counter number
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
@@ -920,6 +956,7 @@ const CounterDash = () => {
       }
     }
   };
+  
 
 
   const handleTransferButtonClickForToken = (tokenNumber) => {
