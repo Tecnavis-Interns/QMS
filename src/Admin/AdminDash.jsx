@@ -137,37 +137,37 @@ const Dashboard = () => {
               display: none;
             }
           `}</style>
-          {counterData.map((counter) => (
-            <div key={counter.id} className="flex-shrink-0 w-[160px] sm:w-[200px] cursor-pointer">
-              <div className="bg-indigo-200 h-20 rounded-xl p-2 sm:p-3 mb-2 w-full mx-auto relative z-0">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-sm sm:text-lg font-bold">
-                      {counter.completed} <span className="text-xs sm:text-sm opacity-60 font-normal">Completed</span>
-                    </h1>
+            {counterData.map((counter) => (
+              <div key={counter.id} className="flex-shrink-0 w-[160px] sm:w-[200px] cursor-pointer">
+                <div className="bg-indigo-200 h-20 rounded-xl p-2 sm:p-3 mb-2 w-full mx-auto relative z-0">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h1 className="text-sm sm:text-lg font-bold">
+                        {counter.completed} <span className="text-xs sm:text-sm opacity-60 font-normal">Completed</span>
+                      </h1>
+                    </div>
+                    <div>
+                      <h1 className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
+                        counter.active ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
+                      }`}>
+                        {counter.active ? 'Active' : 'Closed'}
+                      </h1>
+                    </div>
                   </div>
-                  <div>
-                    <h1 className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
-                      counter.active ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
-                    }`}>
-                      {counter.active ? 'Active' : 'Closed'}
-                    </h1>
+                </div>
+                <div className="bg-slate-100 rounded-xl p-2 sm:p-3 -mt-6 pt-6 sm:pt-8 relative z-10">
+                  <div className="flex items-center mb-1 sm:mb-2">
+                    <div className="flex flex-col">
+                      <h1 className="font-bold text-xs sm:text-sm">{counter.counterName}</h1>
+                      <h1 className=" text-xs sm:text-sm">{counter.service}</h1>
+                    </div>
+                  </div>
+                  <div className="border-t pt-1 sm:pt-2">
+                    {/* Optional section */}
                   </div>
                 </div>
               </div>
-              <div className="bg-slate-100 rounded-xl p-2 sm:p-3 -mt-6 pt-6 sm:pt-8 relative z-10">
-                <div className="flex items-center mb-1 sm:mb-2">
-                  <div className="flex flex-col">
-                    <h1 className="font-bold text-xs sm:text-sm">{counter.counterName}</h1>
-                    <h1 className=" text-xs sm:text-sm">{counter.service}</h1>
-                  </div>
-                </div>
-                <div className="border-t pt-1 sm:pt-2">
-                  {/* Optional section */}
-                </div>
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
   

@@ -13,6 +13,7 @@ import {
   DropdownItem,
   Pagination,
   Input,
+  Tooltip
 } from "@nextui-org/react";
 import Navbar from "./Navbar";
 import { MdArrowDropDown, MdSearch } from "react-icons/md";
@@ -21,6 +22,8 @@ import { db } from '../firebase';
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function ReportSection() {
   const [data, setData] = useState([]);
@@ -32,6 +35,8 @@ export default function ReportSection() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [filterValue, setFilterValue] = useState("");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
 
   useEffect(() => {
     fetchCountersAndServices();
@@ -41,7 +46,7 @@ export default function ReportSection() {
     if (reportType) {
       fetchData();
     }
-  }, [selectedCounter, selectedService, reportType]);
+  }, [selectedCounter, selectedService, reportType, startDate, endDate]);
 
   const fetchCountersAndServices = async () => {
     try {
@@ -56,7 +61,7 @@ export default function ReportSection() {
       const fetchedServices = servicesSnapshot.docs.map(doc => ({
         id: doc.id,
         name: doc.data().name,
-        prefix: doc.data().prefix // Assuming each service has a prefix field
+        prefix: doc.data().prefix
       }));
       setServices([{ id: "All", name: "All", prefix: "" }, ...fetchedServices]);
     } catch (error) {
@@ -88,10 +93,9 @@ export default function ReportSection() {
           name: doc.data().name,
           service: doc.data().service,
           tokenNumber: doc.data().tokenNumber,
-          createdAt: doc.data().createdAt.toDate().toLocaleString(),
+          createdAt: doc.data().createdAt.toDate(),
         }));
 
-        // Additional filtering if needed
         if (!selectedService.has("All")) {
           const selectedServiceNames = Array.from(selectedService).map(id => 
             services.find(s => s.id === id)?.name
@@ -99,63 +103,64 @@ export default function ReportSection() {
           fetchedData = fetchedData.filter(item => selectedServiceNames.includes(item.service));
         }
       } else {
-        // Counter report
         const selectedCounters = selectedCounter.has("All") 
-        ? counters.filter(c => c.id !== "All")
-        : counters.filter(c => selectedCounter.has(c.id));
+          ? counters.filter(c => c.id !== "All")
+          : counters.filter(c => selectedCounter.has(c.id));
 
-      console.log("Selected counters:", selectedCounters);
-
-      for (const counter of selectedCounters) {
-        const counterName = counter.name.replace("Counter ", "").toLowerCase().replace(/\s/g, "");
-        console.log("Fetching data for counter:", counterName);
-        
-        const completedTokensRef = doc(db, `counter${counterName}`, "CompletedTokens");
-        const completedTokensSnapshot = await getDoc(completedTokensRef);
-        
-        console.log("Snapshot exists:", completedTokensSnapshot.exists());
-        
-        if (completedTokensSnapshot.exists()) {
-          const snapshotData = completedTokensSnapshot.data();
-          console.log("CompletedTokens document data:", snapshotData);
+        for (const counter of selectedCounters) {
+          const counterName = counter.name.replace("Counter ", "").toLowerCase().replace(/\s/g, "");
           
-          if (!snapshotData.history || !Array.isArray(snapshotData.history)) {
-            console.log("history field is missing or not an array for counter:", counterName);
-            return; // Skip this counter
-          }
-          const historyData = snapshotData.history;
-          console.log("History data:", historyData);
-          if (historyData.length === 0) {
-            console.log("History array is empty for counter:", counterName);
-          }
+          const completedTokensRef = doc(db, `counter${counterName}`, "CompletedTokens");
+          const completedTokensSnapshot = await getDoc(completedTokensRef);
           
-          fetchedData = [
-            ...fetchedData,
-            ...historyData.map((item, index) => {
-              console.log("Processing history item:", item);
-              const uniqueKey = `${item?.token || 'unknown'}-${item?.completedAt || Date.now()}-${index}`;
-              return {
-                id: uniqueKey, // Add this line to create a unique id for each item
-                name: item?.name || 'N/A',
-                service: item?.service || 'N/A',
-                serviceTime: item?.serviceTime ? `${item.serviceTime} minutes` : 'N/A',
-                token: item?.token || 'N/A',
-                counter: counter.name
-              };
-            }),
-          ];
+          if (completedTokensSnapshot.exists()) {
+            const snapshotData = completedTokensSnapshot.data();
+            
+            if (!snapshotData.history || !Array.isArray(snapshotData.history)) {
+              continue;
+            }
+            const historyData = snapshotData.history;
+            
+            fetchedData = [
+              ...fetchedData,
+              ...historyData.map((item, index) => {
+                const uniqueKey = `${item?.token || 'unknown'}-${item?.completedAt || Date.now()}-${index}`;
+                console.log('/////////////////////',item.serviceTime);
+                return {
+                  id: uniqueKey,
+                  name: item?.name || 'N/A',
+                  service: item?.service || 'N/A',
+                  serviceTime: item?.serviceTime ? `${item.serviceTime} minutes` : '0 minutes',
+                  token: item?.token || 'N/A',
+                  counter: counter.name,
+                  completedAt: item?.completedAt ? new Date(item.completedAt) : new Date(),
+                };
+              }),
+            ];
+          }
         }
       }
-    }
+
+      // Apply date range filter
+      if (startDate && endDate) {
+        fetchedData = fetchedData.filter(item => {
+          const itemDate = reportType === "service" ? item.createdAt : item.completedAt;
+          return itemDate >= startDate && itemDate <= endDate;
+        });
+      }
 
       console.log("Fetched data:", fetchedData);
-      fetchedData = fetchedData.map((item, index) => ({ ...item, siNo: index + 1 }));
+      fetchedData = fetchedData.map((item, index) => ({ 
+        ...item, 
+        siNo: index + 1,
+        createdAt: item.createdAt ? item.createdAt.toLocaleString() : 'N/A',
+        completedAt: item.completedAt ? item.completedAt.toLocaleString() : 'N/A'
+      }));
       setData(fetchedData);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
-
   const filteredItems = useMemo(() => {
     let filteredData = [...data];
     if (filterValue) {
@@ -192,7 +197,13 @@ export default function ReportSection() {
     return cellValue;
   };
 
+  const hasData = data.length > 0;
+
   const exportToExcel = () => {
+    if (!hasData) {
+      console.log("No data to export");
+      return;
+    }
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
@@ -200,15 +211,17 @@ export default function ReportSection() {
   };
 
   const exportToPDF = () => {
+    if (!hasData) {
+      console.log("No data to export");
+      return;
+    }
     const doc = new jsPDF();
     const columns = reportType === "service"
       ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
       : ["siNo", "name", "service", "serviceTime", "token", "counter"];
   
-    // Map the data to match the columns
     const rows = data.map(item => columns.map(columnKey => item[columnKey]));
   
-    // Generate the table
     doc.autoTable({
       head: [columns.map(column => column.toUpperCase())],
       body: rows,
@@ -216,7 +229,6 @@ export default function ReportSection() {
       styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
       theme: 'striped',
       didDrawPage: function (data) {
-        // Footer
         const str = "Page " + doc.internal.getNumberOfPages();
         doc.setFontSize(10);
         const pageSize = doc.internal.pageSize;
@@ -298,14 +310,47 @@ export default function ReportSection() {
                   </DropdownMenu>
                 </Dropdown>
               )}
+              <div className="flex gap-2">
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  placeholderText="Start Date"
+                  className="px-3 py-2 rounded-md border border-gray-300"
+                />
+                <DatePicker
+                  selected={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate}
+                  placeholderText="End Date"
+                  className="px-3 py-2 rounded-md border border-gray-300"
+                />
+              </div>
             </div>
             <div className="flex gap-3">
-              <Button color="primary" onPress={exportToExcel}>
-                Export to Excel
-              </Button>
-              <Button color="secondary" onPress={exportToPDF}>
-                Export to PDF
-              </Button>
+              <Tooltip content={hasData ? "Export to Excel" : "No data to export"}>
+                <Button 
+                  color="primary" 
+                  onPress={exportToExcel}
+                  isDisabled={!hasData}
+                >
+                  Export to Excel
+                </Button>
+              </Tooltip>
+              <Tooltip content={hasData ? "Export to PDF" : "No data to export"}>
+                <Button 
+                  color="secondary" 
+                  onPress={exportToPDF}
+                  isDisabled={!hasData}
+                >
+                  Export to PDF
+                </Button>
+              </Tooltip>
             </div>
           </div>
           
@@ -323,7 +368,6 @@ export default function ReportSection() {
               
               <Table
                 aria-label="Report table"
-                id="reportTable"
                 bottomContent={
                   <div className="flex w-full justify-center">
                     <Pagination
@@ -355,7 +399,7 @@ export default function ReportSection() {
             </>
           ) : (
             <div className="flex justify-center items-center h-[calc(100vh-200px)]">
-              <p className="text-l text-gray-600">Please select a report type to view the data.</p>
+              <p className="text-l text-gray-600">Please select a report type to view the data</p>
             </div>
           )}
         </div>

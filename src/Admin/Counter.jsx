@@ -18,11 +18,13 @@ import {
   query,
   getDocs,
   updateDoc,
+  getFirestore
 } from "firebase/firestore";
 import ModalCounter from "./ModalCounter";
 import EditCounterModal from "./EditCounterModal";
 import { getAuth } from "firebase/auth";
 import { db } from "../firebase";
+import { doc as firestoreDoc } from "firebase/firestore";
 
 
 const AdminDash = () => {
@@ -54,31 +56,45 @@ const AdminDash = () => {
   const handleReset = async () => {
     if (window.confirm("Are you sure you want to reset?")) {
       try {
+        const db = getFirestore(); // Ensure you have the Firestore instance
+        
         // Delete all documents in the "queue" collection
         const queueSnapshot = await getDocs(collection(db, "queue"));
-        const queueDeletePromises = queueSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        const queueDeletePromises = queueSnapshot.docs.map((doc) => deleteDoc(doc.ref));
         await Promise.all(queueDeletePromises);
-  
+        
         // Delete all documents in the "requests" collection
         const requestsSnapshot = await getDocs(collection(db, "requests"));
-        const requestsDeletePromises = requestsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        const requestsDeletePromises = requestsSnapshot.docs.map((doc) => deleteDoc(doc.ref));
         await Promise.all(requestsDeletePromises);
         
-        // Update 'completed' field to 0 for all counters
-      const countersSnapshot = await getDocs(collection(db, "counters"));
-      const counterUpdatePromises = countersSnapshot.docs.map(doc => 
-        updateDoc(doc.ref, { completed: 0 })
-      );
-      await Promise.all(counterUpdatePromises);
-      
-        console.log("All queues and requests have been deleted.");
-        alert("Reset successful. All queues and requests have been deleted.");
+        // Update 'completed' field to 0 for all counters and clear 'receivedTokens'
+        const countersSnapshot = await getDocs(collection(db, "counters"));
+        const counterUpdatePromises = countersSnapshot.docs.map(async (doc) => {
+          // Update 'completed' field to 0
+          await updateDoc(doc.ref, { completed: 0 });
+          
+  
+          // Clear 'receivedTokens' in 'counterDoc'
+          const data = doc.data();
+          if (data.email) {
+            const counterName = data.email.split('@')[0];
+            const counterDocRef = firestoreDoc(db, counterName, "counterDoc");
+            console.log('//////////////////////////////')
+            await updateDoc(counterDocRef, { receivedTokens: [] });
+          }
+        });
+        await Promise.all(counterUpdatePromises);
+        
+        console.log("All queues and requests have been deleted, and counters reset.");
+        alert("Reset successful. All queues and requests have been deleted, and counters reset.");
       } catch (error) {
-        console.error("Error resetting collections:", error);
+        console.error("Error resetting collections or counters:", error);
         alert("An error occurred while resetting. Please try again.");
       }
     }
   };
+  
 
   const handleDeleteCounter = async (counterId) => {
     if (window.confirm("Are you sure you want to delete this counter?")) {
