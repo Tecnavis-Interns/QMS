@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Input, Radio, RadioGroup } from "@nextui-org/react";
-import Navbar from "../Components/Navbar";
+import Navbar from "./Navbar";
 import { collection, doc as firestoreDoc, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp, getDocs } from "firebase/firestore";
-import { db, submitDataToFirestore } from "../firebase";
+import { db, submitDataToFirestore } from "../../services/firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
 

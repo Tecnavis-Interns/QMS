@@ -18,7 +18,7 @@ import {
 import Navbar from "./Navbar";
 import { MdArrowDropDown, MdSearch } from "react-icons/md";
 import { collection, doc, getDocs, getDoc, query, where } from "firebase/firestore";
-import { db } from '../firebase';
+import { db } from '../../services/firebase';
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";

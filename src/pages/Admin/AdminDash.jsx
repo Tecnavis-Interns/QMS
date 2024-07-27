@@ -11,8 +11,8 @@ import moment from "moment";
 import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import TokenChart from "../../src/tokenChart";
-import { db } from '../firebase';
+import TokenChart from "../chart/tokenChart";
+import { db } from '../../services/firebase';
 import { collection, query, where, getDocs, getDoc, doc, onSnapshot } from 'firebase/firestore';
 
 const Dashboard = () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
-import { db } from '../firebase';
+import { db } from '../../services/firebase';
 import {
   collection,
   addDoc,

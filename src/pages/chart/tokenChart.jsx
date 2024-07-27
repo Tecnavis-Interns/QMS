@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
-import { db } from './firebase'; // Adjust this import path as needed
+import { db } from '../../services/firebase'; // Adjust this import path as needed
 import { collection, getDocs } from 'firebase/firestore';
 
 const getRandomBrightColor = () => {

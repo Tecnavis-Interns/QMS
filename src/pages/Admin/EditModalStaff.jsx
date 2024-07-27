@@ -1,4 +1,4 @@
-import React, { useEffect,useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import {
   Modal,
@@ -11,81 +11,74 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
-import { collection, query, where, getDocs, setDoc, doc } from "firebase/firestore";
-import { db } from "../firebase";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { db } from "../../services/firebase";
 import { hash } from "bcryptjs";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
-const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
-  const { control, handleSubmit, setValue, reset, formState: { errors } } = useForm({
+const EditModalStaff = ({ isOpen, onClose, services, staff, onSubmit }) => {
+  const { control, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     defaultValues: {
       staffName: "",
       email: "",
       password: "",
     //   selectedService: "",
-      newStaffID: "",
     }
   });
   const [isVisible, setIsVisible] = useState(false);
   const toggleVisibility = () => setIsVisible(!isVisible);
+
   useEffect(() => {
-    if (isOpen) {
-      generateNewStaffID();
-      reset();
+    if (isOpen && staff) {
+      reset({
+        staffName: staff.staffName || "",
+        email: staff.email || "",
+        password: "",
+        // selectedService: staff.service || "",
+      });
     }
-  }, [isOpen, reset]);
-
-  const generateNewStaffID = async () => {
-    const currentYear = new Date().getFullYear();
-    const staffCollection = collection(db, "staff");
-    const staffQuery = query(staffCollection, where("id", ">=", `S${currentYear}001`), where("id", "<=", `S${currentYear}999`));
-
-    const staffSnapshot = await getDocs(staffQuery);
-    const staffIDs = staffSnapshot.docs.map(doc => doc.data().id);
-
-    let maxID = 0;
-    staffIDs.forEach(id => {
-      const num = parseInt(id.slice(7));
-      if (num > maxID) {
-        maxID = num;
-      }
-    });
-
-    const newIDNumber = String(maxID + 1).padStart(3, '0');
-    const newID = `S${currentYear}${newIDNumber}`;
-    setValue("newStaffID", newID);
-  };
+  }, [isOpen, staff, reset]);
 
   const onSubmitForm = async (data) => {
     try {
-      // Hash the password
-      const hashedPassword = await hash(data.password, 10);
+      // Hash the password if it was changed
+      const hashedPassword = data.password ? await hash(data.password, 10) : null;
 
-      // Add new staff member
-      await setDoc(doc(db, "staff", data.newStaffID), {
-        id: data.newStaffID,
-        staffName: data.staffName,
-        email: data.email,
-        password: hashedPassword,
-        // service: data.selectedService,
-        active: true,
-      });
+      // Fetch the staff document reference
+      const staffDocRef = doc(db, "staff", staff.id);
+      const staffDocSnapshot = await getDoc(staffDocRef);
 
-      // Close the modal
-      onClose();
+      // Check if the document exists
+      if (staffDocSnapshot.exists()) {
+        // Update staff member in Firestore
+        const updateData = {
+          staffName: data.staffName,
+          email: data.email,
+        //   service: data.selectedService,
+        };
+        if (hashedPassword) updateData.password = hashedPassword;
+        await updateDoc(staffDocRef, updateData);
 
-      // Notify parent component of successful submission
-      onSubmit();
+        // Close the modal
+        onClose();
+
+        // Notify parent component of successful submission
+        onSubmit();
+      } else {
+        console.error("No document to update:", staff.id);
+        alert("No document to update. Please refresh and try again.");
+      }
     } catch (error) {
-      console.error("Error adding document: ", error);
+      console.error("Error updating document: ", error);
+      alert("Failed to update staff member. Please try again later.");
     }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="bg-[#F8F8F9] font-[Outfit]">
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">Add Staff</ModalHeader>
         <form onSubmit={handleSubmit(onSubmitForm)}>
+          <ModalHeader className="flex flex-col gap-1">Edit Staff</ModalHeader>
           <ModalBody>
             <Controller
               name="staffName"
@@ -127,7 +120,6 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
               name="password"
               control={control}
               rules={{ 
-                required: "Password is required",
                 minLength: {
                   value: 6,
                   message: "Password must be at least 6 characters"
@@ -139,6 +131,7 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                   type={isVisible ? "text" : "password"}
                   label="Password"
                   variant="bordered"
+                  placeholder="Leave empty to keep current password"
                   isInvalid={!!errors.password}
                   errorMessage={errors.password?.message}
                   endContent={
@@ -162,28 +155,20 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
                   {...field}
                   label="Select Service"
                   variant="bordered"
+                  selectedKeys={field.value ? [field.value] : []}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0];
+                    setValue("selectedService", selected);
+                  }}
                   isInvalid={!!errors.selectedService}
                   errorMessage={errors.selectedService?.message}
                 >
                   {services.map((item) => (
-                    <SelectItem className="font-[Outfit]" value={item} key={item}>
+                    <SelectItem key={item} value={item}>
                       {item}
                     </SelectItem>
                   ))}
                 </Select>
-              )}
-            /> */}
-            {/* <Controller
-              name="newStaffID"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  type="text"
-                  label="Staff ID"
-                  readOnly
-                  variant="bordered"
-                />
               )}
             /> */}
           </ModalBody>
@@ -191,8 +176,8 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
             <Button onPress={onClose} className="w-full bg-slate-300">
               Close
             </Button>
-            <Button type="submit" className="w-full bg-[#b9b0eb]">
-              Submit
+            <Button type="submit" className="w-full bg-[#908fe2]">
+              Update
             </Button>
           </ModalFooter>
         </form>
@@ -201,4 +186,4 @@ const ModalStaff = ({ isOpen, onClose, services, onSubmit }) => {
   );
 };
 
-export default ModalStaff;
+export default EditModalStaff;

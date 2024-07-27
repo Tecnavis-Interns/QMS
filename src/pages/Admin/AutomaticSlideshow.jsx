@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getDownloadURL, listAll, ref } from 'firebase/storage';
-import { storage } from '../firebase';
+import { storage } from '../../services/firebase';
 
 const AutomaticSlideshow = ({ refresh, setRefresh }) => {
   const [mediaList, setMediaList] = useState([]);

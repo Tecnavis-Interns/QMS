@@ -1,13 +1,13 @@
 import { useState, useContext } from "react";
 import Navbar from "./Navbar";
-import { signIn } from "../firebase";
+import { signIn } from "../../services/firebase";
 import { Card, CardHeader, CardBody, Input, Button } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebase";
-import { AuthContext } from "../Context/AuthContext";
+import { db } from "../../services/firebase";
+import { AuthContext } from "../../Context/AuthContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth } from "../../services/firebase";
 import bcrypt from 'bcryptjs';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
