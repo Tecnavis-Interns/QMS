@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { db } from '../firebase'; // Make sure to import your Firebase configuration
+import { db } from '../services/firebase'; // Make sure to import your Firebase configuration
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 
 export const AuthContext = createContext({

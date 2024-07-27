@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../services/firebase";
 import { hash } from "bcryptjs";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 

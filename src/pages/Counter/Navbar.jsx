@@ -5,10 +5,10 @@ import {
 } from "@nextui-org/react";
 // import { signOutUser } from "../firebase";
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../../services/firebase';
 import { useNavigate } from "react-router-dom";
 import { useContext } from 'react';
-import { AuthContext } from '../Context/AuthContext';
+import { AuthContext } from '../../Context/AuthContext';
 
 export default function App() {
   const { email } = useContext(AuthContext);

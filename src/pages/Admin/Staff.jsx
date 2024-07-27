@@ -21,7 +21,7 @@ import {
   where,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../services/firebase";
 import ModalStaff from "./ModalStaff";
 import EditModalStaff from "./EditModalStaff";
 import { useNavigate } from "react-router-dom";

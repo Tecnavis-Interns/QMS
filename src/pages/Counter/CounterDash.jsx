@@ -28,11 +28,12 @@ import {
   increment,
   runTransaction 
 } from "firebase/firestore";
-import { db, auth } from "../firebase";
+import { db, auth } from "../../services/firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
-import { AuthContext } from "../Context/AuthContext";
+
+import { AuthContext } from "../../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 

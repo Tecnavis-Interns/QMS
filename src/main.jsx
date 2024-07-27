@@ -8,18 +8,18 @@ import {
   createBrowserRouter,
   RouterProvider,
 } from 'react-router-dom';
-import UserForm from './User/UserForm'
-import Login from './login/Login'
-import CounterDash from './Counter/CounterDash';
-import AdminDashPage from './Admin/AdminDashPage'
-import Staff from './Admin/Staff';
-import Counter from './Admin/Counter'
-import TVView from './TVView/TVView'
-import ConfirmationPage from './User/Confirmation'
-import Ads from './Admin/Ads';
-import Services from './Admin/Services';
+import UserForm from './pages/User/UserForm';
+import Login from './pages/login/Login';
+import CounterDash from './pages/Counter/CounterDash';
+import AdminDashPage from './pages/Admin/AdminDashPage'
+import Staff from './pages/Admin/Staff';
+import Counter from './pages/Admin/Counter'
+import TVView from './pages/TVView/TVView';
+import ConfirmationPage from './pages/User/Confirmation';
+import Ads from './pages/Admin/Ads';
+import Services from './pages/Admin/Services';
 import { AuthProvider } from './Context/AuthContext';
-import Reports from './Admin/Reports';
+import Reports from './pages/Admin/Reports';
 const router = createBrowserRouter([
   {
     path: '/',

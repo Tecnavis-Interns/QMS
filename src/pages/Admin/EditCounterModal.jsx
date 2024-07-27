@@ -1,7 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { updateDoc, doc, collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../services/firebase";
 import { hash } from "bcryptjs";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './Navbar';
 import { Card, CardBody, CardFooter, Image, Button } from "@nextui-org/react";
-import { storage } from "../firebase";
+import { storage } from "../../services/firebase";
 import { ref, uploadBytes, listAll, getDownloadURL, deleteObject } from 'firebase/storage';
 import { v4 } from 'uuid';
 import toast, { Toaster } from 'react-hot-toast';

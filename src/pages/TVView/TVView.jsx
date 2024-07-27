@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardBody } from "@nextui-org/react";
 import { collection, onSnapshot, getDocs, doc, query, orderBy, limit } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../../services/firebase";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from "@nextui-org/react";
 import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
 

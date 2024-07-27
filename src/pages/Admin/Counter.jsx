@@ -23,7 +23,7 @@ import {
 import ModalCounter from "./ModalCounter";
 import EditCounterModal from "./EditCounterModal";
 import { getAuth } from "firebase/auth";
-import { db } from "../firebase";
+import { db } from "../../services/firebase";
 import { doc as firestoreDoc } from "firebase/firestore";
 
 
