@@ -32,10 +32,10 @@ import { db, auth } from "../../services/firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
-
 import { AuthContext } from "../../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
+import toast, { Toaster } from 'react-hot-toast';
 
 
 const CounterDash = () => {
@@ -126,7 +126,7 @@ const CounterDash = () => {
     const fetchRequestsData = async () => {
       try {
         const requestsRef = collection(db, "requests");
-        const q = query(requestsRef, orderBy("tokenNumber", "asc"));
+        const q = query(requestsRef, orderBy("createdAt", "asc"));
         
         const unsubscribe = onSnapshot(q, async (querySnapshot) => {
           const data = querySnapshot.docs.map(doc => ({
@@ -305,7 +305,7 @@ const CounterDash = () => {
         const requestsQuery = query(
           collection(db, "requests"), 
           where("status", "==", true),
-          orderBy("tokenNumber", "asc")
+          orderBy("createdAt", "asc")
         );
         const requestsSnapshot = await getDocs(requestsQuery);
         
@@ -529,9 +529,13 @@ const CounterDash = () => {
         console.warn("No data found for the current serving token in 'requests'.");
         setNowServingToken("---");
       }
+    // Show success toast
+    toast.success('Token set to Pending');
     } catch (error) {
       console.error("Error handling pending button click: ", error);
       setNowServingToken("---");
+      // Show error toast
+      toast.error('Error setting token to pending');
     }
   };
 
@@ -555,7 +559,6 @@ const CounterDash = () => {
 
 
   const handleNextButtonClick = async () => {
-    // const email = auth.currentUser.email;
     const counterNumber = parseInt(
       email.split("@")[0].replace("counter", "")
     );
@@ -568,82 +571,97 @@ const CounterDash = () => {
       }
   
       // Now proceed with calling the next token
-      // Fetch the queue document
-      const queueDocRef = doc(db, 'queue', 'queueDoc');
-      const queueDocSnap = await getDoc(queueDocRef);
+      const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+      const counterDocSnap = await getDoc(counterDocRef);
   
-      if (queueDocSnap.exists()) {
-        const queueData = queueDocSnap.data();
-        let tokenArray = queueData.token || [];
+      if (counterDocSnap.exists()) {
+        const counterData = counterDocSnap.data();
+        let priorityArray = counterData.priority || [];
+        let receivedTokensArray = counterData.receivedTokens || [];
   
-        if (tokenArray.length > 0) {
-          // Pop the first token from the array
-          const nextToken = tokenArray.shift();
-          setNowServingToken(nextToken);
+        if (priorityArray.length > 0) {
+          // Pop the first token from the priority array
+          const nextPriorityToken = priorityArray.shift();
+          setNowServingToken(nextPriorityToken);
+
+          receivedTokensArray = receivedTokensArray.filter(token => token !== nextPriorityToken);
   
-          // Update the queue document with the modified array
-          await updateDoc(queueDocRef, { token: tokenArray });
+          // Update the counter document with the modified priority array
+          await updateDoc(counterDocRef, { 
+            priority: priorityArray,
+            receivedTokens: receivedTokensArray 
+          });
   
           // Update the currently serving token in the database
-          const tokenData = { token: nextToken };
           setCurrentTokenStartTime(new Date());
   
           // Update the status in the requests collection
           const requestsRef = collection(db, 'requests');
-          const requestQuery = query(requestsRef, where('tokenNumber', '==', nextToken));
+          const requestQuery = query(requestsRef, where('tokenNumber', '==', nextPriorityToken));
           const requestSnapshot = await getDocs(requestQuery);
   
           if (!requestSnapshot.empty) {
             const requestDoc = requestSnapshot.docs[0];
             await updateDoc(doc(requestsRef, requestDoc.id), { status: false });
-            
-            console.log(`Request with token ${nextToken} status updated to false`);
   
-            setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
-          } else {
-            console.log(`Request with token ${nextToken} not found in requests collection`);
+            setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextPriorityToken));
           }
   
-          const message = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
+          const message = `Priority token number ${nextPriorityToken}, please proceed to counter ${counterNumber}`;
           console.log("Speaking message:", message);
           speak(message);
-  
-  
-          // Update the status in the counters collection
-          const countersRef = collection(db, 'counters');
-          const counterQuery = query(countersRef, where('counterNumber', '==', counterNumber.toString()));
-          const counterSnapshot = await getDocs(counterQuery);
-  
-          if (!counterSnapshot.empty) {
-            const counterDoc = counterSnapshot.docs[0];
-            await updateDoc(doc(countersRef, counterDoc.id), { status: 'available' });
-            console.log(`Counter ${counterNumber} status updated to available`);
-          } else {
-            console.log(`Counter ${counterNumber} not found in counters collection`);
-          }
-  
-          // Add the now serving token to the counterDoc subcollection
-          const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-  
-          // Use setDoc with merge option
-          await setDoc(counterDocRef, {
-            nowServingToken: nextToken,
-          }, { merge: true });
-  
-          console.log(`Now serving token ${nextToken} added to counter${counterNumber}'s counterDoc`);
         } else {
-          console.log("No tokens in the queue");
-          setNowServingToken("---");
+          // Fetch the queue document if there are no priority tokens
+          const queueDocRef = doc(db, 'queue', 'queueDoc');
+          const queueDocSnap = await getDoc(queueDocRef);
+  
+          if (queueDocSnap.exists()) {
+            const queueData = queueDocSnap.data();
+            let tokenArray = queueData.token || [];
+  
+            if (tokenArray.length > 0) {
+              // Pop the first token from the array
+              const nextToken = tokenArray.shift();
+              setNowServingToken(nextToken);
+  
+              // Update the queue document with the modified array
+              await updateDoc(queueDocRef, { token: tokenArray });
+  
+              // Update the currently serving token in the database
+              setCurrentTokenStartTime(new Date());
+  
+              // Update the status in the requests collection
+              const requestsRef = collection(db, 'requests');
+              const requestQuery = query(requestsRef, where('tokenNumber', '==', nextToken));
+              const requestSnapshot = await getDocs(requestQuery);
+  
+              if (!requestSnapshot.empty) {
+                const requestDoc = requestSnapshot.docs[0];
+                await updateDoc(doc(requestsRef, requestDoc.id), { status: false });
+  
+                setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
+              }
+  
+              const message = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
+              console.log("Speaking message:", message);
+              speak(message);
+            } else {
+              console.log("No tokens in the queue");
+              setNowServingToken("---");
+              toast.error("Check for Pending/Transferred and press Call Now");
+            }
+          } else {
+            console.log("Queue document does not exist");
+          }
         }
       } else {
-        console.log("Queue document does not exist");
+        console.log(`Counter ${counterNumber} document does not exist`);
       }
     } catch (error) {
       console.error("Error calling token: ", error);
     }
   };
   
-
 
   const speak = (message) => {
     const speechSynthesis = window.speechSynthesis;
@@ -674,10 +692,29 @@ const CounterDash = () => {
   
       const requestDoc = querySnapshot.docs[0];
       const tokenDetails = requestDoc.data();
-  
+       
       const endTime = new Date();
       const serviceTimeMs = currentTokenStartTime ? endTime - currentTokenStartTime : 0;
-      const serviceTimeMinutes = Math.round(serviceTimeMs / 60000);
+  
+      // Calculate waiting time
+      const createdAt = tokenDetails.createdAt.toDate();
+      const completedAt = endTime;
+      const waitingTimeMs = completedAt - createdAt;
+  
+      // Function to format time in hh:mm:ss
+      const formatTime = (ms) => {
+        const hours = Math.floor(ms / (1000 * 60 * 60));
+        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+        return [
+          hours.toString().padStart(2, '0'),
+          minutes.toString().padStart(2, '0'),
+          seconds.toString().padStart(2, '0')
+        ].join(':');
+      };
+  
+      const serviceTimeFormatted = formatTime(serviceTimeMs);
+      const waitingTimeFormatted = formatTime(waitingTimeMs);
   
       // Create a history entry
       const historyEntry = {
@@ -685,7 +722,8 @@ const CounterDash = () => {
         name: tokenDetails.name,
         service: tokenDetails.service,
         completedAt: endTime.toISOString(),
-        serviceTime: serviceTimeMinutes,
+        serviceTime: serviceTimeFormatted,
+        waitingTime: waitingTimeFormatted
       };
   
       // Check if the CompletedTokens document exists
@@ -743,6 +781,27 @@ const CounterDash = () => {
         console.log(`Counter ${counterNumber} not found in counters collection`);
       }
   
+      // Update the waiting time and service time in the requests collection
+      await updateDoc(requestDoc.ref, {
+        waitingTime: waitingTimeFormatted,
+        serviceTime: serviceTimeFormatted
+      });
+  
+      // Update the waiting time and service time in the ChartData collection
+      const chartDataRef = collection(db, 'ChartData');
+      const chartDataQuery = query(chartDataRef, where('tokenNumber', '==', nowServingToken));
+      const chartDataSnapshot = await getDocs(chartDataQuery);
+      if (!chartDataSnapshot.empty) {
+        const chartDataDoc = chartDataSnapshot.docs[0];
+        await updateDoc(chartDataDoc.ref, {
+          waitingTime: waitingTimeFormatted,
+          serviceTime: serviceTimeFormatted
+        });
+      }
+  
+      console.log(`Waiting time for token ${nowServingToken}: ${waitingTimeFormatted}`);
+      console.log(`Service time for token ${nowServingToken}: ${serviceTimeFormatted}`);
+  
       setNowServingToken("---");
   
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
@@ -756,6 +815,8 @@ const CounterDash = () => {
         await updateDoc(requestDoc.ref, { transfer: false });
         console.log(`Transfer field set to false for token ${nowServingToken}`);
       }
+      // Show the success toast
+      toast.success('Completed Successfully');
   
     } catch (error) {
       console.error("Error handling completed: ", error);
@@ -766,6 +827,8 @@ const CounterDash = () => {
       if (error.message) {
         console.error("Error message:", error.message);
       }
+      // Show error toast
+      toast.error('Error completing token');
     }
   }, [nowServingToken, updateCompletedCount, email, currentTokenStartTime, db]);
   
@@ -900,7 +963,9 @@ const CounterDash = () => {
           toCounter: selectedCounterNumber,
           transferredAt: transferTimestamp,
           name: tokenData.name,
-          service: tokenData.service
+          service: tokenData.service,
+          createdAt: tokenData.createdAt,
+          priority: true
         };
   
         // Check if the selected counter's document exists
@@ -910,13 +975,15 @@ const CounterDash = () => {
         if (selectedCounterDoc.exists()) {
           // Update the selected counter's document
           await updateDoc(selectedCounterRef, { 
-            receivedTokens: arrayUnion(transferEntry)
+            receivedTokens: arrayUnion(transferEntry),
+            priority: arrayUnion(nowServingToken)
           });
         } else {
           console.error(`No document exists for counter ${selectedCounterNumber}.`);
           // You may choose to create the document here if needed
           await setDoc(selectedCounterRef, { 
-            receivedTokens: [transferEntry]
+            receivedTokens: [transferEntry],
+            priority: [nowServingToken]
           });
         }
   
@@ -945,7 +1012,9 @@ const CounterDash = () => {
       } else {
         console.log(`Token ${nowServingToken} not found in requests collection.`);
       }
-  
+    // Show success toast
+    toast.success('Transferred Successfully');
+
     } catch (error) {
       console.error(`Error transferring token ${nowServingToken}:`, error);
       if (error.code) {
@@ -954,6 +1023,8 @@ const CounterDash = () => {
       if (error.message) {
         console.error("Error message:", error.message);
       }
+    // Show error toast
+    toast.error('Error transferring token');
     }
   };
   
@@ -987,7 +1058,9 @@ const CounterDash = () => {
           toCounter: selectedCounterNumber,
           transferredAt: transferTimestamp,
           name: tokenData.name,
-          service: tokenData.service
+          service: tokenData.service,
+          createdAt: tokenData.createdAt,
+          priority: false
         };
     
         // Current counter document reference
@@ -1043,6 +1116,8 @@ const CounterDash = () => {
         // Update local state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
         setIsTransferDropdownOpenMap(prev => ({ ...prev, [tokenNumber]: false }));
+        // Add success toast
+        toast.success(`Token ${tokenNumber} transferred to Counter ${selectedCounterNumber}`);
     
       } else {
         console.log(`Token ${tokenNumber} not found in requests collection.`);
@@ -1050,17 +1125,29 @@ const CounterDash = () => {
     
     } catch (error) {
       console.error(`Error transferring token ${tokenNumber}:`, error);
+      // Optionally, add an error toast
+      toast.error(`Failed to transfer Token ${tokenNumber}. Please try again.`);
     }
   };
   
   
   const pendingSpecificToken = async (specialtoken) => {
     try {
-      // Update the requests collection
+      // Check if the token is already pending
       const requestsRef = collection(db, "requests");
       const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
       const querySnapshot = await getDocs(q);
   
+      if (!querySnapshot.empty) {
+        const tokenData = querySnapshot.docs[0].data();
+        if (tokenData.pending) {
+          // Token is already pending, show alert toast
+          toast.info(`Token ${specialtoken} is already in pending state`);
+          return; // Exit the function early
+        }
+      }
+  
+      // Update the requests collection
       if (!querySnapshot.empty) {
         const docToUpdate = querySnapshot.docs[0];
         await updateDoc(doc(requestsRef, docToUpdate.id), { 
@@ -1077,7 +1164,8 @@ const CounterDash = () => {
         ));
       } else {
         console.log(`Token ${specialtoken} not found in requests collection.`);
-        return; // Exit the function if the token is not found in requests
+        toast.error(`Token ${specialtoken} not found. Unable to mark as pending.`);
+        return;
       }
   
       // Add the token to the pending array in queueDoc
@@ -1103,11 +1191,19 @@ const CounterDash = () => {
         setPendingCount(pendingArray.length);
       } else {
         console.log("Queue document does not exist.");
+        toast.error("Queue document not found. Unable to update pending status.");
       }
   
       console.log(`Token ${specialtoken} has been successfully marked as pending.`);
+      
+      // Add success toast
+      toast.success(`Token ${specialtoken} has been marked as pending`);
+  
     } catch (error) {
       console.error(`Error marking token ${specialtoken} as pending:`, error);
+      
+      // Add error toast
+      toast.error(`Failed to mark Token ${specialtoken} as pending. Please try again.`);
     }
   };
 
@@ -1257,7 +1353,6 @@ const CounterDash = () => {
       }
   
       // Update the remaining count
-      setRemainingCount(prevCount => prevCount - 1);
   
       console.log(`Token ${specialtoken} has been successfully cancelled.`);
     } catch (error) {
@@ -1528,6 +1623,15 @@ const CounterDash = () => {
   useEffect(() => {
     setCurrentDate(getCurrentDate());
   }, [completedCount]);
+
+  const sortedRequestsData = [...requestsData, ...transferredTokens].sort((a, b) => {
+    // First, check if either a or b has a priority set to true
+    if (a.priority && !b.priority) return -1;
+    if (!a.priority && b.priority) return 1;
+    
+    // If both have priority or neither has priority, sort by createdAt
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
   
   const DeleteIcon = ({ className, onClick }) => (
     <svg
@@ -1607,6 +1711,7 @@ const CounterDash = () => {
                   >
                     Completed
                   </Button>
+                  
                 </div>
                 <div className="flex justify-end mb-0">
                   <Button
@@ -1618,6 +1723,7 @@ const CounterDash = () => {
                   </Button>
                 </div>
               </div>
+              
             </CardBody>
           </Card>
           </div>
@@ -1680,8 +1786,8 @@ const CounterDash = () => {
             </div>
           </div>
 
-    <div className="flex flex-col items-center justify-center w-full">
-      {[...requestsData, ...transferredTokens].length > 0 ? (
+      <div className="flex flex-col items-center justify-center w-full">
+      {sortedRequestsData.length > 0 ? (
         <div className="p-10 py-5 w-full"> 
             <Table aria-label="Example static collection table" removeWrapper>
               <TableHeader>
@@ -1695,16 +1801,15 @@ const CounterDash = () => {
                 <TableColumn></TableColumn>
                 <TableColumn></TableColumn>
               </TableHeader>
-    <TableBody>
-      {[...requestsData, ...transferredTokens].map(request => (
+      <TableBody>
+      {sortedRequestsData.map(request => (
         <TableRow key={request.id || request.token}>
           <TableCell>{request.tokenNumber || request.token}</TableCell>
           <TableCell>{request.name}</TableCell>
           <TableCell>
-            {request.date instanceof Date ? 
-              request.date.toLocaleString() : 
-              (request.date ? new Date(request.date).toLocaleString() : 
-              (request.transferredAt ? new Date(request.transferredAt).toLocaleString() : ""))}
+          {request.date instanceof Date 
+            ? request.date.toLocaleString() 
+            : new Date(request.date || request.transferredAt).toLocaleString()}
           </TableCell>
           <TableCell>{request.service}</TableCell>
           <TableCell>
@@ -1815,8 +1920,8 @@ const CounterDash = () => {
           </TableCell>
         </TableRow>
       ))}
-    </TableBody>
-  </Table>
+      </TableBody>
+      </Table>
         </div >
         ) :<div className="h-80 flex items-center justify-center text-gray-500 -mt-12">
               Queue is empty and no tokens available
@@ -1824,8 +1929,11 @@ const CounterDash = () => {
       </div>         
         </div>
       </div>
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+
     </div>
   );
 };
 
 export default CounterDash;
+

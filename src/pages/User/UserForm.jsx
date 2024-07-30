@@ -73,7 +73,8 @@ export default function UserForm() {
         tokenNumber: tokenNumber,
         createdAt: serverTimestamp(),
         status: true,
-        transfer: false
+        transfer: false,
+        waitingTime: "00:00:00"  // Initialize with 00:00:00
       };
   
       // Submit data to the 'requests' collection
@@ -178,5 +179,7 @@ export default function UserForm() {
         </div>
       </div>
     </div>
-  )
-};
+  );
+  
+  
+}

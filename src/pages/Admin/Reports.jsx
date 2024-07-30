@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
@@ -107,7 +108,7 @@ export default function ReportSection() {
           ? counters.filter(c => c.id !== "All")
           : counters.filter(c => selectedCounter.has(c.id));
 
-        for (const counter of selectedCounters) {
+          for (const counter of selectedCounters) {
           const counterName = counter.name.replace("Counter ", "").toLowerCase().replace(/\s/g, "");
           
           const completedTokensRef = doc(db, `counter${counterName}`, "CompletedTokens");
@@ -130,7 +131,8 @@ export default function ReportSection() {
                   id: uniqueKey,
                   name: item?.name || 'N/A',
                   service: item?.service || 'N/A',
-                  serviceTime: item?.serviceTime ? `${item.serviceTime} minutes` : '0 minutes',
+                  serviceTime: item?.serviceTime || '00:00:00',
+                  waitingTime: item?.waitingTime || '00:00:00',
                   token: item?.token || 'N/A',
                   counter: counter.name,
                   completedAt: item?.completedAt ? new Date(item.completedAt) : new Date(),
@@ -218,7 +220,7 @@ export default function ReportSection() {
     const doc = new jsPDF();
     const columns = reportType === "service"
       ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
-      : ["siNo", "name", "service", "serviceTime", "token", "counter"];
+      : ["siNo", "name", "service", "serviceTime","waitingTime","token", "counter"];
   
     const rows = data.map(item => columns.map(columnKey => item[columnKey]));
   
@@ -242,7 +244,7 @@ export default function ReportSection() {
   
   const columns = reportType === "service" 
     ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
-    : ["siNo", "name", "service", "serviceTime", "token", "counter"];
+    : ["siNo", "name", "service", "serviceTime","waitingTime", "token", "counter"];
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -407,3 +409,4 @@ export default function ReportSection() {
     </div>
   );
 }
+
