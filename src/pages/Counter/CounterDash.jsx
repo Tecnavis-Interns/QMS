@@ -36,12 +36,14 @@ import { AuthContext } from "../../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 import toast, { Toaster } from 'react-hot-toast';
+import { SpeechContext } from '../../Context/SpeechContext';
 
 
 const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
   const transferButtonRef = useRef(null);
+  const { setMessage } = useContext(SpeechContext);
   
 
 
@@ -529,8 +531,7 @@ const CounterDash = () => {
         console.warn("No data found for the current serving token in 'requests'.");
         setNowServingToken("---");
       }
-    // Show success toast
-    toast.success('Token set to Pending');
+    toast.success(`Token has been marked as pending`);
     } catch (error) {
       console.error("Error handling pending button click: ", error);
       setNowServingToken("---");
@@ -543,18 +544,20 @@ const CounterDash = () => {
 
 
   const handleRecallButtonClick = () => {
+    console.log("Recall button clicked");
     if (nowServingToken === "---") {
       console.log("No token currently being served.");
       return;
     }
-    console.log('hi');
-    // const email = auth.currentUser.email;
+    console.log('Current nowServingToken:', nowServingToken);
+    console.log('Current email:', email);
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
-  
-    // Prepare and speak the voice message for recall
-    const message = `Recalling token number ${nowServingToken}, please proceed to counter ${counterNumber}`;
-    console.log("Speaking recall message:", message);
-    speak(message);
+    console.log('Calculated counterNumber:', counterNumber);
+    
+    const newMessage = `Recalling token number ${nowServingToken}, please proceed to counter ${counterNumber}`;
+    console.log("Setting message:", newMessage);
+    setMessage(newMessage);
+    console.log("CounterDash: setMessage called");
   };
 
 
@@ -584,7 +587,10 @@ const CounterDash = () => {
           const nextPriorityToken = priorityArray.shift();
           setNowServingToken(nextPriorityToken);
 
-          receivedTokensArray = receivedTokensArray.filter(token => token !== nextPriorityToken);
+          console.log("Before Filter:", receivedTokensArray);
+        receivedTokensArray = receivedTokensArray.filter(t => t.token !== nextPriorityToken);
+        console.log("After Filter:", receivedTokensArray);
+
   
           // Update the counter document with the modified priority array
           await updateDoc(counterDocRef, { 
@@ -607,9 +613,9 @@ const CounterDash = () => {
             setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextPriorityToken));
           }
   
-          const message = `Priority token number ${nextPriorityToken}, please proceed to counter ${counterNumber}`;
-          console.log("Speaking message:", message);
-          speak(message);
+          const newMessage = `Token number ${nextPriorityToken}, please proceed to counter ${counterNumber}`;
+          console.log("Speaking message:", newMessage);
+          setMessage(newMessage);
         } else {
           // Fetch the queue document if there are no priority tokens
           const queueDocRef = doc(db, 'queue', 'queueDoc');
@@ -642,9 +648,9 @@ const CounterDash = () => {
                 setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextToken));
               }
   
-              const message = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
-              console.log("Speaking message:", message);
-              speak(message);
+              const newMessage = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
+              console.log("Speaking message:", newMessage);
+              setMessage(newMessage);
             } else {
               console.log("No tokens in the queue");
               setNowServingToken("---");
@@ -668,7 +674,26 @@ const CounterDash = () => {
     const utterance = new SpeechSynthesisUtterance(message);
     speechSynthesis.speak(utterance);
   }
-
+  const formatTime = (timeString) => {
+    if (typeof timeString !== 'string' || !timeString || timeString === '00:00:00') {
+      return '0';  // Return '0' for null, undefined, or '00:00:00'
+    }
+  
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+  
+    let result = '';
+    
+    if (hours > 0) {
+      result += `${hours}h `;
+    }
+    if (minutes > 0 || hours > 0) {
+      result += `${minutes.toString().padStart(2, '0')}m `;
+    }
+    result += `${seconds.toString().padStart(2, '0')}s`;
+    
+    return result.trim();
+  };
+  
 
   const handleSaveButtonClick = useCallback(async () => {
     if (!nowServingToken || nowServingToken === '---') {
@@ -700,22 +725,10 @@ const CounterDash = () => {
       const createdAt = tokenDetails.createdAt.toDate();
       const completedAt = endTime;
       const waitingTimeMs = completedAt - createdAt;
-  
-      // Function to format time in hh:mm:ss
-      const formatTime = (ms) => {
-        const hours = Math.floor(ms / (1000 * 60 * 60));
-        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-        return [
-          hours.toString().padStart(2, '0'),
-          minutes.toString().padStart(2, '0'),
-          seconds.toString().padStart(2, '0')
-        ].join(':');
-      };
-  
+
       const serviceTimeFormatted = formatTime(serviceTimeMs);
       const waitingTimeFormatted = formatTime(waitingTimeMs);
-  
+
       // Create a history entry
       const historyEntry = {
         token: nowServingToken,
@@ -870,9 +883,9 @@ const CounterDash = () => {
         console.log(`Token ${specialtoken} status updated to active and pending set to false.`);
   
         // Prepare and speak the voice message
-        const message = `Recalling Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
-        console.log("Speaking message:", message);
-        speak(message);
+        const newMessage = `Recalling Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
+        console.log("Speaking message:", newMessage);
+        setMessage(newMessage);
       } else {
         console.log(`Document with token ${specialtoken} not found in 'requests'.`);
       }
@@ -990,7 +1003,7 @@ const CounterDash = () => {
         // Update the request document with the new counter number
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
           counterNumber: selectedCounterNumber,
-          transfer: true 
+          transfer: true,
         });
   
         console.log(`Token ${nowServingToken} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
@@ -1013,7 +1026,7 @@ const CounterDash = () => {
         console.log(`Token ${nowServingToken} not found in requests collection.`);
       }
     // Show success toast
-    toast.success('Transferred Successfully');
+    toast.success(`Transferred to counter${selectedCounterNumber} Successfully`);
 
     } catch (error) {
       console.error(`Error transferring token ${nowServingToken}:`, error);
@@ -1096,20 +1109,29 @@ const CounterDash = () => {
         const queueDoc = await getDoc(queueDocRef);
     
         let tokens = [];
+        let pendingTokens = [];
         if (queueDoc.exists()) {
-          tokens = queueDoc.data().token || [];
+          const data = queueDoc.data();
+          tokens = data.token || [];
+          pendingTokens = data.pending || []; // Ensure this field exists
         } else {
           console.log(`Queue document does not exist. Creating a new one.`);
           // Optionally initialize the queue document with a default structure
-          await setDoc(queueDocRef, { token: [] });
+          await setDoc(queueDocRef, { token: [], pending: [] });
         }
         
         // Ensure the types match when filtering
         tokens = tokens.filter(t => t !== tokenNumber);
         console.log('Updated queue tokens:', tokens);
     
+        // Remove the token from pending tokens if necessary
+        if (tokenData.pending) {
+          pendingTokens = pendingTokens.filter(t => t !== tokenNumber);
+          console.log('Updated pending tokens:', pendingTokens);
+        }
+    
         // Update the queue document
-        await setDoc(queueDocRef, { token: tokens }, { merge: true });
+        await setDoc(queueDocRef, { token: tokens, pending: pendingTokens }, { merge: true });
     
         console.log(`Token ${tokenNumber} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
     
@@ -1281,7 +1303,6 @@ const CounterDash = () => {
   
         // Update local state
         setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
-        setRemainingCount(prevCount => prevCount - 1);
       } else {
         console.log("Counter document does not exist.");
       }
@@ -1443,9 +1464,9 @@ const CounterDash = () => {
         console.log(`Token ${specialtoken} status updated to false and removed from table.`);
   
         // Prepare and speak the voice message
-        const message = `Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
-        console.log("Speaking message:", message);
-        speak(message);
+        const newMessage = `Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
+        console.log("Speaking message:", newMessage);
+        setMessage(newMessage);
       } else {
         console.log(`Document with token ${specialtoken} not found in 'requests'.`);
       }
@@ -1502,9 +1523,9 @@ const CounterDash = () => {
   
         setTransferredTokens(prev => prev.filter(t => t.token !== token));
 
-        const message = `Token number ${token}, please proceed to counter ${counterNumber}`;
-        console.log("Speaking message:", message);
-        speak(message);
+        const newMessage = `Token number ${token}, please proceed to counter ${counterNumber}`;
+        console.log("Speaking message:", newMessage);
+        setMessage(newMessage);
   
         console.log(`Transferred token ${token} is now being served at counter ${counterNumber}`);
       } else {
@@ -1600,7 +1621,7 @@ const CounterDash = () => {
       }
   
       // Update the remaining count
-      setRemainingCount(prevCount => prevCount - 1);
+      // setRemainingCount(prevCount => prevCount - 1);
   
       console.log(`Token ${specialtoken} has been successfully cancelled and removed from all relevant collections.`);
     } catch (error) {
@@ -1648,11 +1669,11 @@ const CounterDash = () => {
   );
 
   return (
-    <div className="flex">
+    <div className="flex bg-[#f8f8f9] min-h-screen">
       <div className="fixed top-0 left-0 bottom-0">
         <Navbar />
       </div>
-      <div className="flex-1 ml-60 pb-4 flex flex-col"> {/* Added flex flex-col */}
+      <div className="flex-1 ml-60 pb-4 bg-[#f8f8f9] rounded-tl-3xl overflow-y-auto hide-scrollbar"> {/* Added flex flex-col */}
         <div className="flex flex-1 justify-center flex-wrap lg:mx-24">
         <div>
         <div className="mb-4 mt-4 mr-24">
@@ -1745,7 +1766,7 @@ const CounterDash = () => {
             <div className="flex justify-end mb-2 relative">
               <Button 
                 ref={transferButtonRef}
-                onClick={handleTransferButtonClick}
+                onMouseEnter={handleTransferButtonClick}
                 disabled={!nowServingToken || nowServingToken === "---"}
                 className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8"
               >
@@ -1851,10 +1872,13 @@ const CounterDash = () => {
             )}
           </TableCell>
           <TableCell>
-            <div className="relative transfer-dropdown">
+          <div className="relative transfer-dropdown">
+            <div
+              onMouseEnter={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
+              onMouseLeave={() => setIsTransferDropdownOpenMap(prev => ({...prev, [request.tokenNumber || request.token]: false}))}
+            >
               <Button
                 ref={el => transferButtonRefs.current[request.tokenNumber || request.token] = el}
-                onClick={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
                 className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
               >
                 Transfer
@@ -1884,13 +1908,15 @@ const CounterDash = () => {
                 </div>
               )}
             </div>
+          </div>
+          
           </TableCell>
           <TableCell>
           <Button
             onClick={() => request.transferredAt ? 
               handleTransferredTokenPending(request.tokenNumber || request.token) : 
               pendingSpecificToken(request.tokenNumber || request.token)}
-            disabled={nowServingToken !== "---"}
+            disabled={nowServingToken == "---"}
             className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
           >
             Pending

@@ -48,15 +48,13 @@ const AutomaticSlideshow = ({ refresh, setRefresh }) => {
       setCurrentIndex((prevIndex) => {
         const newIndex = (prevIndex + 1) % mediaList.length;
         preloadNextMedia(newIndex);
-        if (newIndex === 0) {
-          setRefresh(prev => !prev);
-        }
+        
         return newIndex;
       });
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [mediaList, setRefresh]);
+  }, [mediaList]);
 
   useEffect(() => {
     if (containerRef.current) {

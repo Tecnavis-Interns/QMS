@@ -4,6 +4,7 @@ import { collection, onSnapshot, getDocs, doc, query, orderBy, limit } from "fir
 import { db } from "../../services/firebase";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from "@nextui-org/react";
 import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
+import SpeechHandler from '../../SpeechHandler';
 
 const LiveClock = React.memo(() => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -115,6 +116,7 @@ export default function UserForm() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 justify-center">
+      <SpeechHandler />
       <div className="flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4">
         <div className="md:w-1/2">
           <Card className="h-full">

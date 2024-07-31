@@ -20,6 +20,9 @@ import Ads from './pages/Admin/Ads';
 import Services from './pages/Admin/Services';
 import { AuthProvider } from './Context/AuthContext';
 import Reports from './pages/Admin/Reports';
+import { SpeechProvider } from './Context/SpeechContext';
+import SpeechHandler from './SpeechHandler';
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -74,9 +77,12 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-    <NextUIProvider>
-      <RouterProvider router={router} />
-    </NextUIProvider>
+    <SpeechProvider>
+    <SpeechHandler />
+      <NextUIProvider>
+        <RouterProvider router={router} />
+      </NextUIProvider>
+      </SpeechProvider>
     </AuthProvider>
   </React.StrictMode>,
 );
