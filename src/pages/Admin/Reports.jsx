@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
@@ -107,6 +108,7 @@ export default function ReportSection() {
           ? counters.filter(c => c.id !== "All")
           : counters.filter(c => selectedCounter.has(c.id));
 
+          for (const counter of selectedCounters) {
           for (const counter of selectedCounters) {
           const counterName = counter.name.replace("Counter ", "").toLowerCase().replace(/\s/g, "");
           
@@ -269,6 +271,7 @@ const exportToExcel = () => {
   
   const columns = reportType === "service" 
     ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
+    : ["siNo", "name", "service", "serviceTime","waitingTime", "token", "counter"];
     : ["siNo", "name", "service", "serviceTime","waitingTime", "token", "counter"];
 
     return (
