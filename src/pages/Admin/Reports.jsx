@@ -107,7 +107,7 @@ export default function ReportSection() {
           ? counters.filter(c => c.id !== "All")
           : counters.filter(c => selectedCounter.has(c.id));
 
-        for (const counter of selectedCounters) {
+          for (const counter of selectedCounters) {
           const counterName = counter.name.replace("Counter ", "").toLowerCase().replace(/\s/g, "");
           
           const completedTokensRef = doc(db, `counter${counterName}`, "CompletedTokens");
@@ -130,7 +130,8 @@ export default function ReportSection() {
                   id: uniqueKey,
                   name: item?.name || 'N/A',
                   service: item?.service || 'N/A',
-                  serviceTime: item?.serviceTime ? `${item.serviceTime} minutes` : '0 minutes',
+                  serviceTime: item?.serviceTime,
+                  waitingTime: item?.waitingTime,
                   token: item?.token || 'N/A',
                   counter: counter.name,
                   completedAt: item?.completedAt ? new Date(item.completedAt) : new Date(),
@@ -181,34 +182,60 @@ export default function ReportSection() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
-  const renderCell = (item, columnKey) => {
-    const cellValue = item[columnKey];
-    if (filterValue && cellValue) {
-      const parts = cellValue.toString().split(new RegExp(`(${filterValue})`, 'gi'));
-      return (
-        <span>
-          {parts.map((part, i) => 
-            part.toLowerCase() === filterValue.toLowerCase() ? 
-              <mark key={i}>{part}</mark> : part
-          )}
-        </span>
-      );
-    }
-    return cellValue;
-  };
+const renderCell = (item, columnKey) => {
+  const cellValue = item[columnKey];
+  if (filterValue && cellValue) {
+    const parts = cellValue.toString().split(new RegExp(`(${filterValue})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === filterValue.toLowerCase() ? 
+            <mark key={i}>{part}</mark> : part
+        )}
+      </span>
+    );
+  }
+  if (columnKey === 'serviceTime' || columnKey === 'waitingTime') {
+    return <span>{cellValue}</span>;
+  }
+  return cellValue;
+};
 
-  const hasData = data.length > 0;
+const hasData = data.length > 0;
 
-  const exportToExcel = () => {
-    if (!hasData) {
-      console.log("No data to export");
-      return;
-    }
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Report");
-    XLSX.writeFile(wb, "report.xlsx");
-  };
+const exportToExcel = () => {
+  if (!hasData) {
+    console.log("No data to export");
+    return;
+  }
+
+  // Define the columns in the order you want them to appear
+  const columns = reportType === "service" 
+    ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
+    : ["siNo", "name", "service", "serviceTime", "waitingTime", "token", "counter", "completedAt"];
+
+  // Create a new array with only the selected columns
+  const exportData = data.map(item => 
+    columns.reduce((acc, col) => {
+      acc[col] = item[col];
+      return acc;
+    }, {})
+  );
+
+  // Create a worksheet
+  const ws = XLSX.utils.json_to_sheet(exportData, { header: columns });
+
+  // Adjust column widths
+  const colWidths = columns.map(col => ({wch: Math.max(col.length, 10)}));
+  ws['!cols'] = colWidths;
+
+  // Create a workbook and add the worksheet
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Report");
+
+  // Generate Excel file
+  XLSX.writeFile(wb, "report.xlsx");
+};
 
   const exportToPDF = () => {
     if (!hasData) {
@@ -218,7 +245,7 @@ export default function ReportSection() {
     const doc = new jsPDF();
     const columns = reportType === "service"
       ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
-      : ["siNo", "name", "service", "serviceTime", "token", "counter"];
+      : ["siNo", "name", "service", "serviceTime","waitingTime","token", "counter"];
   
     const rows = data.map(item => columns.map(columnKey => item[columnKey]));
   
@@ -242,168 +269,170 @@ export default function ReportSection() {
   
   const columns = reportType === "service" 
     ? ["siNo", "name", "service", "tokenNumber", "createdAt"]
-    : ["siNo", "name", "service", "serviceTime", "token", "counter"];
+    : ["siNo", "name", "service", "serviceTime","waitingTime", "token", "counter"];
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="w-64 fixed h-full">
-        <Navbar />
-      </div>
-      <div className="flex-1 ml-64 p-8 overflow-auto">
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex gap-3">
-              <Dropdown>
-                <DropdownTrigger>
-                  <Button endContent={<MdArrowDropDown />} variant="flat">
-                    Report Type: {reportType ? reportType.charAt(0).toUpperCase() + reportType.slice(1) : "Select"}
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu
-                  disallowEmptySelection
-                  aria-label="Select Report Type"
-                  selectedKeys={new Set([reportType])}
-                  selectionMode="single"
-                  onSelectionChange={(keys) => setReportType(Array.from(keys)[0])}
-                >
-                  <DropdownItem key="counter">Counter</DropdownItem>
-                  <DropdownItem key="service">Token</DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-              {reportType === "counter" && (
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <div className="w-64 fixed h-full">
+          <Navbar />
+        </div>
+        <div className="flex-1 ml-64 p-8 overflow-auto">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex gap-3">
                 <Dropdown>
                   <DropdownTrigger>
                     <Button endContent={<MdArrowDropDown />} variant="flat">
-                      Counter: {Array.from(selectedCounter).map(id => counters.find(c => c.id === id)?.name).join(", ")}
+                      Report Type: {reportType ? reportType.charAt(0).toUpperCase() + reportType.slice(1) : "Select"}
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu
                     disallowEmptySelection
-                    aria-label="Select Counter"
-                    selectedKeys={selectedCounter}
-                    selectionMode="multiple"
-                    onSelectionChange={setSelectedCounter}
+                    aria-label="Select Report Type"
+                    selectedKeys={new Set([reportType])}
+                    selectionMode="single"
+                    onSelectionChange={(keys) => setReportType(Array.from(keys)[0])}
                   >
-                    {counters.map((counter) => (
-                      <DropdownItem key={counter.id}>{counter.name}</DropdownItem>
-                    ))}
+                    <DropdownItem key="counter">Counter</DropdownItem>
+                    <DropdownItem key="service">Token</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
-              )}
-              {reportType === "service" && (
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button endContent={<MdArrowDropDown />} variant="flat">
-                      Service: {Array.from(selectedService).map(id => services.find(s => s.id === id)?.name).join(", ")}
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    disallowEmptySelection
-                    aria-label="Select Service"
-                    selectedKeys={selectedService}
-                    selectionMode="multiple"
-                    onSelectionChange={setSelectedService}
-                  >
-                    {services.map((service) => (
-                      <DropdownItem key={service.id}>{service.name}</DropdownItem>
-                    ))}
-                  </DropdownMenu>
-                </Dropdown>
-              )}
-              <div className="flex gap-2">
-                <DatePicker
-                  selected={startDate}
-                  onChange={(date) => setStartDate(date)}
-                  selectsStart
-                  startDate={startDate}
-                  endDate={endDate}
-                  placeholderText="Start Date"
-                  className="px-3 py-2 rounded-md border border-gray-300"
-                />
-                <DatePicker
-                  selected={endDate}
-                  onChange={(date) => setEndDate(date)}
-                  selectsEnd
-                  startDate={startDate}
-                  endDate={endDate}
-                  minDate={startDate}
-                  placeholderText="End Date"
-                  className="px-3 py-2 rounded-md border border-gray-300"
-                />
+                {reportType === "counter" && (
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button endContent={<MdArrowDropDown />} variant="flat">
+                        Counter: {Array.from(selectedCounter).map(id => counters.find(c => c.id === id)?.name).join(", ")}
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      disallowEmptySelection
+                      aria-label="Select Counter"
+                      selectedKeys={selectedCounter}
+                      selectionMode="multiple"
+                      onSelectionChange={setSelectedCounter}
+                    >
+                      {counters.map((counter) => (
+                        <DropdownItem key={counter.id}>{counter.name}</DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  </Dropdown>
+                )}
+                {reportType === "service" && (
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button endContent={<MdArrowDropDown />} variant="flat">
+                        Service: {Array.from(selectedService).map(id => services.find(s => s.id === id)?.name).join(", ")}
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      disallowEmptySelection
+                      aria-label="Select Service"
+                      selectedKeys={selectedService}
+                      selectionMode="multiple"
+                      onSelectionChange={setSelectedService}
+                    >
+                      {services.map((service) => (
+                        <DropdownItem key={service.id}>{service.name}</DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  </Dropdown>
+                )}
+                <div className="flex gap-2">
+                  <DatePicker
+                    selected={startDate}
+                    onChange={(date) => setStartDate(date)}
+                    selectsStart
+                    startDate={startDate}
+                    endDate={endDate}
+                    placeholderText="Start Date"
+                    className="px-3 py-2 rounded-md border border-gray-300"
+                  />
+                  <DatePicker
+                    selected={endDate}
+                    onChange={(date) => setEndDate(date)}
+                    selectsEnd
+                    startDate={startDate}
+                    endDate={endDate}
+                    minDate={startDate}
+                    placeholderText="End Date"
+                    className="px-3 py-2 rounded-md border border-gray-300"
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Tooltip content={hasData ? "Export to Excel" : "No data to export"}>
-                <Button 
-                  color="primary" 
-                  onPress={exportToExcel}
-                  isDisabled={!hasData}
-                >
-                  Export to Excel
-                </Button>
-              </Tooltip>
-              <Tooltip content={hasData ? "Export to PDF" : "No data to export"}>
-                <Button 
-                  color="secondary" 
-                  onPress={exportToPDF}
-                  isDisabled={!hasData}
-                >
-                  Export to PDF
-                </Button>
-              </Tooltip>
-            </div>
-          </div>
-          
-          {reportType ? (
-            <>
-              <Input
-                isClearable
-                className="w-full sm:max-w-[30%] mb-4"
-                placeholder="Search..."
-                startContent={<MdSearch />}
-                value={filterValue}
-                onClear={() => setFilterValue("")}
-                onValueChange={setFilterValue}
-              />
-              
-              <Table
-                aria-label="Report table"
-                bottomContent={
-                  <div className="flex w-full justify-center">
-                    <Pagination
-                      isCompact
-                      showControls
-                      showShadow
-                      color="primary"
-                      page={page}
-                      total={pages}
-                      onChange={setPage}
-                    />
+            
+            {reportType ? (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <Input
+                    isClearable
+                    className="w-full max-w-[300px]"
+                    placeholder="Search..."
+                    startContent={<MdSearch />}
+                    value={filterValue}
+                    onClear={() => setFilterValue("")}
+                    onValueChange={setFilterValue}
+                  />
+                  <div className="flex gap-3">
+                    <Tooltip content={hasData ? "Export to Excel" : "No data to export"}>
+                      <Button 
+                        color="primary" 
+                        onPress={exportToExcel}
+                        isDisabled={!hasData}
+                      >
+                        Export to Excel
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content={hasData ? "Export to PDF" : "No data to export"}>
+                      <Button 
+                        color="secondary" 
+                        onPress={exportToPDF}
+                        isDisabled={!hasData}
+                      >
+                        Export to PDF
+                      </Button>
+                    </Tooltip>
                   </div>
-                }
-                bottomContentPlacement="outside"
-              >
-                <TableHeader>
-                  {columns.map((columnKey) => (
-                    <TableColumn key={columnKey}>{columnKey.toUpperCase()}</TableColumn>
-                  ))}
-                </TableHeader>
-                <TableBody items={items}>
-                  {(item) => (
-                    <TableRow key={item.id}>
-                      {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </>
-          ) : (
-            <div className="flex justify-center items-center h-[calc(100vh-200px)]">
-              <p className="text-l text-gray-600">Please select a report type to view the data</p>
-            </div>
-          )}
+                </div>
+                
+                <Table
+                  aria-label="Report table"
+                  bottomContent={
+                    <div className="flex w-full justify-center">
+                      <Pagination
+                        isCompact
+                        showControls
+                        showShadow
+                        color="primary"
+                        page={page}
+                        total={pages}
+                        onChange={setPage}
+                      />
+                    </div>
+                  }
+                  bottomContentPlacement="outside"
+                >
+                  <TableHeader>
+                    {columns.map((columnKey) => (
+                      <TableColumn key={columnKey}>{columnKey.toUpperCase()}</TableColumn>
+                    ))}
+                  </TableHeader>
+                  <TableBody items={items}>
+                    {(item) => (
+                      <TableRow key={item.id}>
+                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </>
+            ) : (
+              <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+                <p className="text-l text-gray-600">Please select a report type to view the data</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
 }

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo,useCallback } from 'react';
 import { Card, CardBody } from "@nextui-org/react";
-import { collection, onSnapshot, getDocs, doc, query, orderBy, limit } from "firebase/firestore";
+import { collection, onSnapshot, doc, query, orderBy } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from "@nextui-org/react";
 import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
+import { speak } from './speech';  // Keep this import
 
 const LiveClock = React.memo(() => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -48,10 +49,27 @@ const LiveClock = React.memo(() => {
 
 const MemoizedSlideshow = React.memo(AutomaticSlideshow);
 
+export const CustomEventEmitter = {
+  events: {},
+  dispatch: function(event, data) {
+    if (!this.events[event]) return;
+    this.events[event].forEach(callback => callback(data));
+  },
+  subscribe: function(event, callback) {
+    if (!this.events[event]) this.events[event] = [];
+    this.events[event].push(callback);
+  },
+  unsubscribe: function(event, callback) {
+    if (!this.events[event]) return;
+    this.events[event] = this.events[event].filter(cb => cb !== callback);
+  }
+};
+
 export default function UserForm() {
   const [countersData, setCountersData] = useState([]);
   const [nowServingData, setNowServingData] = useState({});
   const [refresh, setRefresh] = useState(false);
+  const [lastRecalledToken, setLastRecalledToken] = useState(null);
 
   useEffect(() => {
     const countersRef = collection(db, 'counters');
@@ -65,15 +83,21 @@ export default function UserForm() {
       
       setCountersData(updatedCounters);
 
-      // Set up listeners for each counter's nowServing data
       updatedCounters.forEach(counter => {
         const nowServingDocRef = doc(db, `counter${counter.counterName.split(' ')[1]}`, 'counterDoc');
         onSnapshot(nowServingDocRef, (docSnapshot) => {
           if (docSnapshot.exists()) {
-            setNowServingData(prev => ({
-              ...prev,
-              [counter.id]: docSnapshot.data().nowServingToken || "-"
-            }));
+            const newToken = docSnapshot.data().nowServingToken || "-";
+            setNowServingData(prev => {
+              if (prev[counter.id] !== newToken) {
+                if (newToken !== "-") {
+                  const message = `Token number ${newToken}, please proceed to counter ${counter.counterName.split(' ')[1]}`;
+                  speak(message);
+                }
+                return { ...prev, [counter.id]: newToken };
+              }
+              return prev;
+            });
             setCountersData(prevCounters => {
               const updatedCounter = prevCounters.find(c => c.id === counter.id);
               const remainingCounters = prevCounters.filter(c => c.id !== counter.id);
@@ -84,9 +108,20 @@ export default function UserForm() {
       });
     });
 
-    return () => unsubscribe();
-  }, []);
+    const recallSpecificToken = ({ tokenNumber, counterNumber }) => {
+      const message = `Recalling Token number ${tokenNumber}, please proceed to counter ${counterNumber}`;
+      console.log("New token recall:", message);
+      speak(message);
+      setLastRecalledToken({ tokenNumber, counterNumber });
+    };
 
+    CustomEventEmitter.subscribe('tokenRecall', recallSpecificToken);
+
+    return () => {
+      unsubscribe();
+      CustomEventEmitter.unsubscribe('tokenRecall', recallSpecificToken);
+    };
+  }, []);
 
   const tableContent = useMemo(() => (
     <Table 
@@ -130,6 +165,12 @@ export default function UserForm() {
               {tableContent}
             </CardBody>
           </Card>
+          {lastRecalledToken && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+              <p className="font-bold">Last Recalled Token</p>
+              <p>Token {lastRecalledToken.tokenNumber} to Counter {lastRecalledToken.counterNumber}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

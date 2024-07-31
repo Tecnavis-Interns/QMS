@@ -32,19 +32,17 @@ import { db, auth } from "../../services/firebase";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
-
 import { AuthContext } from "../../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
+import toast, { Toaster } from 'react-hot-toast';
+import { CustomEventEmitter } from '../../pages/TVView/TVView';
 
 
 const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
   const transferButtonRef = useRef(null);
-  
-
-
   const [userData, setUserData] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const [completedCounts, setCompletedCounts] = useState(0);
@@ -61,6 +59,7 @@ const CounterDash = () => {
   const [transferredTokens, setTransferredTokens] = useState([]);
   const [isTransferDropdownOpenMap, setIsTransferDropdownOpenMap] = useState({});
   const transferButtonRefs = useRef({});
+
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -529,9 +528,13 @@ const CounterDash = () => {
         console.warn("No data found for the current serving token in 'requests'.");
         setNowServingToken("---");
       }
-    } catch (error) {
+    // Show success toast
+      toast.success(`Token ${tokenNumber} has been marked as pending`);
+      } catch (error) {
       console.error("Error handling pending button click: ", error);
       setNowServingToken("---");
+      // Show error toast
+      toast.error('Error setting token to pending');
     }
   };
 
@@ -634,6 +637,8 @@ const CounterDash = () => {
         } else {
           console.log("No tokens in the queue");
           setNowServingToken("---");
+          toast.error("Check for Pending/Transfered and press Call Now");
+          
         }
       } else {
         console.log("Queue document does not exist");
@@ -651,6 +656,24 @@ const CounterDash = () => {
     speechSynthesis.speak(utterance);
   }
 
+// Function to format time in hh:mm:ss
+const formatTime = (ms) => {
+  const seconds = Math.floor(ms / 1000);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  let result = '';
+  if (hours > 0) {
+    result += `${hours}h `;
+  }
+  if (minutes > 0 || hours > 0) {
+    result += `${minutes}m `;
+  }
+  result += `${remainingSeconds}s`;
+
+  return result.trim();
+};
 
   const handleSaveButtonClick = useCallback(async () => {
     if (!nowServingToken || nowServingToken === '---') {
@@ -674,18 +697,26 @@ const CounterDash = () => {
   
       const requestDoc = querySnapshot.docs[0];
       const tokenDetails = requestDoc.data();
-  
+       
       const endTime = new Date();
       const serviceTimeMs = currentTokenStartTime ? endTime - currentTokenStartTime : 0;
-      const serviceTimeMinutes = Math.round(serviceTimeMs / 60000);
   
+      // Calculate waiting time
+      const createdAt = tokenDetails.createdAt.toDate();
+      const completedAt = endTime;
+      const waitingTimeMs = completedAt - createdAt;
+      
+      const serviceTimeFormatted = formatTime(serviceTimeMs);
+      const waitingTimeFormatted = formatTime(waitingTimeMs);
+
       // Create a history entry
       const historyEntry = {
         token: nowServingToken,
         name: tokenDetails.name,
         service: tokenDetails.service,
         completedAt: endTime.toISOString(),
-        serviceTime: serviceTimeMinutes,
+        serviceTime: serviceTimeFormatted,
+        waitingTime: waitingTimeFormatted
       };
   
       // Check if the CompletedTokens document exists
@@ -743,6 +774,27 @@ const CounterDash = () => {
         console.log(`Counter ${counterNumber} not found in counters collection`);
       }
   
+      // Update the waiting time and service time in the requests collection
+      await updateDoc(requestDoc.ref, {
+        waitingTime: waitingTimeFormatted,
+        serviceTime: serviceTimeFormatted
+      });
+  
+      // Update the waiting time and service time in the ChartData collection
+      const chartDataRef = collection(db, 'ChartData');
+      const chartDataQuery = query(chartDataRef, where('tokenNumber', '==', nowServingToken));
+      const chartDataSnapshot = await getDocs(chartDataQuery);
+      if (!chartDataSnapshot.empty) {
+        const chartDataDoc = chartDataSnapshot.docs[0];
+        await updateDoc(chartDataDoc.ref, {
+          waitingTime: waitingTimeFormatted,
+          serviceTime: serviceTimeFormatted
+        });
+      }
+  
+      console.log(`Waiting time for token ${nowServingToken}: ${waitingTimeFormatted}`);
+      console.log(`Service time for token ${nowServingToken}: ${serviceTimeFormatted}`);
+  
       setNowServingToken("---");
   
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
@@ -756,6 +808,8 @@ const CounterDash = () => {
         await updateDoc(requestDoc.ref, { transfer: false });
         console.log(`Transfer field set to false for token ${nowServingToken}`);
       }
+      // Show the success toast
+      toast.success('Completed Successfully');
   
     } catch (error) {
       console.error("Error handling completed: ", error);
@@ -766,6 +820,8 @@ const CounterDash = () => {
       if (error.message) {
         console.error("Error message:", error.message);
       }
+      // Show error toast
+      toast.error('Error completing token');
     }
   }, [nowServingToken, updateCompletedCount, email, currentTokenStartTime, db]);
   
@@ -779,6 +835,10 @@ const CounterDash = () => {
       // Get the counter number from the user's email
       // const email = auth.currentUser.email;
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
+
+      // Dispatch the event
+      CustomEventEmitter.dispatch('tokenRecall', { tokenNumber: specialtoken, counterNumber });
+
   
       // Add the now serving token to the counterDoc
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
@@ -945,7 +1005,9 @@ const CounterDash = () => {
       } else {
         console.log(`Token ${nowServingToken} not found in requests collection.`);
       }
-  
+    // Show success toast
+    toast.success('Transferred Successfully');
+
     } catch (error) {
       console.error(`Error transferring token ${nowServingToken}:`, error);
       if (error.code) {
@@ -954,6 +1016,8 @@ const CounterDash = () => {
       if (error.message) {
         console.error("Error message:", error.message);
       }
+    // Show error toast
+    toast.error('Error transferring token');
     }
   };
   
@@ -1043,6 +1107,8 @@ const CounterDash = () => {
         // Update local state
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== tokenNumber));
         setIsTransferDropdownOpenMap(prev => ({ ...prev, [tokenNumber]: false }));
+        // Add success toast
+        toast.success(`Token ${tokenNumber} transferred to Counter ${selectedCounterNumber}`);
     
       } else {
         console.log(`Token ${tokenNumber} not found in requests collection.`);
@@ -1050,17 +1116,29 @@ const CounterDash = () => {
     
     } catch (error) {
       console.error(`Error transferring token ${tokenNumber}:`, error);
+      // Optionally, add an error toast
+      toast.error(`Failed to transfer Token ${tokenNumber}. Please try again.`);
     }
   };
   
   
   const pendingSpecificToken = async (specialtoken) => {
     try {
-      // Update the requests collection
+      // Check if the token is already pending
       const requestsRef = collection(db, "requests");
       const q = query(requestsRef, where("tokenNumber", "==", specialtoken));
       const querySnapshot = await getDocs(q);
   
+      if (!querySnapshot.empty) {
+        const tokenData = querySnapshot.docs[0].data();
+        if (tokenData.pending) {
+          // Token is already pending, show alert toast
+          toast.info(`Token ${specialtoken} is already in pending state`);
+          return; // Exit the function early
+        }
+      }
+  
+      // Update the requests collection
       if (!querySnapshot.empty) {
         const docToUpdate = querySnapshot.docs[0];
         await updateDoc(doc(requestsRef, docToUpdate.id), { 
@@ -1077,7 +1155,8 @@ const CounterDash = () => {
         ));
       } else {
         console.log(`Token ${specialtoken} not found in requests collection.`);
-        return; // Exit the function if the token is not found in requests
+        toast.error(`Token ${specialtoken} not found. Unable to mark as pending.`);
+        return;
       }
   
       // Add the token to the pending array in queueDoc
@@ -1103,11 +1182,19 @@ const CounterDash = () => {
         setPendingCount(pendingArray.length);
       } else {
         console.log("Queue document does not exist.");
+        toast.error("Queue document not found. Unable to update pending status.");
       }
   
       console.log(`Token ${specialtoken} has been successfully marked as pending.`);
+      
+      // Add success toast
+      toast.success(`Token ${specialtoken} has been marked as pending`);
+  
     } catch (error) {
       console.error(`Error marking token ${specialtoken} as pending:`, error);
+      
+      // Add error toast
+      toast.error(`Failed to mark Token ${specialtoken} as pending. Please try again.`);
     }
   };
 
@@ -1544,7 +1631,7 @@ const CounterDash = () => {
   );
 
   return (
-    <div className="flex">
+    <div className="flex w-full">
       <div className="fixed top-0 left-0 bottom-0">
         <Navbar />
       </div>
@@ -1607,6 +1694,7 @@ const CounterDash = () => {
                   >
                     Completed
                   </Button>
+                  
                 </div>
                 <div className="flex justify-end mb-0">
                   <Button
@@ -1618,6 +1706,7 @@ const CounterDash = () => {
                   </Button>
                 </div>
               </div>
+              
             </CardBody>
           </Card>
           </div>
@@ -1637,14 +1726,14 @@ const CounterDash = () => {
               </Button>
             </div>
             <div className="flex justify-end mb-2 relative">
-              <Button 
-                ref={transferButtonRef}
-                onClick={handleTransferButtonClick}
-                disabled={!nowServingToken || nowServingToken === "---"}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8"
+            <Button 
+              ref={transferButtonRef}
+              className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8 relative"
+              disabled={!nowServingToken || nowServingToken === "---"}
+              onMouseEnter={handleTransferButtonClick}             
               >
-                Transfer
-              </Button>
+              Transfer
+            </Button>
             </div>
             {isTransferDropdownOpen && (
               <div 
@@ -1680,7 +1769,7 @@ const CounterDash = () => {
             </div>
           </div>
 
-    <div className="flex flex-col items-center justify-center w-full">
+      <div className="flex flex-col items-center justify-center w-full">
       {[...requestsData, ...transferredTokens].length > 0 ? (
         <div className="p-10 py-5 w-full"> 
             <Table aria-label="Example static collection table" removeWrapper>
@@ -1695,7 +1784,7 @@ const CounterDash = () => {
                 <TableColumn></TableColumn>
                 <TableColumn></TableColumn>
               </TableHeader>
-    <TableBody>
+      <TableBody>
       {[...requestsData, ...transferredTokens].map(request => (
         <TableRow key={request.id || request.token}>
           <TableCell>{request.tokenNumber || request.token}</TableCell>
@@ -1746,10 +1835,13 @@ const CounterDash = () => {
             )}
           </TableCell>
           <TableCell>
-            <div className="relative transfer-dropdown">
+          <div className="relative transfer-dropdown">
+            <div
+              onMouseEnter={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
+              onMouseLeave={() => setIsTransferDropdownOpenMap(prev => ({...prev, [request.tokenNumber || request.token]: false}))}
+            >
               <Button
                 ref={el => transferButtonRefs.current[request.tokenNumber || request.token] = el}
-                onClick={() => handleTransferButtonClickForToken(request.tokenNumber || request.token)}
                 className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
               >
                 Transfer
@@ -1779,6 +1871,7 @@ const CounterDash = () => {
                 </div>
               )}
             </div>
+          </div>
           </TableCell>
           <TableCell>
           <Button
@@ -1815,15 +1908,17 @@ const CounterDash = () => {
           </TableCell>
         </TableRow>
       ))}
-    </TableBody>
-  </Table>
+      </TableBody>
+      </Table>
         </div >
-        ) :<div className="h-80 flex items-center justify-center text-gray-500 -mt-12">
+        ) :<div className="h-80 flex items-center justify-center text-gray-500 ">
               Queue is empty and no tokens available
             </div>}
       </div>         
         </div>
       </div>
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+
     </div>
   );
 };
