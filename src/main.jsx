@@ -21,7 +21,7 @@ import Services from './pages/Admin/Services';
 import { AuthProvider } from './Context/AuthContext';
 import Reports from './pages/Admin/Reports';
 import { SpeechProvider } from './Context/SpeechContext';
-import SpeechHandler from './SpeechHandler';
+
 
 const router = createBrowserRouter([
   {
@@ -78,7 +78,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
     <SpeechProvider>
-    <SpeechHandler />
       <NextUIProvider>
         <RouterProvider router={router} />
       </NextUIProvider>

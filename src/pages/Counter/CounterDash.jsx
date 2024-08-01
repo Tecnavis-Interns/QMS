@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useContext } from "react";
 import {
   Checkbox,
   Table,
@@ -36,14 +36,15 @@ import { AuthContext } from "../../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 import toast, { Toaster } from 'react-hot-toast';
-import { SpeechContext } from '../../Context/SpeechContext';
+import { handleRecallExported } from "../TVView/TVView";
+
 
 
 const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
   const transferButtonRef = useRef(null);
-  const { setMessage } = useContext(SpeechContext);
+ 
   
 
 
@@ -554,11 +555,29 @@ const CounterDash = () => {
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
     console.log('Calculated counterNumber:', counterNumber);
     
-    const newMessage = `Recalling token number ${nowServingToken}, please proceed to counter ${counterNumber}`;
-    console.log("Setting message:", newMessage);
-    setMessage(newMessage);
-    console.log("CounterDash: setMessage called");
+    if (typeof window.handleRecall === 'function') {
+      window.handleRecall(counterNumber, nowServingToken);
+    } else if (typeof handleRecallExported === 'function') {
+      // If window.handleRecall is not available, use the imported function
+      handleRecallExported(counterNumber, nowServingToken, (message) => {
+        console.log("Recalled message:", message);
+        // You might want to do something with this message, like displaying it
+      });
+    } else {
+      console.error("handleRecall function not available");
+    }
   };
+
+  useEffect(() => {
+    const checkHandleRecall = () => {
+      if (window.handleRecall) {
+        setIsHandleRecallAvailable(true);
+      } else {
+        setTimeout(checkHandleRecall, 100); // Check again after 100ms
+      }
+    };
+    checkHandleRecall();
+  }, []);
 
 
   const handleNextButtonClick = async () => {
@@ -586,10 +605,12 @@ const CounterDash = () => {
           // Pop the first token from the priority array
           const nextPriorityToken = priorityArray.shift();
           setNowServingToken(nextPriorityToken);
-
+          await updateDoc(counterDocRef, {
+            nowServingToken: nextPriorityToken
+          });
           console.log("Before Filter:", receivedTokensArray);
-        receivedTokensArray = receivedTokensArray.filter(t => t.token !== nextPriorityToken);
-        console.log("After Filter:", receivedTokensArray);
+          receivedTokensArray = receivedTokensArray.filter(t => t.token !== nextPriorityToken);
+          console.log("After Filter:", receivedTokensArray);
 
   
           // Update the counter document with the modified priority array
@@ -597,6 +618,7 @@ const CounterDash = () => {
             priority: priorityArray,
             receivedTokens: receivedTokensArray 
           });
+          
   
           // Update the currently serving token in the database
           setCurrentTokenStartTime(new Date());
@@ -615,7 +637,7 @@ const CounterDash = () => {
   
           const newMessage = `Token number ${nextPriorityToken}, please proceed to counter ${counterNumber}`;
           console.log("Speaking message:", newMessage);
-          setMessage(newMessage);
+          // playSound(newMessage);
         } else {
           // Fetch the queue document if there are no priority tokens
           const queueDocRef = doc(db, 'queue', 'queueDoc');
@@ -629,6 +651,9 @@ const CounterDash = () => {
               // Pop the first token from the array
               const nextToken = tokenArray.shift();
               setNowServingToken(nextToken);
+              await updateDoc(counterDocRef, {
+                nowServingToken: nextToken
+              });
   
               // Update the queue document with the modified array
               await updateDoc(queueDocRef, { token: tokenArray });
@@ -650,7 +675,7 @@ const CounterDash = () => {
   
               const newMessage = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
               console.log("Speaking message:", newMessage);
-              setMessage(newMessage);
+              // playSound(newMessage);
             } else {
               console.log("No tokens in the queue");
               setNowServingToken("---");
@@ -669,11 +694,8 @@ const CounterDash = () => {
   };
   
 
-  const speak = (message) => {
-    const speechSynthesis = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(message);
-    speechSynthesis.speak(utterance);
-  }
+  
+  
   const formatTime = (timeString) => {
     if (typeof timeString !== 'string' || !timeString || timeString === '00:00:00') {
       return '0';  // Return '0' for null, undefined, or '00:00:00'
@@ -885,7 +907,7 @@ const CounterDash = () => {
         // Prepare and speak the voice message
         const newMessage = `Recalling Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
         console.log("Speaking message:", newMessage);
-        setMessage(newMessage);
+        // playSound(newMessage);
       } else {
         console.log(`Document with token ${specialtoken} not found in 'requests'.`);
       }
@@ -1466,7 +1488,7 @@ const CounterDash = () => {
         // Prepare and speak the voice message
         const newMessage = `Token number ${specialtoken}, please proceed to counter ${counterNumber}`;
         console.log("Speaking message:", newMessage);
-        setMessage(newMessage);
+        // playSound(newMessage);
       } else {
         console.log(`Document with token ${specialtoken} not found in 'requests'.`);
       }
@@ -1525,7 +1547,7 @@ const CounterDash = () => {
 
         const newMessage = `Token number ${token}, please proceed to counter ${counterNumber}`;
         console.log("Speaking message:", newMessage);
-        setMessage(newMessage);
+        // playSound(newMessage);
   
         console.log(`Transferred token ${token} is now being served at counter ${counterNumber}`);
       } else {
@@ -1648,10 +1670,10 @@ const CounterDash = () => {
   const sortedRequestsData = [...requestsData, ...transferredTokens].sort((a, b) => {
     // First, check if either a or b has a priority set to true
     if (a.priority && !b.priority) return -1;
-    if (!a.priority && b.priority) return 1;
+    if (!b.priority && a.priority) return 1;
     
     // If both have priority or neither has priority, sort by createdAt
-    return new Date(a.createdAt) - new Date(b.createdAt);
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
   
   const DeleteIcon = ({ className, onClick }) => (

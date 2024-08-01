@@ -1,31 +1,13 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState } from 'react';
 
 export const SpeechContext = createContext();
 
 export const SpeechProvider = ({ children }) => {
-  const [message, setMessage] = useState("");
-
-  console.log("SpeechProvider rendering, message:", message);
-
-  const value = {
-    message,
-    setMessage: (newMessage) => {
-      console.log("SpeechProvider: setMessage called with:", newMessage);
-      setMessage(newMessage);
-    }
-  };
+  const [textToSpeak, setTextToSpeak] = useState('');
 
   return (
-    <SpeechContext.Provider value={value}>
+    <SpeechContext.Provider value={{ textToSpeak, setTextToSpeak }}>
       {children}
     </SpeechContext.Provider>
   );
-};
-
-export const useSpeech = () => {
-  const context = useContext(SpeechContext);
-  if (context === undefined) {
-    throw new Error('useSpeech must be used within a SpeechProvider');
-  }
-  return context;
-};
+}
