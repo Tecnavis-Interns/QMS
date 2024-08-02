@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { Input, Radio, RadioGroup } from "@nextui-org/react";
 import Navbar from "./Navbar";
-import { collection, doc as firestoreDoc, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp, getDocs } from "firebase/firestore";
+import { collection,
+doc as firestoreDoc,
+setDoc, 
+getDoc, 
+updateDoc, 
+arrayUnion, 
+serverTimestamp, 
+getDocs,
+onSnapshot,
+} from "firebase/firestore";
 import { db, submitDataToFirestore } from "../../services/firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
@@ -14,19 +23,23 @@ export default function UserForm() {
   const [serviceError, setServiceError] = useState("");
   const navigate = useNavigate();
 
+  //fetch services to userForm
   useEffect(() => {
-    const fetchServices = async () => {
+    const servicesCollection = collection(db, "services");
+  
+    const unsubscribe = onSnapshot(servicesCollection, (snapshot) => {
       try {
-        const servicesCollection = collection(db, "services");
-        const servicesSnapshot = await getDocs(servicesCollection);
-        const servicesList = servicesSnapshot.docs.map(doc => doc.data().name);
+        const servicesList = snapshot.docs.map(doc => doc.data().name);
         setServices(servicesList);
       } catch (error) {
-        console.error("Error fetching services: ", error);
+        console.error("Error processing services data: ", error);
       }
-    };
-
-    fetchServices();
+    }, (error) => {
+      console.error("Error fetching services: ", error);
+    });
+  
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
   }, []);
 
   const handleNameChange = (event) => {
@@ -180,6 +193,5 @@ export default function UserForm() {
       </div>
     </div>
   );
-  
-  
+
 }

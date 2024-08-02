@@ -555,8 +555,6 @@ const CounterDash = () => {
     }
   };
 
-  
-
 
   const handleRecallButtonClick = () => {
     console.log("Recall button clicked");

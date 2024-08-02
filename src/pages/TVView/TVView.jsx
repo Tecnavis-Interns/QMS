@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo,useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardBody } from "@nextui-org/react";
-import { collection, onSnapshot, doc, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, getDocs, doc, query, orderBy, limit } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from "@nextui-org/react";
 import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
@@ -9,7 +9,44 @@ import { debounce } from 'lodash';
 
 // LiveClock component
 const LiveClock = React.memo(() => {
-  // ... LiveClock component code (unchanged) ...
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatDate = useCallback((date) => {
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    return date.toLocaleDateString('en-US', options);
+  }, []);
+
+  const formatTime = useCallback((date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+  }, []);
+
+  return (
+    <div className="mb-6 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg">
+      <h4 className="font-bold text-3xl md:text-4xl text-white mb-2">
+        {formatTime(currentDateTime)}
+      </h4>
+      <p className="text-lg md:text-xl text-gray-200">
+        {formatDate(currentDateTime)}
+      </p>
+    </div>
+  );
 });
 
 const MemoizedSlideshow = React.memo(AutomaticSlideshow);
@@ -27,12 +64,46 @@ const UserForm = () => {
   const [refresh, setRefresh] = useState(false);
   const [recalledMessage, setRecalledMessage] = useState(null);
   const lastPlayedTokens = useRef({});
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const debouncedPlaySound = useCallback(
     debounce((message) => {
-      playSound(message);
+      setIsPlaying(true);
+      playSound(message)
+        .then(() => {
+          setIsPlaying(false);
+        })
+        .catch((error) => {
+          console.error('Error playing sound:', error);
+          setIsPlaying(false);
+        });
     }, 300),
     []
+  );
+
+  const SpeakerIcon = ({ isPlaying }) => (
+    <div className="fixed top-4 right-4 p-2 bg-white rounded-full shadow-lg">
+      <div className={`relative w-8 h-8 ${isPlaying ? 'text-blue-500' : 'text-gray-600'}`}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`w-full h-full ${isPlaying ? 'animate-pulse' : ''}`}
+        >
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          {isPlaying && (
+            <>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </>
+          )}
+        </svg>
+      </div>
+    </div>
   );
 
   const handleRecall = useCallback((counterNumber, token) => {
@@ -53,6 +124,7 @@ const UserForm = () => {
       
       setCountersData(updatedCounters);
 
+      // Set up listeners for each counter's nowServing data
       updatedCounters.forEach(counter => {
         const nowServingDocRef = doc(db, `counter${counter.counterName.split(' ')[1]}`, 'counterDoc');
         onSnapshot(nowServingDocRef, (docSnapshot) => {
@@ -123,6 +195,8 @@ const UserForm = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 justify-center">
+    <SpeakerIcon isPlaying={isPlaying} />
+
       <div className="flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4">
         <div className="md:w-1/2">
           <Card className="h-full">
@@ -138,12 +212,6 @@ const UserForm = () => {
               {tableContent}
             </CardBody>
           </Card>
-          {lastRecalledToken && (
-            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
-              <p className="font-bold">Last Recalled Token</p>
-              <p>Token {lastRecalledToken.tokenNumber} to Counter {lastRecalledToken.counterNumber}</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

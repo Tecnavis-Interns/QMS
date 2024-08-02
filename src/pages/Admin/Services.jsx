@@ -18,10 +18,7 @@ import {
   TableCell,
   Button,
   Input,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  Checkbox,
 } from '@nextui-org/react';
 
 const Services = () => {
@@ -31,6 +28,7 @@ const Services = () => {
   const [editServiceName, setEditServiceName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [selectedServices, setSelectedServices] = useState(new Set());
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -150,6 +148,45 @@ const Services = () => {
       console.error('Error updating service:', error);
     }
   };
+  const handleSelectService = (id) => {
+    setSelectedServices((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedServices.size === services.length) {
+      setSelectedServices(new Set());
+    } else {
+      setSelectedServices(new Set(services.map((service) => service.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!window.confirm('Are you sure you want to delete the selected services?')) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedServices).map((id) =>
+        deleteDoc(doc(db, 'services', id))
+      );
+      await Promise.all(deletePromises);
+
+      setServices(services.filter((service) => !selectedServices.has(service.id)));
+      setSelectedServices(new Set());
+    } catch (error) {
+      console.error('Error deleting services:', error);
+    }
+  };
+
+
 
   return (
     <div className="flex min-h-screen">
@@ -172,8 +209,23 @@ const Services = () => {
             </Button>
           </div>
           {alertMessage && <div className="text-red-500">{alertMessage}</div>}
+          <div className="flex justify-between items-center mb-2">
+            <Button 
+              onClick={handleDeleteSelected} 
+              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              disabled={selectedServices.size === 0}
+            >
+              Delete Selected
+            </Button>
+          </div>
           <Table aria-label="Service List" className="min-w-full bg-white border rounded shadow-md">
             <TableHeader>
+              <TableColumn>
+                <Checkbox
+                  isSelected={selectedServices.size === services.length}
+                  onValueChange={handleSelectAll}
+                />
+              </TableColumn>
               <TableColumn>Series No</TableColumn>
               <TableColumn>Name</TableColumn>
               <TableColumn>Actions</TableColumn>
@@ -181,6 +233,12 @@ const Services = () => {
             <TableBody>
               {services.map((service) => (
                 <TableRow key={service.id}>
+                  <TableCell>
+                    <Checkbox
+                      isSelected={selectedServices.has(service.id)}
+                      onValueChange={() => handleSelectService(service.id)}
+                    />
+                  </TableCell>
                   <TableCell>{service.customId}</TableCell>
                   <TableCell>{service.name}</TableCell>
                   <TableCell>

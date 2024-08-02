@@ -18,6 +18,38 @@ export default {
   },
   darkMode: "class",
   plugins: [nextui(),
-    require('tailwind-scrollbar-hide'),
+  require('tailwind-scrollbar-hide'),
   ]
 }
+
+module.exports = {
+  // ... other configurations
+  theme: {
+    extend: {
+      animation: {
+        'ping-slow': 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+      },
+      keyframes: {
+        ping: {
+          '75%, 100%': {
+            transform: 'scale(1.5)',
+            opacity: '0',
+          },
+        },
+      },
+    },
+  },
+  variants: {
+    extend: {
+      animation: ['responsive', 'motion-safe', 'motion-reduce'],
+    },
+  },
+  plugins: [
+    function ({ addUtilities, theme, variants }) {
+      const animationDelayUtilities = {
+        '.animation-delay-300': { animationDelay: '300ms' },
+      };
+      addUtilities(animationDelayUtilities, variants('animationDelay'));
+    },
+  ],
+};
