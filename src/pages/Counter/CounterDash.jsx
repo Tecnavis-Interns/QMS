@@ -36,7 +36,6 @@ import { AuthContext } from "../../Context/AuthContext";
 import { serverTimestamp } from "firebase/firestore";
 import { Tooltip } from "@nextui-org/react";
 import toast, { Toaster } from 'react-hot-toast';
-import { handleRecallExported } from "../TVView/TVView";
 
 
 
@@ -568,30 +567,9 @@ const CounterDash = () => {
     console.log('Current email:', email);
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
     console.log('Calculated counterNumber:', counterNumber);
-    
-    if (typeof window.handleRecall === 'function') {
-      window.handleRecall(counterNumber, nowServingToken);
-    } else if (typeof handleRecallExported === 'function') {
-      // If window.handleRecall is not available, use the imported function
-      handleRecallExported(counterNumber, nowServingToken, (message) => {
-        console.log("Recalled message:", message);
-        // You might want to do something with this message, like displaying it
-      });
-    } else {
-      console.error("handleRecall function not available");
-    }
   };
 
-  useEffect(() => {
-    const checkHandleRecall = () => {
-      if (window.handleRecall) {
-        setIsHandleRecallAvailable(true);
-      } else {
-        setTimeout(checkHandleRecall, 100); // Check again after 100ms
-      }
-    };
-    checkHandleRecall();
-  }, []);
+
 
 
   const handleNextButtonClick = async () => {
@@ -1385,7 +1363,7 @@ const CounterDash = () => {
 
 
   const cancelSpecificToken = async (specialtoken) => {
-    const confirmCancel = window.confirm(`Are you sure you want to cancel token ${nowServingToken}?`);
+    const confirmCancel = window.confirm(`Are you sure you want to cancel token?`);
     if (confirmCancel){
     try {
       // Delete the request from the requests collection
@@ -1457,7 +1435,7 @@ const CounterDash = () => {
       console.log("No token currently being served.");
       return;
     }
-    const confirmCancel = window.confirm(`Are you sure you want to cancel token ${nowServingToken}?`);
+    const confirmCancel = window.confirm(`Are you sure you want to cancel token?`);
     if (confirmCancel){
     try {
       // Delete the currently serving token from the requests collection
@@ -1606,7 +1584,7 @@ const CounterDash = () => {
   };
   
   const handleTransferredTokenCancel = async (specialtoken) => {
-    const confirmCancel = window.confirm(`Are you sure you want to cancel the token`);
+    const confirmCancel = window.confirm(`Are you sure you want to cancel the token?`);
     if (confirmCancel) {
     try {
       // Get the counter number from the user's email

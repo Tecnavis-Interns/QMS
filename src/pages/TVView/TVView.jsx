@@ -9,7 +9,44 @@ import { debounce } from 'lodash';
 
 // LiveClock component
 const LiveClock = React.memo(() => {
-  // ... LiveClock component code (unchanged) ...
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatDate = useCallback((date) => {
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    return date.toLocaleDateString('en-US', options);
+  }, []);
+
+  const formatTime = useCallback((date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+  }, []);
+
+  return (
+    <div className="mb-6 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg">
+      <h4 className="font-bold text-3xl md:text-4xl text-white mb-2">
+        {formatTime(currentDateTime)}
+      </h4>
+      <p className="text-lg md:text-xl text-gray-200">
+        {formatDate(currentDateTime)}
+      </p>
+    </div>
+  );
 });
 
 const MemoizedSlideshow = React.memo(AutomaticSlideshow);
@@ -61,9 +98,14 @@ const UserForm = () => {
             const newToken = docSnapshot.data().nowServingToken || "-";
             setNowServingData(prev => {
               const oldToken = prev[counter.id];
-              if (oldToken !== newToken && newToken !== "-" && lastPlayedTokens.current[counter.id] !== newToken) {
-                lastPlayedTokens.current[counter.id] = newToken;
-                debouncedPlaySound(`Token number ${newToken} please proceed to ${counter.counterName}`);
+              if (oldToken !== newToken) {
+                if (newToken !== "-") {
+                  lastPlayedTokens.current[counter.id] = newToken;
+                  debouncedPlaySound(`Token number ${newToken} please proceed to ${counter.counterName}`);
+                } else {
+                  // Update the old token with '-' when the new token is '-'
+                  lastPlayedTokens.current[counter.id] = "-";
+                }
               }
               return { ...prev, [counter.id]: newToken };
             });
