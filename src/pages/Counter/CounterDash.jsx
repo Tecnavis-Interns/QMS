@@ -210,6 +210,7 @@ const CounterDash = () => {
   
       const totalRemainingCount = activeCount + receivedTokensCount;
       console.log("Remaining count:", totalRemainingCount);
+      console.log("Received count:", receivedTokensCount);
       setRemainingCount(totalRemainingCount);
     } catch (error) {
       console.error("Error fetching remaining count:", error);
@@ -509,6 +510,12 @@ const CounterDash = () => {
         await updateDoc(queueDocRef, {
           pending: updatedPending
         });
+
+        const currentNowPending = queueDocData.nowPending || [];
+        const updatedNowPending = [...currentNowPending, tokenNumber];
+        await updateDoc(queueDocRef, {
+          nowPending: updatedNowPending
+        });
   
         console.log(`Token ${tokenNumber} marked as pending in 'requests' and added to pending array in queueDoc. Updated array:`, updatedPending);
   
@@ -594,7 +601,16 @@ const CounterDash = () => {
   
       // Now proceed with calling the next token
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
-      const counterDocSnap = await getDoc(counterDocRef);
+      let counterDocSnap = await getDoc(counterDocRef);
+
+      if (!counterDocSnap.exists()) {
+        await setDoc(counterDocRef, {
+          priority: [],
+          receivedTokens: [],
+          nowServingToken: "---"
+        });
+        counterDocSnap = await getDoc(counterDocRef); // Fetch the newly created document
+      }
   
       if (counterDocSnap.exists()) {
         const counterData = counterDocSnap.data();
@@ -634,6 +650,7 @@ const CounterDash = () => {
   
             setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nextPriorityToken));
           }
+          await fetchRemainingCount();
   
           const newMessage = `Token number ${nextPriorityToken}, please proceed to counter ${counterNumber}`;
           console.log("Speaking message:", newMessage);
@@ -676,10 +693,13 @@ const CounterDash = () => {
               const newMessage = `Token number ${nextToken}, please proceed to counter ${counterNumber}`;
               console.log("Speaking message:", newMessage);
               // playSound(newMessage);
+              await fetchRemainingCount();
             } else {
               console.log("No tokens in the queue");
+              if (nowServingToken === "---") {
+                toast.error("Check for Pending/Transferred and press Call Now");
+              }
               setNowServingToken("---");
-              toast.error("Check for Pending/Transferred and press Call Now");
             }
           } else {
             console.log("Queue document does not exist");
@@ -696,12 +716,25 @@ const CounterDash = () => {
 
   
   
-  const formatTime = (timeString) => {
-    if (typeof timeString !== 'string' || !timeString || timeString === '00:00:00') {
+  const formatTime = (time) => {
+    if (!time || time === '00:00:00') {
       return '0';  // Return '0' for null, undefined, or '00:00:00'
     }
   
-    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+    let hours, minutes, seconds;
+  
+    if (typeof time === 'string') {
+      [hours, minutes, seconds] = time.split(':').map(Number);
+    } else if (typeof time === 'number') {
+      // Assuming time is in milliseconds
+      seconds = Math.floor(time / 1000);
+      minutes = Math.floor(seconds / 60);
+      hours = Math.floor(minutes / 60);
+      seconds %= 60;
+      minutes %= 60;
+    } else {
+      return '0';  // Return '0' for invalid input types
+    }
   
     let result = '';
     
@@ -960,17 +993,17 @@ const CounterDash = () => {
     fetchAvailableCounters();
   }, [email]);
 
-  const handleTransferButtonClick = async () => {
-    if (transferButtonRef.current) {
-      const rect = transferButtonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
-      setIsTransferDropdownOpen(!isTransferDropdownOpen);
-    }
-  };
+  // const handleTransferButtonClick = async () => {
+  //   if (transferButtonRef.current) {
+  //     const rect = transferButtonRef.current.getBoundingClientRect();
+  //     setDropdownPosition({
+  //       top: rect.bottom + window.scrollY,
+  //       left: rect.left + window.scrollX,
+  //       width: rect.width,
+  //     });
+  //     setIsTransferDropdownOpen(!isTransferDropdownOpen);
+  //   }
+  // };
 
 
   const handleTransfer = async (selectedCounterEmail) => {
@@ -1026,6 +1059,8 @@ const CounterDash = () => {
         await updateDoc(doc(requestsRef, querySnapshot.docs[0].id), {
           counterNumber: selectedCounterNumber,
           transfer: true,
+          pending: false,
+          status: false
         });
   
         console.log(`Token ${nowServingToken} transferred from Counter ${currentCounterNumber} to Counter ${selectedCounterNumber}`);
@@ -1034,6 +1069,7 @@ const CounterDash = () => {
         setNowServingToken("---");
         setCurrentTokenStartTime(null);
         setIsTransferDropdownOpen(false);
+        
   
         // Remove the transferred token from the local requestsData
         setRequestsData(prevData => prevData.filter(item => item.tokenNumber !== nowServingToken));
@@ -1519,13 +1555,12 @@ const CounterDash = () => {
 
   const handleTransferredTokenCall = async (token) => {
     try {
-
       const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
       const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
   
       // Get the current counter document
       const counterDocSnap = await getDoc(counterDocRef);
-      
+  
       if (counterDocSnap.exists()) {
         const counterData = counterDocSnap.data();
         const receivedTokens = counterData.receivedTokens || [];
@@ -1533,7 +1568,6 @@ const CounterDash = () => {
         // Find and remove the token from receivedTokens
         const updatedReceivedTokens = receivedTokens.filter(t => t.token !== token);
   
-        // Update the counter document
         await updateDoc(counterDocRef, {
           receivedTokens: updatedReceivedTokens,
           nowServingToken: token
@@ -1544,7 +1578,8 @@ const CounterDash = () => {
         setCurrentTokenStartTime(new Date());
   
         setTransferredTokens(prev => prev.filter(t => t.token !== token));
-
+        
+  
         const newMessage = `Token number ${token}, please proceed to counter ${counterNumber}`;
         console.log("Speaking message:", newMessage);
         // playSound(newMessage);
@@ -1557,8 +1592,7 @@ const CounterDash = () => {
       console.error("Error handling transferred token call:", error);
     }
   };
-
-
+  
   const handleTransferredTokenCancel = async (specialtoken) => {
     const confirmCancel = window.confirm(`Are you sure you want to cancel the token`);
     if (confirmCancel) {
@@ -1704,47 +1738,47 @@ const CounterDash = () => {
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4 mt-6 mr-4">
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <h3 className="font-bold text-large">Total Customer</h3>
+              <CardHeader className="pb-0 pt-2 px-4 flex flex-col items-center">
+                <h3 className="font-bold text-large text-center">Total Customer</h3>
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{totalCustomerCount}</p>
+              <CardBody className="overflow-visible py-2 flex justify-center items-center">
+              <p className="text-6xl font-bold mt-4">{totalCustomerCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-                <h3 className="font-bold text-large">Remaining</h3>
+              <CardHeader className="pb-0 pt-2 px-4 flex flex-col items-center">
+                <h3 className="font-bold text-large text-center">Remaining</h3>
                
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-                  <p className="text-6xl font-bold ml-12 mt-4">{remainingCount}</p>
+              <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                  <p className="text-6xl font-bold mt-4">{remainingCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <h3 className="font-bold text-large ">Completed</h3>
+              <CardHeader className="pb-0 pt-2 px-4 flex flex-col items-center">
+                <h3 className="font-bold text-large text-center">Completed</h3>
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-                <p className="text-6xl font-bold ml-12 mt-4">{completedCount}</p>
+              <CardBody className="overflow-visible py-2 flex justify-center items-center">
+                <p className="text-6xl font-bold mt-4">{completedCount}</p>
               </CardBody>
             </Card>
             <Card className="py-4">
-              <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <h3 className="font-bold text-large">Pending</h3>
+              <CardHeader className="pb-0 pt-2 px-4 flex flex-col items-center">
+                <h3 className="font-bold text-large text-center">Pending</h3>
               </CardHeader>
-              <CardBody className="overflow-visible py-2">
-              <p className="text-6xl font-bold ml-12 mt-4">{pendingCount}</p>
+              <CardBody className="overflow-visible py-2 flex justify-center items-center">
+              <p className="text-6xl font-bold mt-4">{pendingCount}</p>
               </CardBody>
             </Card>
           </div>
           </div>
           <div className="grid grid-cols-1 mb-4 mt-16">
           <Card className="py-4 ml-4 w-[200px] mt-6">
-            <CardHeader className="pb-0 pt-2 px-4 flex-col items-center">
-              <h3 className="font-bold text-large mb-2">Now Serving</h3>
+            <CardHeader className="pb-0 pt-2 px-4 flex flex-col items-center">
+              <h3 className="font-bold text-large text-center">Now Serving</h3>
               <p className="text-6xl font-bold mt-4">{nowServingToken === "---" ? "---" : nowServingToken || "---"}</p>
             </CardHeader>
-            <CardBody className="overflow-visible py-2">
+            <CardBody className="overflow-visible py-2 flex justify-center items-center">
               <div className="flex flex-col items-center justify-end h-full">
                 <div className="flex justify-end mb-4">
                   <Button
@@ -1786,40 +1820,44 @@ const CounterDash = () => {
               </Button>
             </div>
             <div className="flex justify-end mb-2 relative">
-              <Button 
-                ref={transferButtonRef}
-                onMouseEnter={handleTransferButtonClick}
-                disabled={!nowServingToken || nowServingToken === "---"}
-                className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8"
-              >
-                Transfer
-              </Button>
-            </div>
-            {isTransferDropdownOpen && (
               <div 
-                style={{
-                  position: 'absolute',
-                  top: `${dropdownPosition.top}px`,
-                  left: `${dropdownPosition.left}px`,
-                  width: `${dropdownPosition.width}px`,
-                  zIndex: 1000,
-                }}
-                className="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                onMouseEnter={() => setIsTransferDropdownOpen(true)}
+                onMouseLeave={() => setIsTransferDropdownOpen(false)}
               >
-                <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                  {availableCounters.map((counter) => (
-                    <button
-                      key={counter.id}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
-                      role="menuitem"
-                      onClick={() => handleTransfer(counter.email)}
-                    >
-                      {counter.counterName}
-                    </button>
-                  ))}
-                </div>
+                <Button 
+                  ref={transferButtonRef}
+                  disabled={!nowServingToken || nowServingToken === "---"}
+                  className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-32 mt-8"
+                >
+                  Transfer
+                </Button>
+                {isTransferDropdownOpen && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      width: '100%',
+                      zIndex: 1000,
+                    }}
+                    className="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                  >
+                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                      {availableCounters.map((counter) => (
+                        <button
+                          key={counter.id}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                          role="menuitem"
+                          onClick={() => handleTransfer(counter.email)}
+                        >
+                          {counter.counterName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
             <div className="flex justify-end mb-2">
               <Button onClick={handleCancelButtonClick}
                 disabled={!nowServingToken}
@@ -1938,30 +1976,23 @@ const CounterDash = () => {
             onClick={() => request.transferredAt ? 
               handleTransferredTokenPending(request.tokenNumber || request.token) : 
               pendingSpecificToken(request.tokenNumber || request.token)}
-            disabled={nowServingToken == "---"}
             className="bg-[#6236F5] p-2 px-5 rounded-md text-white w-fit mt-3"
           >
             Pending
           </Button>
           </TableCell>
           <TableCell>
-            <Tooltip content={nowServingToken === "---" ? "Delete Token" : "Cannot delete while serving"}>
+            <Tooltip content={"Delete Token"}>
             <div className={nowServingToken !== "---" ? "opacity-50 cursor-not-allowed" : ""}>
               <DeleteIcon
                 onClick={() => {
-                  if (nowServingToken === "---") {
                     if (request.transferredAt) {
                       handleTransferredTokenCancel(request.tokenNumber || request.token);
                     } else {
                       cancelSpecificToken(request.tokenNumber || request.token);
                     }
-                  }
                 }}
-                className={`${
-                  nowServingToken === "---" 
-                    ? "text-red-500 hover:text-red-700 cursor-pointer" 
-                    : "text-gray-400"
-                }`}
+                className="text-red-500 hover:text-red-700 cursor-pointer"
               />
             </div>
           </Tooltip>

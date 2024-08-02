@@ -17,7 +17,7 @@ const MemoizedSlideshow = React.memo(AutomaticSlideshow);
 export const handleRecallExported = (counterNumber, token, setRecalledMessage) => {
   const newMessage = `Recalling token number ${token}, please proceed to counter ${counterNumber}`;
   console.log('hihihihihi');
-  setRecalledMessage(newMessage);
+  playSound(newMessage);
 };
 
 // Main component
