@@ -491,7 +491,7 @@ const CounterDash = () => {
         console.log("Document found with token:", tokenNumber);
   
         // Update the pending field to true and status to true in the requests collection
-        await updateDoc(doc(db, 'requests', document.id), { pending: true, status: true });
+        await updateDoc(doc(db, 'requests', document.id), { pending: true, status: true, transfer: false });
   
         // Get a reference to the queueDoc
         const queueDocRef = doc(db, 'queue', 'queueDoc');
@@ -1302,14 +1302,15 @@ const CounterDash = () => {
         const docToUpdate = querySnapshot.docs[0];
         await updateDoc(doc(requestsRef, docToUpdate.id), { 
           pending: true,
-          status: true  // Keeping status as true to ensure it's still in the active queue
+          status: true,
+          transfer: false  // Keeping status as true to ensure it's still in the active queue
         });
         console.log(`Token ${specialtoken} updated to pending in requests collection.`);
   
         // Update the local state to reflect the change
         setRequestsData(prevData => prevData.map(item => 
           item.tokenNumber === specialtoken 
-            ? {...item, pending: true, status: true} 
+            ? {...item, pending: true, status: true, transfer: false} 
             : item
         ));
       } else {
