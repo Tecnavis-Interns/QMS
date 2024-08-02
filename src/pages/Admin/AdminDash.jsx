@@ -28,6 +28,7 @@ const Dashboard = () => {
     moment().format("MMMM Do YYYY, h:mm:ss a")
   );
   const [counterData, setCounterData] = useState([]);
+  const [totalCompleted, setTotalCompleted] = useState(0);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -110,7 +111,13 @@ const Dashboard = () => {
     return onSnapshot(countersQuery, (snapshot) => {
       const countersData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
       setCounterData(countersData);
+      calculateTotalCompleted(countersData);
     });
+  };
+
+  const calculateTotalCompleted = (counters) => {
+    const total = counters.reduce((sum, counter) => sum + (counter.completed || 0), 0);
+    setTotalCompleted(total);
   };
   useEffect(() => {
     const timer = setInterval(() => {
@@ -169,7 +176,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="bg-red-100 h-24 text-center rounded-lg px-4 py-3">
                 <p className="text-xl font-semibold text-red-700">COMPLETED</p>
-                <p className="mt-1 text-sm text-gray-500">{completedCount}</p>
+                <p className="mt-1 text-sm text-gray-500">{totalCompleted}</p>
               </div>
               <div className="bg-yellow-100 h-24 text-center rounded-lg px-4 py-3">
                 <p className="text-xl font-semibold text-yellow-700">PENDING</p>
