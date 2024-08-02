@@ -527,8 +527,15 @@ const CounterDash = () => {
         // const email = auth.currentUser.email;
         const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
         const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+
+        const counterDocSnap = await getDoc(counterDocRef);
+        const counterDocData = counterDocSnap.exists() ? counterDocSnap.data() : {};
+
+        const currentPriority = counterDocData.priority || [];
+        const updatedPriority = currentPriority.filter(token => token !== tokenNumber);
         
         await updateDoc(counterDocRef, {
+          priority: updatedPriority,
           nowServingToken: "-"
         });
   
@@ -1337,6 +1344,7 @@ const CounterDash = () => {
   
         // Update the pending count based on the length of the pending array
         setPendingCount(pendingArray.length);
+
       } else {
         console.log("Queue document does not exist.");
       }
@@ -1348,19 +1356,23 @@ const CounterDash = () => {
       if (counterDocSnap.exists()) {
         const counterData = counterDocSnap.data();
         let receivedTokens = counterData.receivedTokens || [];
+        let priorityTokens = counterData.priority || [];
   
         // Remove the token from receivedTokens
         receivedTokens = receivedTokens.filter(t => t.token !== specialtoken);
+        priorityTokens = priorityTokens.filter(t => t.token !== specialtoken);
   
         // Update the counter document
         await updateDoc(counterDocRef, {
-          receivedTokens: receivedTokens
+          receivedTokens: receivedTokens,
+          priority: priorityTokens
         });
   
         console.log(`Token ${specialtoken} removed from receivedTokens in counter${counterNumber}'s counterDoc.`);
   
         // Update local state
         setTransferredTokens(prev => prev.filter(t => t.token !== specialtoken));
+        await fetchRemainingCount();
       } else {
         console.log("Counter document does not exist.");
       }
