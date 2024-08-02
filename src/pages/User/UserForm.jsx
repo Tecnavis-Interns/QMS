@@ -5,6 +5,7 @@ import { collection, doc as firestoreDoc, setDoc, getDoc, updateDoc, arrayUnion,
 import { db, submitDataToFirestore } from "../../services/firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
+import { onSnapshot } from "firebase/firestore";
 
 export default function UserForm() {
   const [name, setName] = useState("");
@@ -15,19 +16,22 @@ export default function UserForm() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchServices = async () => {
+    const servicesCollection = collection(db, "services");
+  
+    const unsubscribe = onSnapshot(servicesCollection, (snapshot) => {
       try {
-        const servicesCollection = collection(db, "services");
-        const servicesSnapshot = await getDocs(servicesCollection);
-        const servicesList = servicesSnapshot.docs.map(doc => doc.data().name);
+        const servicesList = snapshot.docs.map(doc => doc.data().name);
         setServices(servicesList);
       } catch (error) {
-        console.error("Error fetching services: ", error);
+        console.error("Error processing services data: ", error);
       }
-    };
-
-    fetchServices();
-  }, []);
+    }, (error) => {
+      console.error("Error fetching services: ", error);
+    });
+  
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
 
   const handleNameChange = (event) => {
     const newName = event.target.value;
