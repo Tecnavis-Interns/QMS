@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { db } from '../../services/firebase'; // Adjust this import path as needed
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 
 const getRandomBrightColor = () => {
   const hue = Math.floor(Math.random() * 360); // Random hue between 0 and 360
@@ -17,14 +17,13 @@ const TokenChart = () => {
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const unsubscribe = onSnapshot(collection(db, "ChartData"), (snapshot) => {
       try {
-        const querySnapshot = await getDocs(collection(db, "ChartData"));
-        const ChartData = querySnapshot.docs.map(doc => ({
+        const ChartData = snapshot.docs.map(doc => ({
           ...doc.data(),
           createdAt: doc.data().createdAt.toDate()
         }));
-
+  
         // Process the data
         const tokenRequests = ChartData.reduce((acc, request) => {
           const date = request.createdAt.toDateString(); // Use date as a key
@@ -34,13 +33,13 @@ const TokenChart = () => {
           acc[date]++;
           return acc;
         }, {});
-
+  
         // Extract labels and data
         const labels = Object.keys(tokenRequests);
         const data = Object.values(tokenRequests);
-
+  
         const colors = labels.map(() => getRandomBrightColor());
-
+  
         setChartData({
           labels: labels,
           datasets: [{
@@ -51,13 +50,16 @@ const TokenChart = () => {
             borderWidth: 1
           }]
         });
-
+  
       } catch (error) {
-        console.error("Error fetching token data:", error);
+        console.error("Error processing token data:", error);
       }
-    };
-
-    fetchData();
+    }, (error) => {
+      console.error("Error fetching token data:", error);
+    });
+  
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
   }, []);
 
   const options = {

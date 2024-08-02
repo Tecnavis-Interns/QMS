@@ -7,6 +7,7 @@ import AutomaticSlideshow from "../Admin/AutomaticSlideshow";
 import { playSound } from '../../PlaySound';
 import { debounce } from 'lodash'; 
 
+
 // LiveClock component
 const LiveClock = React.memo(() => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -38,7 +39,7 @@ const LiveClock = React.memo(() => {
   }, []);
 
   return (
-    <div className="mb-6 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg">
+    <div className="mb-6 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg"> 
       <h4 className="font-bold text-3xl md:text-4xl text-white mb-2">
         {formatTime(currentDateTime)}
       </h4>
@@ -51,11 +52,6 @@ const LiveClock = React.memo(() => {
 
 const MemoizedSlideshow = React.memo(AutomaticSlideshow);
 
-export const handleRecallExported = (counterNumber, token, setRecalledMessage) => {
-  const newMessage = `Recalling token number ${token}, please proceed to counter ${counterNumber}`;
-  console.log('hihihihihi');
-  playSound(newMessage);
-};
 
 // Main component
 const UserForm = () => {
@@ -64,18 +60,48 @@ const UserForm = () => {
   const [refresh, setRefresh] = useState(false);
   const [recalledMessage, setRecalledMessage] = useState(null);
   const lastPlayedTokens = useRef({});
+  const handleRecallRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const debouncedPlaySound = useCallback(
     debounce((message) => {
-      playSound(message);
+      setIsPlaying(true);
+      playSound(message)
+        .then(() => {
+          setIsPlaying(false);
+        })
+        .catch((error) => {
+          console.error('Error playing sound:', error);
+          setIsPlaying(false);
+        });
     }, 300),
     []
   );
 
-  const handleRecall = useCallback((counterNumber, token) => {
-    const newMessage = `Recalling token number ${token}, please proceed to counter ${counterNumber}`;
-    setRecalledMessage(newMessage);
-  }, []);
+  const SpeakerIcon = ({ isPlaying }) => (
+    <div className="fixed top-4 right-4 p-2 bg-white rounded-full shadow-lg">
+      <div className={`relative w-8 h-8 ${isPlaying ? 'text-blue-500' : 'text-gray-600'}`}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`w-full h-full ${isPlaying ? 'animate-pulse' : ''}`}
+        >
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          {isPlaying && (
+            <>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </>
+          )}
+        </svg>
+      </div>
+    </div>
+  );
   
 
   useEffect(() => {
@@ -119,25 +145,13 @@ const UserForm = () => {
       });
     });
 
-    
-    // Attach handleRecall to window object
-    window.handleRecall = (counterNumber, token) => {
-      handleRecallExported(counterNumber, token, setRecalledMessage);
-    };
 
     return () => {
       unsubscribe();
       debouncedPlaySound.cancel();
-      delete window.handleRecall;
     };
-  }, [debouncedPlaySound, handleRecall]);
+  }, [debouncedPlaySound]);
 
-  useEffect(() => {
-    if (recalledMessage) {
-      debouncedPlaySound(recalledMessage);
-      setRecalledMessage(null); // Reset after playing
-    }
-  }, [recalledMessage, debouncedPlaySound]);
 
   const tableContent = useMemo(() => (
     <Table 
@@ -166,7 +180,8 @@ const UserForm = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 justify-center">
-      <div className="flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4">
+      
+      <div className="flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4 mt-10">
         <div className="md:w-1/2">
           <Card className="h-full">
             <CardBody className="p-0">
@@ -174,6 +189,7 @@ const UserForm = () => {
             </CardBody>
           </Card>
         </div>
+        <SpeakerIcon isPlaying={isPlaying} className="mb-10"/>
         <div className="md:w-1/2 space-y-4">
           <LiveClock />
           <Card>

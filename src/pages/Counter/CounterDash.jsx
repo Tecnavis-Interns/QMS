@@ -38,7 +38,6 @@ import { Tooltip } from "@nextui-org/react";
 import toast, { Toaster } from 'react-hot-toast';
 
 
-
 const CounterDash = () => {
   const navigate = useNavigate();
   const { email, completedCount, updateCompletedCount } = useContext(AuthContext);
@@ -556,18 +555,34 @@ const CounterDash = () => {
 
   
 
-
-  const handleRecallButtonClick = () => {
+  const handleRecallButtonClick = async () => {
     console.log("Recall button clicked");
     if (nowServingToken === "---") {
       console.log("No token currently being served.");
       return;
     }
+    
     console.log('Current nowServingToken:', nowServingToken);
     console.log('Current email:', email);
     const counterNumber = parseInt(email.split("@")[0].replace("counter", ""));
     console.log('Calculated counterNumber:', counterNumber);
+  
+    const originalToken = nowServingToken;
+    const counterDocRef = doc(db, `counter${counterNumber}`, 'counterDoc');
+
+    // Temporarily set nowServingToken to '-'
+    await updateDoc(counterDocRef, {
+      nowServingToken: '-'
+    });
+
+    // Revert it back to the original nowServingToken after a few milliseconds
+    setTimeout(async () => {
+      await updateDoc(counterDocRef, {
+        nowServingToken: originalToken
+      });
+    }, 10); 
   };
+  
 
 
 

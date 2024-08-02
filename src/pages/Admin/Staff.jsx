@@ -20,6 +20,7 @@ import {
   query,
   where,
   updateDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import ModalStaff from "./ModalStaff";
@@ -39,21 +40,27 @@ const Staff = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
 
-  // Fetch staff data from Firestore
-  const fetchStaffData = useCallback(async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "staff"));
-      const data = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setStaffData(data);
-    } catch (error) {
-      console.error("Error fetching staff data:", error);
-      toast.error("Failed to fetch staff data");
-    }
-  }, []);
+  
 
+  const fetchStaffData = useCallback(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "staff"),
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setStaffData(data);
+      },
+      (error) => {
+        console.error("Error fetching staff data:", error);
+        toast.error("Failed to fetch staff data");
+      }
+    );
+  
+    // Return the unsubscribe function
+    return unsubscribe;
+  }, []);
   // Fetch services from Firestore
   const fetchServices = useCallback(async () => {
     try {
