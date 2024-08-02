@@ -1,15 +1,13 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState } from 'react';
 
-const SpeechContext = createContext();
+export const SpeechContext = createContext();
 
 export const SpeechProvider = ({ children }) => {
-  const [message, setMessage] = useState("");
+  const [textToSpeak, setTextToSpeak] = useState('');
 
   return (
-    <SpeechContext.Provider value={{ message, setMessage }}>
+    <SpeechContext.Provider value={{ textToSpeak, setTextToSpeak }}>
       {children}
     </SpeechContext.Provider>
   );
-};
-
-export const useSpeech = () => useContext(SpeechContext);
+}

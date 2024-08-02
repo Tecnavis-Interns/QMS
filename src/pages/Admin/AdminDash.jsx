@@ -81,7 +81,7 @@ const Dashboard = () => {
       const updatedRequests = isTransferred
         ? [...newRequests, ...prevRequests.filter(req => !req.transfer)]
         : [...prevRequests.filter(req => req.transfer), ...newRequests.filter(req => !req.transfer)];
-      return updatedRequests;
+      return updatedRequests.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
     });
   };
 

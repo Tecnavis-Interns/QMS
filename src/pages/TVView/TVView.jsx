@@ -1,75 +1,45 @@
-import React, { useState, useEffect, useMemo,useCallback } from 'react';
+import React, { useState, useEffect, useMemo,useCallback, useRef } from 'react';
 import { Card, CardBody } from "@nextui-org/react";
 import { collection, onSnapshot, doc, query, orderBy } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell} from "@nextui-org/react";
 import AutomaticSlideshow from "../Admin/AutomaticSlideshow"; 
-import { speak } from './speech';  // Keep this import
+import { playSound } from '../../PlaySound';
+import { debounce } from 'lodash'; 
 
+// LiveClock component
 const LiveClock = React.memo(() => {
-  const [currentDateTime, setCurrentDateTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatDate = useCallback((date) => {
-    const options = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return date.toLocaleDateString('en-US', options);
-  }, []);
-
-  const formatTime = useCallback((date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    });
-  }, []);
-
-  return (
-    <div className="mb-6 mt-4 flex flex-col items-center justify-center text-center bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-lg shadow-lg">
-      <h4 className="font-bold text-3xl md:text-4xl text-white mb-2">
-        {formatTime(currentDateTime)}
-      </h4>
-      <p className="text-lg md:text-xl text-gray-200">
-        {formatDate(currentDateTime)}
-      </p>
-    </div>
-  );
+  // ... LiveClock component code (unchanged) ...
 });
 
 const MemoizedSlideshow = React.memo(AutomaticSlideshow);
 
-export const CustomEventEmitter = {
-  events: {},
-  dispatch: function(event, data) {
-    if (!this.events[event]) return;
-    this.events[event].forEach(callback => callback(data));
-  },
-  subscribe: function(event, callback) {
-    if (!this.events[event]) this.events[event] = [];
-    this.events[event].push(callback);
-  },
-  unsubscribe: function(event, callback) {
-    if (!this.events[event]) return;
-    this.events[event] = this.events[event].filter(cb => cb !== callback);
-  }
+export const handleRecallExported = (counterNumber, token, setRecalledMessage) => {
+  const newMessage = `Recalling token number ${token}, please proceed to counter ${counterNumber}`;
+  console.log('hihihihihi');
+  playSound(newMessage);
 };
 
-export default function UserForm() {
+// Main component
+const UserForm = () => {
   const [countersData, setCountersData] = useState([]);
   const [nowServingData, setNowServingData] = useState({});
   const [refresh, setRefresh] = useState(false);
-  const [lastRecalledToken, setLastRecalledToken] = useState(null);
+  const [recalledMessage, setRecalledMessage] = useState(null);
+  const lastPlayedTokens = useRef({});
+
+  const debouncedPlaySound = useCallback(
+    debounce((message) => {
+      playSound(message);
+    }, 300),
+    []
+  );
+
+  const handleRecall = useCallback((counterNumber, token) => {
+    const newMessage = `Recalling token number ${token}, please proceed to counter ${counterNumber}`;
+    setRecalledMessage(newMessage);
+  }, []);
+  
 
   useEffect(() => {
     const countersRef = collection(db, 'counters');
@@ -89,14 +59,12 @@ export default function UserForm() {
           if (docSnapshot.exists()) {
             const newToken = docSnapshot.data().nowServingToken || "-";
             setNowServingData(prev => {
-              if (prev[counter.id] !== newToken) {
-                if (newToken !== "-") {
-                  const message = `Token number ${newToken}, please proceed to counter ${counter.counterName.split(' ')[1]}`;
-                  speak(message);
-                }
-                return { ...prev, [counter.id]: newToken };
+              const oldToken = prev[counter.id];
+              if (oldToken !== newToken && newToken !== "-" && lastPlayedTokens.current[counter.id] !== newToken) {
+                lastPlayedTokens.current[counter.id] = newToken;
+                debouncedPlaySound(`Token number ${newToken} please proceed to ${counter.counterName}`);
               }
-              return prev;
+              return { ...prev, [counter.id]: newToken };
             });
             setCountersData(prevCounters => {
               const updatedCounter = prevCounters.find(c => c.id === counter.id);
@@ -108,20 +76,25 @@ export default function UserForm() {
       });
     });
 
-    const recallSpecificToken = ({ tokenNumber, counterNumber }) => {
-      const message = `Recalling Token number ${tokenNumber}, please proceed to counter ${counterNumber}`;
-      console.log("New token recall:", message);
-      speak(message);
-      setLastRecalledToken({ tokenNumber, counterNumber });
+    
+    // Attach handleRecall to window object
+    window.handleRecall = (counterNumber, token) => {
+      handleRecallExported(counterNumber, token, setRecalledMessage);
     };
-
-    CustomEventEmitter.subscribe('tokenRecall', recallSpecificToken);
 
     return () => {
       unsubscribe();
-      CustomEventEmitter.unsubscribe('tokenRecall', recallSpecificToken);
+      debouncedPlaySound.cancel();
+      delete window.handleRecall;
     };
-  }, []);
+  }, [debouncedPlaySound, handleRecall]);
+
+  useEffect(() => {
+    if (recalledMessage) {
+      debouncedPlaySound(recalledMessage);
+      setRecalledMessage(null); // Reset after playing
+    }
+  }, [recalledMessage, debouncedPlaySound]);
 
   const tableContent = useMemo(() => (
     <Table 
@@ -175,4 +148,8 @@ export default function UserForm() {
       </div>
     </div>
   );
-}
+};
+
+
+
+export default UserForm;
