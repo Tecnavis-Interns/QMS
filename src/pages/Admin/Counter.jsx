@@ -83,7 +83,7 @@ const AdminDash = () => {
             await updateDoc(counterDocRef, { 
               receivedTokens: [], 
               priority: [], 
-              nowservingtoken: '-' 
+              nowServingToken: '-' 
           })
           }
         });

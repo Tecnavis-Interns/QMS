@@ -100,7 +100,7 @@ async function clearCounterDoc(counterCollectionRef) {
     await counterDocRef.update({ 
       receivedTokens: [], 
       priority: [], 
-      nowservingtoken: '-' 
+      nowServingToken: '-' 
     });
     console.log(`Cleared receivedTokens, priority array and set nowservingtoken to '-' in counterDoc.`);
   } catch (error) {
