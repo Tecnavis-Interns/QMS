@@ -62,7 +62,7 @@ async function resetCounters() {
       if (data.email) {
         const counterName = data.email.split('@')[0];
         const counterCollectionRef = db.collection(counterName); // Collection
-        await clearCounterDocReceivedTokens(counterCollectionRef);
+        await clearCounterDoc(counterCollectionRef);
       }
     }
 
@@ -74,14 +74,18 @@ async function resetCounters() {
 }
 
 // Function to clear `receivedTokens` array in `counterDoc` document
-async function clearCounterDocReceivedTokens(counterCollectionRef) {
+async function clearCounterDoc(counterCollectionRef) {
   try {
     // Assuming counterDoc is the document ID
     const counterDocRef = counterCollectionRef.doc('counterDoc');
-    await counterDocRef.update({ receivedTokens: [] });
-    console.log(`Cleared receivedTokens in counterDoc.`);
+    await counterDocRef.update({ 
+      receivedTokens: [], 
+      priority: [], 
+      nowservingtoken: '-' 
+    });
+    console.log(`Cleared receivedTokens, priority array and set nowservingtoken to '-' in counterDoc.`);
   } catch (error) {
-    console.error(`Error clearing receivedTokens in counterDoc: ${error}`);
+    console.error(`Error updating counterDoc: ${error}`);
   }
 }
 
