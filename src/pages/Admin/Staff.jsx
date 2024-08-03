@@ -41,7 +41,7 @@ const Staff = () => {
   const [selectedStaff, setSelectedStaff] = useState(null);
 
   
-  // Fetch staff data from Firestore in real-time
+
   const fetchStaffData = useCallback(() => {
     const unsubscribe = onSnapshot(
       collection(db, "staff"),
@@ -60,16 +60,7 @@ const Staff = () => {
   
     // Return the unsubscribe function
     return unsubscribe;
-  }, []);
-  
-  useEffect(() => {
-    // Set up the real-time listener when the component mounts
-    const unsubscribe = fetchStaffData();
-  
-    // Clean up the listener when the component unmounts
-    return () => unsubscribe();
-  }, [fetchStaffData]);
-
+  }, []);
   // Fetch services from Firestore
   const fetchServices = useCallback(async () => {
     try {

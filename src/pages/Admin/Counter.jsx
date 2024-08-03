@@ -80,8 +80,11 @@ const AdminDash = () => {
           if (data.email) {
             const counterName = data.email.split('@')[0];
             const counterDocRef = firestoreDoc(db, counterName, "counterDoc");
-            console.log('//////////////////////////////')
-            await updateDoc(counterDocRef, { receivedTokens: [] });
+            await updateDoc(counterDocRef, { 
+              receivedTokens: [], 
+              priority: [], 
+              nowservingtoken: '-' 
+          })
           }
         });
         await Promise.all(counterUpdatePromises);

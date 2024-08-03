@@ -28,6 +28,7 @@ const Dashboard = () => {
     moment().format("MMMM Do YYYY, h:mm:ss a")
   );
   const [counterData, setCounterData] = useState([]);
+  const [totalCompleted, setTotalCompleted] = useState(0);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -110,7 +111,13 @@ const Dashboard = () => {
     return onSnapshot(countersQuery, (snapshot) => {
       const countersData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
       setCounterData(countersData);
+      calculateTotalCompleted(countersData);
     });
+  };
+
+  const calculateTotalCompleted = (counters) => {
+    const total = counters.reduce((sum, counter) => sum + (counter.completed || 0), 0);
+    setTotalCompleted(total);
   };
   useEffect(() => {
     const timer = setInterval(() => {
@@ -121,136 +128,133 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-gray-100">
       {/* Header Section */}
-      <div className="flex ml-4 mt-6 sm:ml-8 lg:ml-14">
-        <div className="bg-white w-full sm:w-1/2 md:w-1/4 rounded-lg shadow-md p-4 sm:p-6 mb-6">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
+        <div className="bg-white w-full sm:w-1/2 md:w-1/4 rounded-lg shadow-md p-4">
           <p className="text-gray-600">{currentTime}</p>
         </div>
       </div>
   
       {/* Main Cards */}
-      <div className="mt-6 mb-6">
-        <div className="flex space-x-4 sm:space-x-8 px-4 sm:px-8 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <style jsx>{`
-            .flex::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
-            {counterData.map((counter) => (
-              <div key={counter.id} className="flex-shrink-0 w-[160px] sm:w-[200px] cursor-pointer">
-                <div className="bg-indigo-200 h-20 rounded-xl p-2 sm:p-3 mb-2 w-full mx-auto relative z-0">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h1 className="text-sm sm:text-lg font-bold">
-                        {counter.completed} <span className="text-xs sm:text-sm opacity-60 font-normal">Completed</span>
-                      </h1>
-                    </div>
-                    <div>
-                      <h1 className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
-                        counter.active ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
-                      }`}>
-                        {counter.active ? 'Active' : 'Closed'}
-                      </h1>
-                    </div>
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+          {counterData.map((counter) => (
+            <div key={counter.id} className="flex-shrink-0 w-48 sm:w-56 cursor-pointer">
+              <div className="bg-indigo-200 h-24 rounded-xl p-3 mb-2 relative z-0">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-lg font-bold">
+                      {counter.completed} <span className="text-sm opacity-60 font-normal">Completed</span>
+                    </h1>
                   </div>
-                </div>
-                <div className="bg-slate-100 rounded-xl p-2 sm:p-3 -mt-6 pt-6 sm:pt-8 relative z-10">
-                  <div className="flex items-center mb-1 sm:mb-2">
-                    <div className="flex flex-col">
-                      <h1 className="font-bold text-xs sm:text-sm">{counter.counterName}</h1>
-                      <h1 className=" text-xs sm:text-sm">{counter.service}</h1>
-                    </div>
-                  </div>
-                  <div className="border-t pt-1 sm:pt-2">
-                    {/* Optional section */}
+                  <div>
+                    <h1 className={`text-xs font-medium px-2 py-1 rounded ${
+                      counter.active ? 'bg-green-300 text-green-900' : 'bg-red-400 text-white'
+                    }`}>
+                      {counter.active ? 'Active' : 'Closed'}
+                    </h1>
                   </div>
                 </div>
               </div>
-            ))}
-        </div>
-      </div>
-  
-      {/* Cards & Charts */}
-      <div className="flex flex-col sm:flex-row w-full pt-8">
-        <div className="grid w-full sm:w-3/5 ml-4 sm:ml-16 sm:-mt-7 grid-cols-1 sm:grid-cols-3 gap-4 mb-4 sm:mb-0">
-          <div className="bg-red-100 h-24 text-center rounded-lg px-4 py-3 sm:py-5">
-            <p className="text-lg sm:text-xl font-semibold text-red-700">COMPLETED</p>
-            <p className="mt-1 text-sm text-gray-500">{completedCount}</p>
-          </div>
-          <div className="bg-yellow-100 h-24 text-center rounded-lg px-4 py-3 sm:py-5">
-            <p className="text-lg sm:text-xl font-semibold text-yellow-700">PENDING</p>
-            <p className="mt-1 text-sm text-gray-500">{pendingCount}</p>
-          </div>
-          <div className="bg-green-100 h-24 text-center rounded-lg px-4 py-3 sm:py-5">
-            <p className="text-lg sm:text-xl font-semibold text-green-700">REMAINING</p>
-            <p className="mt-1 text-sm text-gray-500">{remainingCount}</p>
-          </div>
-        </div>
-        <div className="w-full sm:w-1/3 ml-4 sm:ml-8 -mt-4 sm:-mt-14">
-          <TokenChart />
-        </div>
-      </div>
-  
-      {/* Queue List & Staff */}
-      <div className="flex flex-col sm:flex-row h-auto sm:h-[400px] -mt-40 -ml-4 -mr-4 ">
-        <div className="w-full sm:w-[700px] ml-4 sm:ml-14  sm:-mt-20 p-4">
-          <h1 className="text-xl py-2 px-3">Queue Details</h1>
-          <Table aria-label="Queue Details">
-            <TableHeader>
-              <TableColumn>Sl. no.</TableColumn>
-              <TableColumn>Name</TableColumn>
-              <TableColumn>Date</TableColumn>
-              <TableColumn>Service</TableColumn>
-              <TableColumn>Status</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {requests.map((request, index) => (
-                <TableRow key={request.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{request.name}</TableCell>
-                  <TableCell>{request.date && request.date.toDate ? moment(request.date.toDate()).format('DD/MM/YYYY') : 'N/A'}</TableCell>
-                  <TableCell>{request.service}</TableCell>
-                  <TableCell>
-                    <h1 className={`text-xs font-medium me-2 pr-2 px-2.5 py-0.5 rounded ${
-                      request.transfer 
-                        ? 'bg-blue-300 text-blue-900 dark:bg-blue-900 dark:text-blue-300'
-                        : request.pending
-                          ? 'bg-orange-400 text-orange-900 dark:bg-orange-900 dark:text-orange-700'
-                          : 'bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-700'
-                    }`}>
-                      {request.transfer 
-                        ? 'Transferred' 
-                        : request.pending
-                          ? 'Pending'
-                          : 'In Queue'}
-                    </h1>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        </div>
-        <div className="flex justify-end -mt-60 mr-2">
-        <div className="bg-white shadow-2xl h-auto sm:h-72 sm:mt-13 mr-2 sm:ml-22 rounded-xl w-full sm:w-[335px] overflow-y-auto">
-          <h1 className="py-2 px-5">Current Staff</h1>
-          {staffMembers.map((staff) => (
-            <div key={staff.id} className="flex mt-2">
-              <img
-                className="w-8 h-8 rounded-full ml-2 sm:ml-4"
-                src={staff.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"}
-                alt={`${staff.staffName} profile`}
-              />
-              <div className="ml-2 sm:ml-4">
-                <h2 className="font-sans font-semibold text-sm sm:text-base py-1">{staff.staffName}</h2>
-                <p className="font-sans text-xs sm:text-sm">{staff.role || 'Staff Member'}</p>
+              <div className="bg-slate-100 rounded-xl p-3 -mt-6 pt-8 relative z-10 h-24">
+                <div className="flex flex-col">
+                  <h1 className="font-bold text-sm">{counter.counterName}</h1>
+                  <h1 className="text-sm">{counter.service}</h1>
+                </div>
               </div>
             </div>
           ))}
         </div>
+      </div>
+  
+      {/* Cards, Charts, Queue Details, and Staff */}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="w-full lg:w-2/3">
+            {/* Status Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-red-100 h-24 text-center rounded-lg px-4 py-3">
+                <p className="text-xl font-semibold text-red-700">COMPLETED</p>
+                <p className="mt-1 text-sm text-gray-500">{totalCompleted}</p>
+              </div>
+              <div className="bg-yellow-100 h-24 text-center rounded-lg px-4 py-3">
+                <p className="text-xl font-semibold text-yellow-700">PENDING</p>
+                <p className="mt-1 text-sm text-gray-500">{pendingCount}</p>
+              </div>
+              <div className="bg-green-100 h-24 text-center rounded-lg px-4 py-3">
+                <p className="text-xl font-semibold text-green-700">REMAINING</p>
+                <p className="mt-1 text-sm text-gray-500">{remainingCount}</p>
+              </div>
+            </div>
+            
+            {/* Queue Details */}
+            <div>
+              <h1 className="text-xl font-semibold mb-4">Queue Details</h1>
+              <div className="overflow-x-auto">
+                <Table aria-label="Queue Details">
+                  <TableHeader>
+                    <TableColumn>Sl. no.</TableColumn>
+                    <TableColumn>Name</TableColumn>
+                    <TableColumn>Date</TableColumn>
+                    <TableColumn>Service</TableColumn>
+                    <TableColumn>Status</TableColumn>
+                  </TableHeader>
+                  <TableBody>
+                    {requests.map((request, index) => (
+                      <TableRow key={request.id}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{request.name}</TableCell>
+                        <TableCell>{request.date && request.date.toDate ? moment(request.date.toDate()).format('DD/MM/YYYY') : 'N/A'}</TableCell>
+                        <TableCell>{request.service}</TableCell>
+                        <TableCell>
+                          <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${
+                            request.transfer 
+                              ? 'bg-blue-300 text-blue-900'
+                              : request.pending
+                                ? 'bg-orange-400 text-orange-900'
+                                : 'bg-green-300 text-green-900'
+                          }`}>
+                            {request.transfer 
+                              ? 'Transferred' 
+                              : request.pending
+                                ? 'Pending'
+                                : 'In Queue'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+          
+          {/* Token Chart and Current Staff */}
+          <div className="w-full lg:w-1/3 space-y-6">
+            <div className="bg-white rounded-xl shadow-md p-4">
+              <TokenChart />
+            </div>
+            <div className="bg-white shadow-md rounded-xl p-4">
+              <h1 className="text-xl font-semibold mb-4">Current Staff</h1>
+              {staffMembers.map((staff) => (
+                <div key={staff.id} className="flex items-center mb-4">
+                  <img
+                    className="w-10 h-10 rounded-full mr-4"
+                    src={staff.imageUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXQIhCa4OVtg6VpVOpw2kHHByhxVyj29trOw&usqp=CAU"}
+                    alt={`${staff.staffName} profile`}
+                  />
+                  <div>
+                    <h2 className="font-semibold">{staff.staffName}</h2>
+                    <p className="text-sm text-gray-600">{staff.role || 'Staff Member'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-    </>
+      </div>
+    </div>
   );
 };  
 
