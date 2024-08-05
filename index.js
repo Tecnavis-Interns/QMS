@@ -1,3 +1,6 @@
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
 import admin from 'firebase-admin';
@@ -22,6 +25,17 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(__dirname));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Function to clear a collection
 async function clearCollection(collectionName) {
@@ -81,7 +95,7 @@ async function clearCounterDoc(counterCollectionRef) {
     await counterDocRef.update({
       receivedTokens: [],
       priority: [],
-      nowservingtoken: '-'
+      nowServingToken: '-'
     });
     console.log(`Cleared receivedTokens, priority array and set nowservingtoken to '-' in counterDoc.`);
   } catch (error) {
@@ -89,7 +103,7 @@ async function clearCounterDoc(counterCollectionRef) {
   }
 }
 
-// Schedule the cron job to run at 3:05 PM every day
+
 cron.schedule('0 0 * * *', async () => {
   console.log('Cron job started at:', new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   try {
@@ -105,5 +119,9 @@ cron.schedule('0 0 * * *', async () => {
   timezone: "Asia/Kolkata"
 });
 
-console.log('Cron job scheduled. Running every day at 3:05 PM India Standard Time.');
+console.log('Cron job scheduled. Running every day at 12:00 AM India Standard Time.');
 console.log('Current server time:', new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
