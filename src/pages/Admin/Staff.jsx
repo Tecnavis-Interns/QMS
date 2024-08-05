@@ -153,13 +153,16 @@ const handleDelete = async (docId) => {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <div className="fixed h-full">
+    <div className="grid grid-cols-1 md:grid-cols-[auto,1fr] min-h-screen">
+      <div className="hidden md:block">
         <Navbar />
       </div>
-      <div className="flex flex-col flex-1 ml-64">
-        <div className="flex justify-end mt-4 mr-[100px]">
-          <div className="w-[300px]">
+      <div className="flex flex-col p-4 md:p-6 lg:p-8 overflow-x-hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <div className="font-semibold text-lg sm:text-xl">
+            <h2>Active Staffs</h2>
+          </div>
+          <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
             <Input
               isClearable
               radius="lg"
@@ -186,85 +189,71 @@ const handleDelete = async (docId) => {
               }}
               placeholder="Type to search..."
               startContent={<FaSearch />}
+              className="w-full sm:w-[300px]"
             />
+            <Button
+              color="primary"
+              className="w-full sm:w-auto bg-[#908fe2]"
+              onClick={handleAddStaff}
+            >
+              + Add Staff
+            </Button>
           </div>
         </div>
-        <div className="lg:mx-24 flex justify-start flex-wrap gap-1">
-          <div className="flex items-center justify-start gap-1 w-full py-6">
-            <ModalStaff
-              isOpen={isAddModalOpen}
-              onClose={handleCloseModal}
-              // services={services.map((service) => service.name)}
-              onSubmit={fetchStaffData} // Pass fetchStaffData directly for refresh
-            />
-            <EditModalStaff
-              isOpen={isEditModalOpen}
-              onClose={handleCloseModal}
-              // services={services.map((service) => service.name)}
-              staff={selectedStaff}
-              onSubmit={handleEditSubmit}
-            />
-          </div>
-          <div className="flex flex-col justify-center py-5 gap-4 w-full">
-            <div className="flex justify-between items-center w-full">
-              <div className="font-semibold md:text-xl">
-                <h2>Active Staffs</h2>
-              </div>
-              <div className="justify-end">
-                <Button
-                  color="primary"
-                  className="w-[120px] bg-[#908fe2]"
-                  onClick={handleAddStaff}
-                >
-                  + Add Staff
-                </Button>
-              </div>
-            </div>
-            {staffData.length === 0 ? (
-              <p>No valid data available</p>
-            ) : (
-              <Table aria-label="Staff table" removeWrapper>
-                <TableHeader>
-                  <TableColumn>Sl. no.</TableColumn>
-                  {/* <TableColumn>Staff ID</TableColumn> */}
-                  <TableColumn>Name</TableColumn>
-                  <TableColumn>Email</TableColumn>
-                  {/* <TableColumn>Service</TableColumn> */}
-                  <TableColumn>Actions</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {staffData.filter(i => i.active).map((user, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{index + 1}</TableCell>
-                      {/* <TableCell>{user.id}</TableCell> */}
-                      <TableCell>{user.staffName}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      {/* <TableCell>{user.service}</TableCell> */}
-                      <TableCell>
+        {staffData.length === 0 ? (
+          <p>No valid data available</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table aria-label="Staff table" className="min-w-full">
+              <TableHeader>
+                <TableColumn>Sl. no.</TableColumn>
+                <TableColumn>Name</TableColumn>
+                <TableColumn className="hidden sm:table-cell">Email</TableColumn>
+                <TableColumn>Actions</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {staffData.filter(i => i.active).map((user, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{user.staffName}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                           size="mini"
-                          className="ml-2 bg-[#b9b0eb]"
+                          className="bg-[#b9b0eb]"
                           onClick={() => handleEdit(user.id)}
                         >
                           Edit
                         </Button>
                         <Button
                           color="error"
-                          size="small"
+                          size="mini"
                           onClick={() => handleDelete(user.id)}
                           className="text-red-500 hover:text-red-700"
                         >
                           Delete
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        )}
       </div>
+      <ModalStaff
+        isOpen={isAddModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={fetchStaffData}
+      />
+      <EditModalStaff
+        isOpen={isEditModalOpen}
+        onClose={handleCloseModal}
+        staff={selectedStaff}
+        onSubmit={handleEditSubmit}
+      />
     </div>
   );
 };

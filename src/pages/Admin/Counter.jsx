@@ -26,7 +26,6 @@ import { getAuth } from "firebase/auth";
 import { db } from "../../services/firebase";
 import { doc as firestoreDoc } from "firebase/firestore";
 
-
 const AdminDash = () => {
   const auth = getAuth();
 
@@ -143,54 +142,56 @@ const AdminDash = () => {
         <Navbar />
       </div>
       <div className="flex flex-col flex-1 ml-64">
-        <div className="flex flex-col justify-center py-5 gap-4 w-full px-6">
-          <div className="flex justify-between items-center w-full mb-4">
-            <div className="font-semibold md:text-xl">
+        <div className="flex flex-col justify-center py-5 gap-4 w-full px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full mb-4">
+            <div className="font-semibold text-lg sm:text-xl mb-2 sm:mb-0">
               <h2>Active Counters</h2>
             </div>
-            <div className="flex items-center gap-2">
-            <ModalCounter onCounterAdded={handleCounterAdded} />
-            <Button onClick={handleReset} className="bg-[#908fe2] text-white">
-              Reset
-            </Button>
-          </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <ModalCounter onCounterAdded={handleCounterAdded} />
+              <Button onClick={handleReset} className="bg-[#908fe2] text-white w-full sm:w-auto">
+                Reset
+              </Button>
+            </div>
           </div>
           
-          <Table aria-label="Example static collection table">
-            <TableHeader>
-              <TableColumn>Counter Name</TableColumn>
-              <TableColumn>Email</TableColumn>
-              <TableColumn>Service</TableColumn>
-              <TableColumn>Actions</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {counters.map((counter) => (
-                <TableRow key={counter.id}>
-                  <TableCell>{counter.counterName}</TableCell>
-                  <TableCell>{counter.email}</TableCell>
-                  <TableCell>{counter.service}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleEditCounter(counter)}
-                        className="bg-[#b9b0eb] text-black"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleDeleteCounter(counter.id)}
-                        className="text-red-400 bg-white"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table aria-label="Active counters table" className="min-w-full">
+              <TableHeader>
+                <TableColumn>Counter Name</TableColumn>
+                <TableColumn className="hidden sm:table-cell">Email</TableColumn>
+                <TableColumn className="hidden md:table-cell">Service</TableColumn>
+                <TableColumn>Actions</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {counters.map((counter) => (
+                  <TableRow key={counter.id}>
+                    <TableCell>{counter.counterName}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{counter.email}</TableCell>
+                    <TableCell className="hidden md:table-cell">{counter.service}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleEditCounter(counter)}
+                          className="bg-[#b9b0eb] text-black w-full sm:w-auto"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleDeleteCounter(counter.id)}
+                          className="text-red-400 bg-white w-full sm:w-auto"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
       

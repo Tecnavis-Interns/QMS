@@ -14,7 +14,6 @@ onSnapshot,
 import { db, submitDataToFirestore } from "../../services/firebase";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
-import { onSnapshot } from "firebase/firestore";
 
 export default function UserForm() {
   const [name, setName] = useState("");

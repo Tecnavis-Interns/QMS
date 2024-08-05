@@ -28,12 +28,12 @@ async function clearCollection(collectionName) {
   console.log(`Attempting to clear collection: ${collectionName}`);
   const collectionRef = db.collection(collectionName);
   const snapshot = await collectionRef.get();
-  
+
   const batch = db.batch();
   snapshot.docs.forEach((doc) => {
     batch.delete(doc.ref);
   });
-  
+
   await batch.commit();
   console.log(`Collection ${collectionName} has been cleared. ${snapshot.docs.length} documents deleted.`);
 }
@@ -78,10 +78,10 @@ async function clearCounterDoc(counterCollectionRef) {
   try {
     // Assuming counterDoc is the document ID
     const counterDocRef = counterCollectionRef.doc('counterDoc');
-    await counterDocRef.update({ 
-      receivedTokens: [], 
-      priority: [], 
-      nowservingtoken: '-' 
+    await counterDocRef.update({
+      receivedTokens: [],
+      priority: [],
+      nowservingtoken: '-'
     });
     console.log(`Cleared receivedTokens, priority array and set nowservingtoken to '-' in counterDoc.`);
   } catch (error) {
